@@ -10,8 +10,12 @@
   locally). Audio is not stored in PostgreSQL.
 - **Recording**: browser MediaRecorder. It is widely available and records a media stream obtained
   from microphone permission. [MDN](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder)
-- **Transcription**: `gpt-4o-transcribe` behind an adapter. The API accepts common audio formats
-  and supports language and prompt guidance. [OpenAI Audio API](https://platform.openai.com/docs/api-reference/audio/voice-consent-list?lang=curl)
+- **Transcription**: local `whisper.cpp` is the MVP baseline because interview answers will
+  normally exceed GigaAM v3's 25-second direct-transcription limit. It keeps candidate audio in
+  project infrastructure and offers a local CLI for transcription. [whisper.cpp official
+  repository](https://github.com/ggml-org/whisper.cpp) GigaAM `v3_e2e_rnnt` and RouterAI remain
+  comparison adapters only; adoption requires a frozen synthetic long-answer benchmark covering
+  technical vocabulary, accuracy, and latency. [GigaAM official repository](https://github.com/salute-developers/GigaAM)
 - **Question voice**: `gpt-4o-mini-tts` behind an adapter.
 - **Avatar**: a licensed neutral illustrated animated avatar with pre-generated question speech;
   do not use a streaming video-avatar vendor in MVP.

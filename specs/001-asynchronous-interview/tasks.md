@@ -6,24 +6,24 @@ description: "Implementation tasks for the first recording and transcription sli
 
 **Input**: Design documents from `specs/001-asynchronous-interview/`
 
-**Scope cut**: Deliver recording, durable saving, local and RouterAI transcription, transcript
+**Scope cut**: Deliver recording, durable saving, local Whisper transcription, transcript
 viewing, and cached Silero question speech. Exclude scoring, evidence extraction, recommendations,
 and hiring decisions.
 
 ## Phase 1: Setup
 
 - [X] T001 Create FastAPI application package and runtime configuration in `backend/app/main.py` and `backend/app/config.py`
-- [ ] T002 Create React/Vite TypeScript application shell in `frontend/package.json` and `frontend/src/main.tsx`
-- [ ] T003 [P] Create local PostgreSQL and MinIO development services in `docker-compose.yml`
+- [X] T002 Create React/Vite TypeScript application shell in `frontend/package.json` and `frontend/src/main.tsx`
+- [X] T003 [P] Create local PostgreSQL and MinIO development services in `docker-compose.yml`
 - [X] T004 [P] Add backend dependency and development commands in `backend/pyproject.toml`
-- [ ] T005 [P] Add frontend test commands in `frontend/package.json`
+- [X] T005 [P] Add frontend test commands in `frontend/package.json`
 
 ## Phase 2: Foundational Prerequisites
 
-- [ ] T006 Define interview, invitation, session, response, and transcription persistence models in `backend/app/models/interview.py`
+- [X] T006 Define interview, invitation, session, response, and transcription persistence models in `backend/app/models/interview.py`
 - [ ] T007 Add schema migration setup and initial interview tables in `backend/alembic/versions/001_interview_core.py`
-- [ ] T008 [P] Define private object-storage interface and MinIO implementation in `backend/app/adapters/storage.py`
-- [ ] T009 [P] Define `TranscriptionProvider` and `QuestionSpeechProvider` interfaces in `backend/app/adapters/media.py`
+- [X] T008 [P] Define private object-storage interface and MinIO implementation in `backend/app/adapters/storage.py`
+- [X] T009 [P] Define `TranscriptionProvider` and `QuestionSpeechProvider` interfaces in `backend/app/adapters/media.py`
 - [X] T010 Implement deterministic invitation/session/response state transitions in `backend/app/domain/interview_state.py`
 - [ ] T011 Implement safe API error responses and invitation-token hashing in `backend/app/api/errors.py` and `backend/app/security/invitations.py`
 - [X] T012 Add unit tests for state transitions in `backend/tests/unit/test_interview_state.py`; token hashing and invalid-link tests remain in T011
@@ -36,9 +36,10 @@ submit it, and see its transcription status and completed text.
 **Independent Test**: Start a local session with a synthetic invitation, record one answer in a
 browser, confirm it is private and attached to the question, and retrieve its transcript.
 
-- [ ] T013 [P] [US1] Implement local `whisper.cpp` provider invoking multilingual `small` model in `backend/app/adapters/whisper_cpp.py`
-- [ ] T014 [P] [US1] Implement RouterAI provider using `openai/gpt-4o-mini-transcribe` and `language="ru"` in `backend/app/adapters/routerai_transcription.py`
-- [ ] T015 [P] [US1] Implement local Silero `v5_ru` question-speech provider and asset cache in `backend/app/adapters/silero_tts.py`
+- [X] T013 [P] [US1] Implement local `whisper.cpp` provider invoking multilingual `small` model in `backend/app/adapters/whisper_cpp.py`
+- [X] T013a [P] [US1] Implement local GigaAM `v3_e2e_rnnt` comparison provider in `backend/app/adapters/gigaam3.py`; load weights lazily and keep audio local
+- [X] T014 [P] [US1] Implement RouterAI provider using `openai/gpt-4o-mini-transcribe` and `language="ru"` in `backend/app/adapters/routerai_transcription.py`
+- [X] T015 [P] [US1] Implement local Silero `v5_ru` question-speech provider in `backend/app/adapters/silero_tts.py`; asset cache remains with response flow
 - [ ] T016 [US1] Implement response upload confirmation and asynchronous transcription orchestration in `backend/app/services/response_service.py`
 - [ ] T017 [US1] Implement candidate invitation, consent, upload-grant, response-confirmation, and transcript-status endpoints in `backend/app/api/candidate.py`
 - [ ] T018 [US1] Implement typed candidate API client in `frontend/src/api/candidate.ts`
@@ -66,8 +67,8 @@ the next unfinished question is restored.
 ## Phase 5: Polish and Validation
 
 - [ ] T030 [P] Add synthetic Russian technical-audio fixtures and expected transcripts in `backend/tests/fixtures/transcription/`
-- [ ] T031 Compare `whisper.cpp small`, `whisper.cpp large-v3-turbo`, and RouterAI on the fixtures; record accuracy and latency without candidate data in `research/transcription-benchmark.md`
-- [ ] T032 Add adapter configuration, key-handling, and local model-install instructions in `backend/README.md`
+- [ ] T031 Compare the Whisper baseline (`small` and `large-v3-turbo`) with GigaAM `v3_e2e_rnnt` and RouterAI on synthetic long-answer fixtures; record accuracy and latency without candidate data in `research/transcription-benchmark.md`
+- [X] T032 Add adapter configuration, key-handling, and local model-install instructions in `backend/README.md`
 - [ ] T033 Run `python -m unittest discover -s tests -v` and `python -m compileall -q product_engineering`; record results in `specs/001-asynchronous-interview/quickstart.md`
 
 ## Dependencies & Execution Order

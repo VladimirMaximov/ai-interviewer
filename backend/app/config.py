@@ -8,8 +8,12 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     transcription_provider: str = "whisper_cpp"
+    gigaam_model: str = "v3_e2e_rnnt"
     routerai_api_key: str | None = None
     routerai_base_url: str = "https://routerai.ru/api/v1"
+    whisper_cpp_binary: str = "whisper-cli"
+    whisper_cpp_model: str = "models/ggml-small.bin"
+    silero_helper: str = "scripts/silero_tts.py"
 
 
 settings = Settings()
