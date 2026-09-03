@@ -26,8 +26,24 @@ The interview is asynchronous: no human needs live media delivery. A streaming a
 WebRTC, added cost, and another sensitive-media vendor without improving the core flow. Keep avatar,
 TTS, ASR, and storage behind project-owned adapters so providers can later be changed.
 
-## Upload decision
+## Upload and background-processing decision
 
-The API validates the invitation and issues a short-lived upload grant limited to one response.
-The browser uploads audio directly to private object storage, then confirms it with the API. This
-avoids making the API a large-file relay and supports interruption recovery.
+The browser keeps one continuous 720p video-with-audio recording and uploads private 10-second
+fragments directly to object storage under short-lived scoped grants. The API stores each answer
+as start/end offsets in that recording and records the candidate's explicit save/next action as a
+timeline event. This avoids a large-file relay, bounds browser memory, and preserves one
+continuous evidentiary recording.
+
+An answer is transcribed in the background as soon as confirmed fragments cover its end offset;
+the candidate proceeds to the next approved question without waiting for transcription. A failed
+transcript has no candidate-visible error and does not invent text or a follow-up question.
+
+## Deferred adaptive follow-up decision
+
+The MVP keeps an internal, traceable queue for at most one optional clarification per source
+response. A queued clarification retains the response reference and transcript snapshot, is shown
+only after the approved base sequence, and uses the same presentation and recording path as a base
+question. The clarification-model provider and prompt policy are deliberately **not implemented**
+yet: an unavailable provider results in no clarification and never blocks completion or produces a
+candidate score/outcome. The detailed decision record is in
+[`../002-adaptive-followups/research.md`](../002-adaptive-followups/research.md).

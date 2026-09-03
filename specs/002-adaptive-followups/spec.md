@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-adaptive-followups`  
 **Created**: 2026-09-04  
-**Status**: Draft
+**Status**: Foundation implemented; clarification agent deferred
 
 ## User Scenarios & Testing
 
@@ -44,6 +44,10 @@ it, the transcript version used, the agent decision and the candidate's resultin
   follow-up rather than a fabricated question.
 - **FR-008**: The agent MUST not make an automatic candidate outcome or score; it may only propose
   a clarifying question.
+- **FR-009**: A saved response MUST become available for background transcription as soon as the
+  confirmed recording covers its end, without waiting for interview completion.
+- **FR-010**: Until a model provider and prompt policy are explicitly approved, the system MUST
+  not invoke an agent; only validated internal integrations may enqueue a clarification.
 
 ## Key Entities
 
