@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Engineering"
+  short_description: "Evidence-to-strategy product research pipeline"
+  default_prompt: "Use $product-engineering to research a market direction and produce ranked product hypotheses with Lean Canvases."

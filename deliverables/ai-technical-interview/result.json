@@ -1,0 +1,799 @@
+{
+  "metadata": {
+    "direction": "Асинхронная техническая оценка ИТ-кандидатов с помощью видеоинтервью и ИИ",
+    "model": "Codex native product-engineering pipeline",
+    "created_at": "2026-09-02T16:30:00+03:00",
+    "completed_at": "2026-09-02T16:30:00+03:00",
+    "evidence_notice": "Факты кейса и официальные страницы конкурентов являются источниками. Все интервью и цитаты с evidence_type=synthetic созданы для проектирования и не являются реальным customer research."
+  },
+  "research": {
+    "direction": "AI-assisted asynchronous technical interviewing",
+    "products": [
+      {
+        "name": "HireVue",
+        "url": "https://www.hirevue.com/platform/online-video-interviewing-software",
+        "what_it_sells": "Enterprise on-demand/live video interviewing, structured interview guides, recordings, scorecards and candidate assessments, including AI-scored interviews and technical/coding challenges.",
+        "commercial_evidence": "The official site offers demos and describes a commercial platform, enterprise integrations and assessment products.",
+        "source_urls": [
+          "https://www.hirevue.com/platform/online-video-interviewing-software",
+          "https://www.hirevue.com/platform/assessment-software"
+        ]
+      },
+      {
+        "name": "Hyring AI Interviewer",
+        "url": "https://hyring.com/ai-interviewer",
+        "what_it_sells": "Async/live AI video interviews created from a job description, custom questions, transcripts, structured scoring, reports, Russian-language support and ATS connections; a coding interviewer is also offered.",
+        "commercial_evidence": "The official product page publishes free, Pro and Business plans and includes signup and pricing actions.",
+        "source_urls": [
+          "https://hyring.com/ai-interviewer",
+          "https://hyring.com/ai-coding-interviewer"
+        ]
+      },
+      {
+        "name": "Interviewer.AI",
+        "url": "https://interviewer.ai/asynchronous-video-interviews/",
+        "what_it_sells": "Asynchronous one-way video interviews with candidate links, AI scorecards, transcript summaries, relevancy/role-fit scoring, custom scoring weights and shared review.",
+        "commercial_evidence": "The official site offers a 14-day trial and custom-priced paid plans with AI interview assessments.",
+        "source_urls": [
+          "https://interviewer.ai/asynchronous-video-interviews/",
+          "https://interviewer.ai/pricing/"
+        ]
+      }
+    ],
+    "market_conclusion": "Async recording and AI summaries are existing category features. The proposed MVP must differentiate through expert-calibrated technical rubrics, answer-level evidence, uncertainty handling, Russian data controls and measurable agreement with expert decisions.",
+    "regulatory_sources": [
+      "https://www.consultant.ru/document/cons_doc_LAW_61801/22e884a41450dcb5cb62d956583ad32abe2bbbe9/",
+      "https://www.consultant.ru/document/cons_doc_LAW_61801/cbf4e15b7c330f9372e876cdf2bc928bad7950ef/",
+      "https://www.consultant.ru/document/cons_doc_LAW_61801/7336c78762a98b5f4f698b8c3800dca1111acc16/"
+    ]
+  },
+  "products": [
+    {
+      "candidate": {
+        "name": "TechScreen AI",
+        "url": null,
+        "status": "proposed_mvp",
+        "what_it_sells": "Асинхронное техническое видеоинтервью с evidence-backed ИИ-рекомендацией и human-in-the-loop решением.",
+        "commercial_evidence": "В постановке кейса подтверждены расходы на внешних экспертов около 300 000 рублей в месяц и потребность автоматизировать цикл оценки.",
+        "source_urls": []
+      },
+      "page": null,
+      "description": {
+        "name": "TechScreen AI",
+        "summary": "Рекрутер создаёт versioned vacancy rubric и отправляет ссылку; кандидат записывает ответы по вопросам; система транскрибирует, извлекает evidence, оценивает критерии и формирует трёхклассовую рекомендацию с уровнем уверенности; окончательное решение принимает человек.",
+        "category": "B2B HRTech / technical talent assessment",
+        "audience_clues": [
+          "Компании с регулярным наймом ИТ-специалистов",
+          "Команды, использующие внешних технических интервьюеров",
+          "Распределённый найм и несколько часовых поясов"
+        ],
+        "key_features": [
+          "Конструктор вакансии, требований, вопросов и рубрики",
+          "Уникальная ссылка кандидату",
+          "Запись видео и аудио отдельно по вопросам",
+          "Техническая транскрибация",
+          "Evidence extraction и criterion-level scoring",
+          "Рекомендация подходит / не подходит / требуется проверка",
+          "Карточка рекрутера и read-only ссылка менеджеру",
+          "Калибровка на экспертных заключениях"
+        ],
+        "value_proposition": "Первичное техническое заключение без календаря внешнего эксперта, с доказательствами по каждому навыку и человеческим финальным решением.",
+        "pricing_signals": [
+          "Верхняя граница ценности — текущие 300 000 рублей в месяц на внешних экспертов",
+          "Наиболее естественная модель — оплата за завершённое интервью или месячный пакет"
+        ],
+        "evidence_gaps": [
+          "Фактическое число интервью и стоимость одного экспертного интервью",
+          "Межэкспертное agreement",
+          "Размер и качество исторического датасета",
+          "Acceptance rate асинхронного формата кандидатами",
+          "Стоимость инфраструктуры и требуемая политика хранения"
+        ]
+      },
+      "business_case": {
+        "observed_external_expert_cost_rub_month": 300000,
+        "observed_external_expert_cost_rub_year": 3600000,
+        "scenario_automation_share": 0.7,
+        "scenario_gross_savings_rub_month": 210000,
+        "scenario_gross_savings_rub_year": 2520000,
+        "warning": "70% — сценарное допущение. Чистая экономия требует вычесть storage, ASR/LLM, поддержку, безопасность и ручную проверку спорных случаев.",
+        "missing_inputs": [
+          "completed technical interviews per month",
+          "expert fee per interview",
+          "recruiter coordination time",
+          "share of needs_review cases",
+          "per-interview platform cost"
+        ]
+      },
+      "segments": [
+        {
+          "name": "Корпоративные команды IT-рекрутмента",
+          "description": "Получают техническую оценку без поиска внешнего эксперта и календарной координации, сохраняя объяснимость решения.",
+          "role": "primary_user_and_buyer_group"
+        },
+        {
+          "name": "Нанимающие менеджеры и технические лиды",
+          "description": "Проверяют evidence, риски и пробелы за несколько минут и используют следующий этап для точечного deep-dive.",
+          "role": "decision_user"
+        },
+        {
+          "name": "Кандидаты на ИТ-вакансии",
+          "description": "Проходят технический этап в удобное время по прозрачному и технически надёжному сценарию.",
+          "role": "candidate_end_user"
+        }
+      ],
+      "segment_analyses": [
+        {
+          "segment": {
+            "name": "Корпоративные команды IT-рекрутмента",
+            "description": "Основной операционный пользователь; Head of TA или HR Operations выступает экономическим покупателем."
+          },
+          "icp": {
+            "customer_type": "B2B",
+            "industry_or_market_category": "Компании с регулярным наймом software engineering, data, QA, DevOps/SRE и других ИТ-ролей",
+            "demographics": [],
+            "firmographics": [
+              "Средняя или крупная компания",
+              "Регулярные повторяющиеся ИТ-вакансии",
+              "Внешние эксперты или дефицит внутренних интервьюеров"
+            ],
+            "geography": ["Российская Федерация", "Распределённые кандидаты"],
+            "psychographics": ["Ориентация на скорость", "Нужда в объяснимом и защищаемом процессе"],
+            "behavioral_traits": ["Пилотирует на одной роли", "Расширяет после сравнения с экспертами"],
+            "needs_and_goals": ["Сократить стоимость", "Убрать scheduling", "Получить единый стандарт", "Не потерять качество"],
+            "purchase_triggers": ["300 000 рублей в месяц на экспертов", "Очередь интервью", "Длинный feedback cycle"],
+            "decision_making_process": ["Пилот", "Frozen holdout", "Security/legal review", "ROI review", "Расширение"],
+            "budget_or_spending_capacity": "Цена должна обеспечивать значимую чистую экономию относительно 300 000 рублей в месяц.",
+            "preferred_channels_and_touchpoints": ["Прямой пилот", "Демо на исторических данных", "HRTech/ATS партнёрства"],
+            "objections_and_responses": [
+              {"objection": "ИИ ошибётся уверенно", "response": "Evidence links, confidence gate и human decision"},
+              {"objection": "Кандидат будет читать ответ", "response": "Question design, integrity flags без biometric/emotion scoring, дополнительная проверка"},
+              {"objection": "Нельзя объяснить отказ", "response": "Rubric version, criterion scores, evidence and override log"},
+              {"objection": "Риск персональных данных", "response": "Локальный контур, consent, retention, encryption and access logs"}
+            ],
+            "assumptions": ["Для RICE используется 30 интервью в месяц; заменить фактом компании"]
+          },
+          "interview": {
+            "evidence_type": "synthetic",
+            "interviewee_profile": "IT-рекрутер в компании, регулярно оплачивающей внешние технические интервью",
+            "questions": [
+              {"id": 1, "question": "Что происходит после первичного отбора?", "answer": "Я ищу эксперта нужного стека и собираю три календаря; это иногда занимает дольше интервью."},
+              {"id": 2, "question": "Где самая дорогая часть?", "answer": "Мы платим экспертам, а вакансия ещё и ждёт, пока у эксперта появится слот."},
+              {"id": 3, "question": "Что нужно для решения?", "answer": "Не просто балл: требования, ошибки, подтверждающие фразы и вопросы для следующего этапа."},
+              {"id": 4, "question": "Главный страх от ИИ?", "answer": "Ложная уверенность красивого отчёта при поверхностном ответе или ошибке транскрипта."},
+              {"id": 5, "question": "Как проверите качество?", "answer": "Сравню три решения системы с уже скрытыми заключениями эксперта и отдельно опасные ошибки."},
+              {"id": 6, "question": "Допустимое время настройки?", "answer": "До пятнадцати минут в первый раз и без ручной настройки для каждого кандидата."},
+              {"id": 7, "question": "Как выглядит хороший отчёт?", "answer": "Рекомендация, уверенность, навыки и клик из каждого вывода в конкретный ответ."},
+              {"id": 8, "question": "Что остановит пилот?", "answer": "Сбои записи, непонятное хранение данных или необходимость смотреть час видео."}
+            ],
+            "validation_warning": "Синтетика на основе кейса; заменить интервью минимум с 2–3 рекрутерами."
+          },
+          "pain_map": {
+            "segment": "Корпоративные команды IT-рекрутмента",
+            "evidence_type": "synthetic",
+            "pains": [
+              {
+                "pain": "Поиск эксперта и согласование календарей блокируют технический этап",
+                "evidence_quotes": ["Q1/A1: это иногда занимает дольше интервью"],
+                "severity": 5,
+                "frequency": 5,
+                "reach": 5,
+                "confidence": 5,
+                "priority_score": 50,
+                "root_cause": "Синхронная зависимость от кандидата, рекрутера и внешнего эксперта",
+                "current_workarounds": ["Переписка", "Календарные опросы", "Несколько экспертов в пуле"],
+                "desired_outcome": "Запуск оценки по ссылке без календарной координации",
+                "related_jtbd": ["Запустить техническую оценку сразу после скрина"],
+                "opportunity_notes": "Async candidate link и status tracking"
+              },
+              {
+                "pain": "Внешние интервьюеры стоят около 300 000 рублей в месяц",
+                "evidence_quotes": ["Q2/A2: Мы платим экспертам"],
+                "severity": 5,
+                "frequency": 5,
+                "reach": 5,
+                "confidence": 5,
+                "priority_score": 50,
+                "root_cause": "Каждая первичная оценка требует часа дефицитного специалиста",
+                "current_workarounds": ["Оплата per interview", "Внутренние инженеры"],
+                "desired_outcome": "Эксперт участвует в калибровке и спорных кейсах, а не каждом интервью",
+                "related_jtbd": ["Снизить стоимость первичной оценки"],
+                "opportunity_notes": "Автоматизированная оценка с needs_review route"
+              },
+              {
+                "pain": "Black-box AI score может привести к неверному движению кандидата",
+                "evidence_quotes": ["Q4/A4: Ложная уверенность красивого отчёта"],
+                "severity": 5,
+                "frequency": 4,
+                "reach": 5,
+                "confidence": 4,
+                "priority_score": 46,
+                "root_cause": "Один генеративный вывод без рубрики, evidence и uncertainty",
+                "current_workarounds": ["Ручная перепроверка", "Просмотр видео"],
+                "desired_outcome": "Каждый вывод объясним и может быть оспорен человеком",
+                "related_jtbd": ["Безопасно принять решение по ИИ-рекомендации"],
+                "opportunity_notes": "Criterion scoring, timestamps, confidence and override"
+              },
+              {
+                "pain": "Просмотр полного видео уничтожает экономию времени",
+                "evidence_quotes": ["Q8/A8: необходимость смотреть час видео"],
+                "severity": 4,
+                "frequency": 4,
+                "reach": 4,
+                "confidence": 3,
+                "priority_score": 39,
+                "root_cause": "Отчёт не связан с короткими доказательными фрагментами",
+                "current_workarounds": ["Ускоренное воспроизведение", "Чтение общего summary"],
+                "desired_outcome": "Решение за пять минут с переходом только к спорным фрагментам",
+                "related_jtbd": ["Проверить кандидата без просмотра всей записи"],
+                "opportunity_notes": "Evidence spans and timestamped playback"
+              }
+            ]
+          },
+          "jtbd": {
+            "segment": "Корпоративные команды IT-рекрутмента",
+            "jtbd": [
+              {
+                "job_statement": "When кандидат прошёл первичный отбор, I want to запустить техническую оценку без поиска эксперта и слота, so I can получить решение в течение одного рабочего дня.",
+                "situation": "Кандидат готов к техническому этапу",
+                "struggle": "Эксперт и общий календарь недоступны",
+                "desired_outcomes": ["Сократить setup до 10 минут", "Убрать scheduling для 90% приглашений", "Получить отчёт не позднее 15 минут после processing", "Видеть статус каждого интервью"],
+                "forces": {"pushes": ["300 000 рублей в месяц", "Задержка найма"], "pulls": ["24/7 прохождение", "Быстрый scorecard"], "anxieties": ["Потеря качества", "Сбои записи"], "habits": ["Внешний эксперт", "Ручная переписка"]},
+                "acceptance_criteria": ["Рабочая уникальная ссылка", "Запись по вопросам", "Автоматический processing", "No expert after setup"],
+                "moment_of_progress": "Первый кандидат получает полный отчёт в день приглашения",
+                "related_quotes": ["Q1/A1: занимает дольше интервью", "Q2/A2: вакансия ждёт"],
+                "priority_score": 100
+              },
+              {
+                "job_statement": "When ИИ сформировал рекомендацию, I want to видеть рубрику, уверенность и evidence, so I can безопасно решить, кого двигать дальше.",
+                "situation": "Отчёт готов",
+                "struggle": "Общий score не объясняет вывод",
+                "desired_outcomes": ["Достичь 80% exact agreement", "Связать 100% ключевых выводов с ответом", "Переводить low-confidence в needs_review", "Не делать автоматических отказов"],
+                "forces": {"pushes": ["Риск false decision", "Запрос менеджера на детали"], "pulls": ["Evidence card", "Confidence gate"], "anxieties": ["Hallucination", "Bias"], "habits": ["Доверие человеку", "Ручное чтение feedback"]},
+                "acceptance_criteria": ["Frozen rubric", "Question-level evidence", "Human override", "Audit log"],
+                "moment_of_progress": "Рекрутер объясняет решение без просмотра полного интервью",
+                "related_quotes": ["Q3/A3: Не просто балл", "Q4/A4: Ложная уверенность"],
+                "priority_score": 96
+              },
+              {
+                "job_statement": "When вакансия переоткрывается, I want to переиспользовать проверенную конфигурацию, so I can получать сопоставимые оценки без новой ручной настройки.",
+                "situation": "Повторный найм на похожую роль",
+                "struggle": "Рубрика и вопросы собираются заново",
+                "desired_outcomes": ["Переиспользовать template", "Версионировать изменения", "Сравнивать только одну rubric version", "Сократить повторный setup до 5 минут"],
+                "forces": {"pushes": ["Повторная работа", "Несопоставимые интервью"], "pulls": ["Templates", "Version control"], "anxieties": ["Устаревшие требования", "Скрытое изменение prompt"], "habits": ["Копирование документов", "Свои вопросы экспертов"]},
+                "acceptance_criteria": ["Immutable published version", "Clone and edit", "Change log"],
+                "moment_of_progress": "Новая кампания создаётся из утверждённого шаблона",
+                "related_quotes": ["Q6/A6: потом можно переиспользовать"],
+                "priority_score": 72
+              }
+            ]
+          },
+          "value_proposition_canvas": {
+            "product": "TechScreen AI",
+            "segment": "Корпоративные команды IT-рекрутмента",
+            "customer_profile": {
+              "customer_jobs": {
+                "functional": ["Настроить интервью", "Пригласить кандидата", "Получить техническую оценку", "Передать результат"],
+                "social": ["Быть быстрым и надёжным партнёром hiring team"],
+                "emotional": ["Не зависеть от чужого календаря", "Не бояться скрытой ошибки модели"]
+              },
+              "pains": ["Стоимость экспертов", "Scheduling", "Ожидание feedback", "Black-box score", "Длинное видео", "ПДн"],
+              "gains": ["Решение за день", "Предсказуемая цена", "Единая рубрика", "Evidence", "Templates", "Audit"]
+            },
+            "value_map": {
+              "products_services": ["Vacancy rubric builder", "Candidate interview link", "ASR", "Evidence scoring", "Recruiter report", "Manager share"],
+              "pain_relievers": ["Убирает calendar coordination", "Снижает участие эксперта", "Показывает evidence", "Маршрутизирует uncertainty человеку"],
+              "gain_creators": ["24/7 interview", "Сравнимые scores", "Targeted follow-ups", "Измеримый agreement"]
+            }
+          },
+          "hypothesis_ids": [1, 3, 4, 5, 7],
+          "best_hypothesis_id": 1
+        },
+        {
+          "segment": {
+            "name": "Нанимающие менеджеры и технические лиды",
+            "description": "Внутренний заказчик, которому нужны доверие, evidence и точечный следующий этап."
+          },
+          "icp": {
+            "customer_type": "B2B",
+            "industry_or_market_category": "Engineering management and technical hiring",
+            "demographics": [],
+            "firmographics": ["Команда нанимает разработчиков или других ИТ-специалистов"],
+            "geography": ["РФ и распределённые команды"],
+            "psychographics": ["Скепсис к black-box scores", "Ориентация на технические доказательства"],
+            "behavioral_traits": ["Открывает shortlist", "Проверяет спорные ответы", "Оставляет override"],
+            "needs_and_goals": ["Защитить качество найма", "Не тратить час на первичный скрин", "Подготовить deep-dive"],
+            "purchase_triggers": ["Очередь кандидатов", "Низкое качество рекрутерского скрина"],
+            "decision_making_process": ["Проверка AI vs expert", "Ревью расхождений", "Approval пилота"],
+            "budget_or_spending_capacity": "Не является основным владельцем бюджета, но определяет принятие продукта.",
+            "preferred_channels_and_touchpoints": ["Read-only candidate link", "Evidence card", "Side-by-side benchmark"],
+            "objections_and_responses": [
+              {"objection": "Фиксированные вопросы не дают уточнить ответ", "response": "Needs-review и targeted questions для live stage"},
+              {"objection": "LLM переоценит уверенную речь", "response": "Content-only anchored scoring"},
+              {"objection": "Нет coding evidence", "response": "Ограничить claims и позже добавить executable task"}
+            ],
+            "assumptions": ["Менеджер готов потратить до 7 минут на shortlist candidate"]
+          },
+          "interview": {
+            "evidence_type": "synthetic",
+            "interviewee_profile": "Engineering Manager, принимающий решение о следующем техническом этапе",
+            "questions": [
+              {"id": 1, "question": "Зачем первичный технический этап?", "answer": "Чтобы команда не тратила час на людей без базового уровня."},
+              {"id": 2, "question": "Доверитесь баллу 82?", "answer": "Нет, число без рубрики бесполезно; нужны конкретные технические утверждения."},
+              {"id": 3, "question": "Что отличает сильный ответ?", "answer": "Причинно-следственная связь, компромиссы и конкретный опыт, а не количество терминов."},
+              {"id": 4, "question": "Какая ошибка опаснее?", "answer": "Уверенно пропустить слабого, но сильного тоже нельзя автоматически отклонять."},
+              {"id": 5, "question": "Нужны видео и транскрипт?", "answer": "Транскрипт для чтения, видео для спорного фрагмента; целиком смотреть не буду."},
+              {"id": 6, "question": "Что спросить дальше?", "answer": "Точечные follow-up по найденным пробелам."},
+              {"id": 7, "question": "Можно сравнивать кандидатов?", "answer": "Только внутри одной версии рубрики."},
+              {"id": 8, "question": "Когда доверитесь продукту?", "answer": "Когда увижу те же решения на контрольной выборке и причины расхождений."}
+            ],
+            "validation_warning": "Синтетика; заменить интервью минимум с 2 hiring managers."
+          },
+          "pain_map": {
+            "segment": "Нанимающие менеджеры и технические лиды",
+            "evidence_type": "synthetic",
+            "pains": [
+              {
+                "pain": "Первичный скрин отнимает час дорогого технического сотрудника",
+                "evidence_quotes": ["Q1/A1: команда не тратила час"],
+                "severity": 5,
+                "frequency": 4,
+                "reach": 4,
+                "confidence": 4,
+                "priority_score": 44,
+                "root_cause": "Нет доверенной предварительной технической оценки",
+                "current_workarounds": ["Live screen", "Внешний эксперт"],
+                "desired_outcome": "Менеджер подключается только к прошедшим первичный барьер",
+                "related_jtbd": ["Отфильтровать базовый уровень"],
+                "opportunity_notes": "Expert-calibrated pre-screen"
+              },
+              {
+                "pain": "Общий score не показывает технических причин",
+                "evidence_quotes": ["Q2/A2: число без рубрики бесполезно"],
+                "severity": 5,
+                "frequency": 4,
+                "reach": 4,
+                "confidence": 3,
+                "priority_score": 43,
+                "root_cause": "Summary отделён от критериев и ответов",
+                "current_workarounds": ["Читать транскрипт", "Смотреть запись"],
+                "desired_outcome": "Каждый score имеет evidence и anchor",
+                "related_jtbd": ["Проверить обоснование рекомендации"],
+                "opportunity_notes": "Clickable criterion card"
+              },
+              {
+                "pain": "False positive переносит стоимость на live этап",
+                "evidence_quotes": ["Q4/A4: уверенно пропустить слабого"],
+                "severity": 5,
+                "frequency": 3,
+                "reach": 4,
+                "confidence": 4,
+                "priority_score": 41,
+                "root_cause": "Модель обязана выбрать класс даже при слабом evidence",
+                "current_workarounds": ["Повторный звонок", "Ручной review"],
+                "desired_outcome": "Low-confidence случаи явно выделены",
+                "related_jtbd": ["Не тратить live slot на слабого кандидата"],
+                "opportunity_notes": "Abstention / needs-review policy"
+              },
+              {
+                "pain": "Полную запись слишком долго проверять",
+                "evidence_quotes": ["Q5/A5: целиком смотреть не буду"],
+                "severity": 3,
+                "frequency": 3,
+                "reach": 4,
+                "confidence": 4,
+                "priority_score": 33,
+                "root_cause": "Нет короткого evidence navigation",
+                "current_workarounds": ["Ускоренная перемотка"],
+                "desired_outcome": "Review за 5–7 минут",
+                "related_jtbd": ["Быстро проверить shortlist"],
+                "opportunity_notes": "Timestamps and clips"
+              }
+            ]
+          },
+          "jtbd": {
+            "segment": "Нанимающие менеджеры и технические лиды",
+            "jtbd": [
+              {
+                "job_statement": "When рекрутер передаёт кандидата, I want to увидеть rubric scores и evidence, so I can решить следующий шаг за несколько минут.",
+                "situation": "Shortlist review",
+                "struggle": "Black-box score или длинная запись",
+                "desired_outcomes": ["Review до 7 минут", "100% skill scores кликабельны", "Видна rubric version", "Видна confidence"],
+                "forces": {"pushes": ["Дефицит времени", "False positives"], "pulls": ["Evidence card", "Короткие clips"], "anxieties": ["AI hallucination", "Пропуск слабого"], "habits": ["Live interview", "Ручное чтение"]},
+                "acceptance_criteria": ["Criterion evidence", "Timestamp link", "Confidence", "No autoplay full video"],
+                "moment_of_progress": "Менеджер принимает решение после проверки 2–3 фрагментов",
+                "related_quotes": ["Q2/A2: число без рубрики бесполезно", "Q5/A5: целиком смотреть не буду"],
+                "priority_score": 90
+              },
+              {
+                "job_statement": "When вывод ИИ спорный, I want to открыть исходный ответ и оставить override, so I can сохранить человеческую ответственность.",
+                "situation": "Расхождение с техническим суждением",
+                "struggle": "Нельзя понять или исправить решение",
+                "desired_outcomes": ["Override с причиной", "Audit trail", "Расхождение попадает в calibration set", "No automatic rejection"],
+                "forces": {"pushes": ["Риск ошибки", "Ответственность за найм"], "pulls": ["Override", "Explainability"], "anxieties": ["Автоматический отказ", "Скрытое изменение модели"], "habits": ["Экспертное решение", "Обсуждение в hiring panel"]},
+                "acceptance_criteria": ["Human action recorded", "Model output immutable", "Reason required"],
+                "moment_of_progress": "Override сохраняется и виден рекрутеру",
+                "related_quotes": ["Q4/A4: сильного нельзя автоматически отклонять"],
+                "priority_score": 86
+              },
+              {
+                "job_statement": "When кандидат проходит дальше, I want to получить вопросы по пробелам, so I can использовать live этап для точечной проверки.",
+                "situation": "Подготовка следующего интервью",
+                "struggle": "Команда повторяет базовые вопросы",
+                "desired_outcomes": ["Каждый follow-up связан с gap", "Не повторять подтверждённые навыки", "Сократить live stage", "Проверить must-have uncertainty"],
+                "forces": {"pushes": ["Повторы", "Ограниченный slot"], "pulls": ["Targeted questions", "Skill map"], "anxieties": ["Пропущенный риск", "Слишком общий вопрос"], "habits": ["Стандартный question list", "Импровизация"]},
+                "acceptance_criteria": ["Question references gap", "Manager can edit", "No unsupported claim"],
+                "moment_of_progress": "План следующего интервью готов вместе с карточкой",
+                "related_quotes": ["Q6/A6: Точечные follow-up"],
+                "priority_score": 72
+              }
+            ]
+          },
+          "value_proposition_canvas": {
+            "product": "TechScreen AI",
+            "segment": "Нанимающие менеджеры и технические лиды",
+            "customer_profile": {
+              "customer_jobs": {"functional": ["Проверить уровень", "Решить следующий этап", "Подготовить deep-dive"], "social": ["Защитить качество команды"], "emotional": ["Доверять решению и контролировать спорные случаи"]},
+              "pains": ["Black-box score", "False positives", "Длинное видео", "Несравнимые рубрики"],
+              "gains": ["Evidence-first review", "Needs-review", "Override", "Targeted follow-ups"]
+            },
+            "value_map": {
+              "products_services": ["Criterion card", "Transcript and clips", "Confidence gate", "Override", "Follow-up generator"],
+              "pain_relievers": ["Показывает доказательства", "Не заставляет смотреть час", "Отделяет uncertainty", "Сохраняет версию"],
+              "gain_creators": ["Решение за минуты", "Следующий этап проверяет только пробелы", "Overrides улучшают calibration"]
+            }
+          },
+          "hypothesis_ids": [1, 3, 4, 6],
+          "best_hypothesis_id": 3
+        },
+        {
+          "segment": {
+            "name": "Кандидаты на ИТ-вакансии",
+            "description": "End user, для которого критичны удобное время, надёжность записи, прозрачность данных и content-only оценка."
+          },
+          "icp": {
+            "customer_type": "mixed",
+            "industry_or_market_category": "B2B2C candidate experience",
+            "demographics": ["Junior–senior IT specialist", "Использует laptop/desktop или smartphone"],
+            "firmographics": [],
+            "geography": ["Разные часовые пояса", "Первично РФ"],
+            "psychographics": ["Хочет честно показать знания", "Осторожно относится к AI screening"],
+            "behavioral_traits": ["Переходит по ссылке без аккаунта", "Проверяет камеру и микрофон", "Ожидает confirmation"],
+            "needs_and_goals": ["Пройти в удобное время", "Не потерять ответ", "Понимать правила", "Не оцениваться по внешности"],
+            "purchase_triggers": ["Приглашение рекрутера"],
+            "decision_making_process": ["Читает consent", "Делает device check", "Проходит или обращается в support"],
+            "budget_or_spending_capacity": "Не платит за продукт.",
+            "preferred_channels_and_touchpoints": ["Email/link", "Browser interview", "Completion confirmation"],
+            "objections_and_responses": [
+              {"objection": "Непонятно, что делает ИИ", "response": "Plain-language notice and human-decision statement"},
+              {"objection": "Запись пропадёт", "response": "Per-question upload, checksum and resume"},
+              {"objection": "Оценят лицо или акцент", "response": "Explicit content-only scoring policy"}
+            ],
+            "assumptions": ["Основное устройство — desktop browser; проверить аналитикой"]
+          },
+          "interview": {
+            "evidence_type": "synthetic",
+            "interviewee_profile": "ИТ-кандидат, работающий полный день и проходящий технический этап удалённо",
+            "questions": [
+              {"id": 1, "question": "Что удобно в async?", "answer": "Могу пройти вечером и не отпрашиваться с текущей работы."},
+              {"id": 2, "question": "Что напрягает?", "answer": "Неясно, можно ли переспросить и сколько времени на подготовку; камера включена, а в ответ тишина."},
+              {"id": 3, "question": "Что если пропадёт интернет?", "answer": "Страшно ответить десять минут и узнать, что запись не сохранилась."},
+              {"id": 4, "question": "Нужен retry?", "answer": "Один — при сломанном микрофоне; бесконечные повторы нечестны."},
+              {"id": 5, "question": "Что знать до старта?", "answer": "Что записывают, сколько хранят, кто увидит и принимает ли ИИ решение сам."},
+              {"id": 6, "question": "Как показывать вопрос?", "answer": "Текст и озвучка вместе плюс время прочитать длинную формулировку."},
+              {"id": 7, "question": "Что справедливая оценка?", "answer": "Содержание, а не акцент, лицо или уверенная подача."},
+              {"id": 8, "question": "Что нужно после?", "answer": "Подтверждение загрузки, срок ответа и контакт поддержки."}
+            ],
+            "validation_warning": "Синтетика; usability test минимум с 5 кандидатами на разных устройствах."
+          },
+          "pain_map": {
+            "segment": "Кандидаты на ИТ-вакансии",
+            "evidence_type": "synthetic",
+            "pains": [
+              {
+                "pain": "Ожидание общего слота конфликтует с текущей работой и часовыми поясами",
+                "evidence_quotes": ["Q1/A1: Могу пройти вечером"],
+                "severity": 4,
+                "frequency": 4,
+                "reach": 5,
+                "confidence": 4,
+                "priority_score": 42,
+                "root_cause": "Синхронный формат",
+                "current_workarounds": ["Отпрашиваться", "Переносить встречу"],
+                "desired_outcome": "Пройти тогда, когда удобно",
+                "related_jtbd": ["Выбрать время самостоятельно"],
+                "opportunity_notes": "24/7 expiring link"
+              },
+              {
+                "pain": "Непрозрачность данных и AI decision вызывает недоверие",
+                "evidence_quotes": ["Q5/A5: кто увидит и принимает ли ИИ решение сам"],
+                "severity": 4,
+                "frequency": 4,
+                "reach": 4,
+                "confidence": 3,
+                "priority_score": 39,
+                "root_cause": "Consent не объясняет конкретный processing",
+                "current_workarounds": ["Отказ от процесса", "Вопрос рекрутеру"],
+                "desired_outcome": "Понятные цель, срок, recipients и human role",
+                "related_jtbd": ["Осознанно согласиться на интервью"],
+                "opportunity_notes": "Plain-language consent and retention notice"
+              },
+              {
+                "pain": "Сбой может уничтожить длинный ответ",
+                "evidence_quotes": ["Q3/A3: запись не сохранилась"],
+                "severity": 4,
+                "frequency": 3,
+                "reach": 4,
+                "confidence": 3,
+                "priority_score": 36,
+                "root_cause": "Один длинный upload без checkpoints",
+                "current_workarounds": ["Повторять всё интервью"],
+                "desired_outcome": "Каждый ответ сохранён и интервью возобновляется",
+                "related_jtbd": ["Не потерять прогресс"],
+                "opportunity_notes": "Chunked per-question upload and resume"
+              },
+              {
+                "pain": "One-way формат и таймер повышают стресс",
+                "evidence_quotes": ["Q2/A2: камера включена, а в ответ тишина"],
+                "severity": 4,
+                "frequency": 3,
+                "reach": 4,
+                "confidence": 2,
+                "priority_score": 35,
+                "root_cause": "Нет социального feedback и неясны правила",
+                "current_workarounds": ["Репетировать", "Читать советы"],
+                "desired_outcome": "Предсказуемый и поддерживающий flow",
+                "related_jtbd": ["Показать знания без лишнего стресса"],
+                "opportunity_notes": "Practice check, clear timer and progress"
+              }
+            ]
+          },
+          "jtbd": {
+            "segment": "Кандидаты на ИТ-вакансии",
+            "jtbd": [
+              {
+                "job_statement": "When я получаю ссылку на технический этап, I want to выбрать время и проверить оборудование, so I can показать знания без календарного и технического стресса.",
+                "situation": "До начала интервью",
+                "struggle": "Неизвестны правила и готовность устройства",
+                "desired_outcomes": ["Device check до старта", "Понятные time limits", "24/7 access", "Support contact"],
+                "forces": {"pushes": ["Нельзя отпрашиваться", "Срочность вакансии"], "pulls": ["Удобное время", "Practice check"], "anxieties": ["Сломанный микрофон", "Camera stress"], "habits": ["Live call", "Проверка Zoom"]},
+                "acceptance_criteria": ["Mic/camera playback", "No account", "Clear instructions", "Start confirmation"],
+                "moment_of_progress": "Device check завершён успешно",
+                "related_quotes": ["Q1/A1: пройти вечером", "Q2/A2: сколько времени"],
+                "priority_score": 84
+              },
+              {
+                "job_statement": "When я записываю длинный ответ, I want to видеть сохранение и upload progress, so I can не потерять результат из-за сети.",
+                "situation": "Во время и после ответа",
+                "struggle": "Непонятно, сохранилась ли запись",
+                "desired_outcomes": ["Autosave каждого ответа", "Failed upload retry", "Resume from last question", "Final receipt"],
+                "forces": {"pushes": ["Риск потери", "Длинные ответы"], "pulls": ["Progress", "Resume"], "anxieties": ["Network loss", "Duplicate recording"], "habits": ["Live call", "Локальная запись"]},
+                "acceptance_criteria": ["Per-question status", "Idempotent upload", "Resume token", "Completion page"],
+                "moment_of_progress": "Ответ получает статус stored",
+                "related_quotes": ["Q3/A3: запись не сохранилась"],
+                "priority_score": 78
+              },
+              {
+                "job_statement": "When интервью использует ИИ, I want to понимать данные, критерии и роль человека, so I can осознанно участвовать и доверять процессу.",
+                "situation": "Consent до записи",
+                "struggle": "Неясно, кто и как принимает решение",
+                "desired_outcomes": ["Plain-language notice", "Назван срок хранения", "Перечислены viewers", "Объяснён human decision"],
+                "forces": {"pushes": ["Обязательный этап", "Интерес к вакансии"], "pulls": ["Прозрачность", "Fairness statement"], "anxieties": ["Скрытый biometrics scoring", "Автоотказ"], "habits": ["Принимать generic consent", "Спрашивать рекрутера"]},
+                "acceptance_criteria": ["Separate consent", "Content-only scoring", "Contact for objection", "Retention disclosure"],
+                "moment_of_progress": "Кандидат видит и подтверждает понятные условия",
+                "related_quotes": ["Q5/A5: принимает ли ИИ решение сам", "Q7/A7: не акцент, лицо"],
+                "priority_score": 80
+              }
+            ]
+          },
+          "value_proposition_canvas": {
+            "product": "TechScreen AI",
+            "segment": "Кандидаты на ИТ-вакансии",
+            "customer_profile": {
+              "customer_jobs": {"functional": ["Пройти этап", "Записать ответы", "Проверить оборудование"], "social": ["Показать профессионализм"], "emotional": ["Чувствовать контроль и справедливость"]},
+              "pains": ["Ожидание слота", "Camera anxiety", "Потеря записи", "Privacy uncertainty"],
+              "gains": ["Anytime access", "Resume", "Прозрачность", "Content-only scoring"]
+            },
+            "value_map": {
+              "products_services": ["No-account link", "Device check", "Question player", "Per-answer recorder", "Upload status", "Consent"],
+              "pain_relievers": ["Убирает scheduling", "Предотвращает потерю прогресса", "Объясняет processing", "Не оценивает внешность"],
+              "gain_creators": ["Удобное время", "Понятный прогресс", "Надёжная доставка сильного ответа менеджеру"]
+            }
+          },
+          "hypothesis_ids": [2, 6],
+          "best_hypothesis_id": 2
+        }
+      ],
+      "hypotheses": [
+        {
+          "rank": 1,
+          "id": 1,
+          "description": "Rubric-grounded оценивание с evidence по каждому критерию даст не менее 80% exact agreement с экспертом на frozen holdout.",
+          "rationale": "Главная цель кейса; снижает риск black-box решения и определяет, существует ли продуктовая ценность.",
+          "metric_to_validate": "Exact 3-class agreement, macro-F1, Cohen's kappa, confusion matrix, false-advance and false-reject rate.",
+          "expected_outcome": "Не менее 80% exact agreement; все ключевые выводы связаны с answer evidence.",
+          "reach": 30,
+          "impact": 3,
+          "confidence": 0.7,
+          "effort": 3.0,
+          "rice_score": 21.0,
+          "rationale_reach": "Плановое допущение: 30 завершённых интервью в месяц.",
+          "rationale_impact": "Без совпадения решений MVP не решает заявленную задачу.",
+          "rationale_confidence": "Боль подтверждена кейсом, но качество модели ещё не измерено.",
+          "rationale_effort": "Rubric compiler, evidence extraction, judge, aggregation and test harness."
+        },
+        {
+          "rank": 2,
+          "id": 2,
+          "description": "Device check, per-question upload и resume обеспечат completion не ниже 90% и recording failure ниже 3%.",
+          "rationale": "Потерянная запись разрушает candidate experience и делает оценку невозможной.",
+          "metric_to_validate": "Completion rate, failed recording rate, resume success and support incidents.",
+          "expected_outcome": "Completion >=90%; failed recordings <3%.",
+          "reach": 30,
+          "impact": 2,
+          "confidence": 0.65,
+          "effort": 2.0,
+          "rice_score": 19.5,
+          "rationale_reach": "Затрагивает каждое интервью.",
+          "rationale_impact": "Нужное условие полного цикла, но не определяет качество scoring.",
+          "rationale_confidence": "Типовой web-media риск; реальные device tests ещё не проведены.",
+          "rationale_effort": "MediaRecorder flow, upload manifest, retry and resume."
+        },
+        {
+          "rank": 3,
+          "id": 3,
+          "description": "Confidence gating и класс needs_review снизят число опасных уверенных ошибок без чрезмерного возврата к экспертам.",
+          "rationale": "Не каждый fixed-question ответ содержит достаточно evidence; принудительный pass/fail опасен.",
+          "metric_to_validate": "Coverage/accuracy curve, false-decisive rate and needs_review share.",
+          "expected_outcome": "Ошибки низкого evidence уходят в review; доля review остаётся экономически приемлемой.",
+          "reach": 30,
+          "impact": 3,
+          "confidence": 0.65,
+          "effort": 3.5,
+          "rice_score": 16.7,
+          "rationale_reach": "Затрагивает каждую рекомендацию.",
+          "rationale_impact": "Снижает кадровый и юридический риск.",
+          "rationale_confidence": "Трёхклассовый target задан кейсом; threshold ещё надо калибровать.",
+          "rationale_effort": "Confidence features, threshold calibration and evaluation UI."
+        },
+        {
+          "rank": 4,
+          "id": 4,
+          "description": "Evidence-linked scorecard позволит рекрутеру принять решение за пять минут без просмотра полного видео.",
+          "rationale": "Обычный summary не устраняет недоверие и review time.",
+          "metric_to_validate": "Median review time and percentage of report claims with valid evidence links.",
+          "expected_outcome": "Median review <=5 minutes; evidence coverage 100% for scored claims.",
+          "reach": 30,
+          "impact": 2,
+          "confidence": 0.65,
+          "effort": 2.5,
+          "rice_score": 15.6,
+          "rationale_reach": "Каждый завершённый отчёт.",
+          "rationale_impact": "Непосредственно сокращает recruiter operations.",
+          "rationale_confidence": "Потребность следует из кейса, но review time не измерен.",
+          "rationale_effort": "Evidence spans, timestamps and report UI."
+        },
+        {
+          "rank": 5,
+          "id": 5,
+          "description": "Vacancy glossary и нормализация технических терминов повысят technical-token accuracy до 95% и agreement минимум на 5 п.п.",
+          "rationale": "ASR error может изменить смысл технического ответа и score.",
+          "metric_to_validate": "Technical-token accuracy, WER and agreement uplift versus base ASR.",
+          "expected_outcome": "Technical-token accuracy >=95%; agreement uplift >=5 percentage points.",
+          "reach": 30,
+          "impact": 2,
+          "confidence": 0.6,
+          "effort": 2.5,
+          "rice_score": 14.4,
+          "rationale_reach": "Каждый transcript.",
+          "rationale_impact": "Улучшает scoring input, но эффект на final decision неизвестен.",
+          "rationale_confidence": "Технические термины — ожидаемый риск, не измеренный на данных компании.",
+          "rationale_effort": "Glossary extraction, ASR hints and manual transcript benchmark."
+        },
+        {
+          "rank": 6,
+          "id": 6,
+          "description": "Read-only expiring ссылка на одного кандидата позволит менеджеру завершить review за семь минут без отдельного аккаунта.",
+          "rationale": "Менеджеру нужен ограниченный быстрый доступ, а не полный recruiter workspace.",
+          "metric_to_validate": "Median manager review time, successful access and unauthorized access tests.",
+          "expected_outcome": "Median review <=7 minutes; no cross-candidate access.",
+          "reach": 20,
+          "impact": 1,
+          "confidence": 0.65,
+          "effort": 1.0,
+          "rice_score": 13.0,
+          "rationale_reach": "Предполагается, что 20 из 30 результатов попадут менеджерам.",
+          "rationale_impact": "Ускоряет handoff, но не улучшает core evaluation.",
+          "rationale_confidence": "Сценарий явно задан кейсом.",
+          "rationale_effort": "Signed token, authorization scope and read-only page."
+        },
+        {
+          "rank": 7,
+          "id": 7,
+          "description": "Автосборка черновика rubric из JD сократит setup до 10 минут при обязательном recruiter approval.",
+          "rationale": "Повторная ручная настройка мешает масштабированию, но автогенерация не должна публиковаться без человека.",
+          "metric_to_validate": "Median setup time, edit percentage and approval completion.",
+          "expected_outcome": "Setup <=10 minutes; rubric always explicitly approved.",
+          "reach": 30,
+          "impact": 0.5,
+          "confidence": 0.6,
+          "effort": 1.5,
+          "rice_score": 6.0,
+          "rationale_reach": "Черновик конфигурации косвенно влияет на все интервью кампании.",
+          "rationale_impact": "Экономит setup, но не заменяет core scoring quality.",
+          "rationale_confidence": "JD и требования предоставляются, однако качество исходных данных неизвестно.",
+          "rationale_effort": "Schema generation, editor and publish validation."
+        }
+      ],
+      "best_hypothesis": {
+        "id": 1,
+        "rice_score": 21.0,
+        "reason": "Напрямую проверяет заданную 80% метрику и является необходимым условием существования ценности продукта."
+      },
+      "lean_canvas": {
+        "problem": [
+          "Первичная техническая оценка требует оплачиваемого эксперта и синхронного слота",
+          "Рекрутер и менеджер ждут feedback и не могут масштабировать процесс",
+          "Black-box автоматическая оценка создаёт риск неверного кадрового решения"
+        ],
+        "existing_alternatives": ["Внешние эксперты", "Внутренние инженеры", "Coding tests", "Generic async video", "HireVue", "Hyring", "Interviewer.AI"],
+        "solution": ["Async question-level video", "Technical ASR", "Versioned rubric", "Evidence scoring", "Confidence gate", "Recruiter card", "Manager link", "Gold-set evaluation"],
+        "unique_value_proposition": "Первичное техническое заключение за один асинхронный проход — с доказательствами по каждому навыку и человеческим финальным решением.",
+        "high_level_concept": "Структурированный технический эксперт по ссылке, который показывает ход проверки.",
+        "unfair_advantage": "Не доказано. Потенциал — закрытый vacancy-specific датасет экспертных заключений и human overrides при наличии прав и качественной разметки.",
+        "customer_segments": ["IT recruitment teams", "Head of TA / HR Operations", "Hiring managers", "IT candidates", "Later: IT staffing/RPO"],
+        "early_adopters": ["Компании с повторяющимися ИТ-ролями", "Расходы на экспертов", "Исторические интервью и заключения", "Human final decision"],
+        "key_metrics": ["Exact agreement >=80%", "Macro-F1", "Cohen's kappa", "False advance/reject", "Needs-review share", "ASR accuracy", "Completion", "Review time", "Avoided expert cost"],
+        "channels": ["Внутренний пилот", "TA/HR Operations direct sales", "ATS partnerships", "Measured case study"],
+        "cost_structure": ["Video storage/traffic", "ASR/LLM/TTS", "Web/backend/queue", "Security/localization", "Expert labels and calibration"],
+        "revenue_streams": ["Per completed interview", "Monthly interview bundle", "Enterprise/private deployment", "Calibration and integrations"],
+        "assumptions_to_validate": ["Fixed answers contain enough signal", "Candidates accept async video", "80% exceeds expert disagreement", "Needs-review share remains economical", "Data may be used legally", "Unit cost leaves savings"]
+      },
+      "mvp_scope": {
+        "must_have": [
+          "Recruiter vacancy/questions/rubric setup and approval",
+          "Expiring candidate link",
+          "Consent and device check",
+          "Text plus TTS questions",
+          "Per-question recording, upload status and resume",
+          "ASR plus technical glossary",
+          "Evidence extraction, criterion scoring and deterministic aggregation",
+          "Three-class recommendation with confidence",
+          "Recruiter card and scoped manager link",
+          "Gold-set evaluation dashboard and audit versions"
+        ],
+        "not_in_mvp": [
+          "Automated rejection or auto-advance",
+          "Facial, emotion, accent or voice-confidence scoring",
+          "Adaptive follow-ups",
+          "Biometric identity/proctoring",
+          "ATS and billing",
+          "Universal support for all IT professions"
+        ]
+      },
+      "evaluation_plan": {
+        "primary_metric": "Exact three-class agreement with expert >=80% on frozen holdout",
+        "required_secondary_metrics": ["Confusion matrix", "Macro-F1", "Cohen's kappa", "False advance", "False reject", "Evidence validity", "Technical-token accuracy", "Coverage/accuracy"],
+        "procedure": [
+          "Choose one role and one rubric version",
+          "Prepare anonymized interviews, transcripts and expert labels",
+          "Measure inter-rater agreement on a double-labeled subset",
+          "Split development and frozen holdout",
+          "Prevent label leakage",
+          "Freeze prompt/model/rubric before holdout",
+          "Inspect every disagreement"
+        ],
+        "sample_size_warning": "16/20 gives 80% but a 95% Wilson interval of approximately 58.4%–91.9%; use 50–100+ independent cases for a pilot-grade conclusion."
+      },
+      "guardrails": [
+        "Human recruiter makes and records the final decision",
+        "Content-only scoring; no face/emotion/accent inference",
+        "Every scored claim links to answer evidence",
+        "Low confidence routes to additional review",
+        "Versioned rubric/model/prompt and human overrides",
+        "Consent, retention, encryption, access logs and expiring links",
+        "Russian personal-data localization and legal review before pilot"
+      ]
+    }
+  ]
+}

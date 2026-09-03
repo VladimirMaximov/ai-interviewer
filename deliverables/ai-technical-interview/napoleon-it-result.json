@@ -1,0 +1,736 @@
+{
+  "metadata": {
+    "case": "Napoleon IT — автоматизация технического интервью",
+    "version": "2.0",
+    "date": "2026-09-02",
+    "language": "ru",
+    "research_mode": "stakeholder_evidence_plus_current_competitor_scan",
+    "primary_source": {
+      "type": "stakeholder_meeting_transcript",
+      "url": "https://notes.granola.ai/t/464f511d-302a-4b72-b51b-0be66af4fe3e-00demib2",
+      "note": "Факты о Napoleon IT взяты из предоставленной пользователем стенограммы."
+    },
+    "synthetic_interviews_used": false,
+    "assumptions_are_marked": true
+  },
+  "executive_decision": {
+    "product_type": "internal_hiring_throughput_tool",
+    "mvp_purpose": "Объединить рекрутёрский и верхнеуровневый технический скрин в одно асинхронное видеоинтервью до финального живого этапа.",
+    "primary_value": "Дать минимально подходящим кандидатам возможность показать опыт и техническое мышление, не расходуя 1,5 часа инженера на каждого заведомо неподходящего кандидата.",
+    "primary_quality_target": "Не менее 80% точного совпадения рекомендации ИИ с adjudicated human recommendation на frozen test set.",
+    "business_target": "Сокращение участия технических специалистов в первичных интервью на 95%, если quality gate пройден.",
+    "non_goal": "Автоматическое решение об отказе или найме без человека."
+  },
+  "validated_facts": [
+    {
+      "fact": "В пиковом кейсе developer-вакансия получила 6700 откликов за неделю.",
+      "implication": "Нужен массовый асинхронный funnel и быстрый review."
+    },
+    {
+      "fact": "Python-вакансия обычно получает около 700 откликов в первые дни.",
+      "implication": "Пилот следует измерять по полной воронке от отклика до финала."
+    },
+    {
+      "fact": "Технический специалист тратит до 1,5 часа на интервью с неподходящим кандидатом.",
+      "implication": "Главная единица экономии — engineering hours."
+    },
+    {
+      "fact": "MVP объединяет биографический и верхнеуровневый технический скрин; финальный этап остаётся живым.",
+      "implication": "Система готовит решение и вопросы для финала, но не заменяет команду."
+    },
+    {
+      "fact": "Live coding не входит в MVP.",
+      "implication": "Нельзя делать сильный вывод о практическом coding ability только по устным ответам."
+    },
+    {
+      "fact": "ИИ генерирует вопросы из вакансии, технический специалист ревьюит их до публикации.",
+      "implication": "Interview blueprint должен быть версионирован и иметь approval record."
+    },
+    {
+      "fact": "Ошибки false pass и false reject считаются одинаково нежелательными.",
+      "implication": "Нужны macro-F1, balanced accuracy и confusion matrix, а не только общая accuracy."
+    },
+    {
+      "fact": "Huntflow используется как CRM.",
+      "implication": "Для MVP достаточно export/deep link; глубокую интеграцию делать после доказательства качества."
+    },
+    {
+      "fact": "Решение о зарубежных моделях не принято.",
+      "implication": "ASR, TTS и LLM подключаются через заменяемые adapters."
+    }
+  ],
+  "product_profile": {
+    "name": "Napoleon IT AI Interview",
+    "positioning": "Асинхронный evidence-first скрин ИТ-кандидатов для внутренней воронки Napoleon IT.",
+    "input": [
+      "описание вакансии",
+      "grade",
+      "требования и must-have компетенции",
+      "резюме кандидата",
+      "технически утверждённые вопросы и scoring rubric"
+    ],
+    "candidate_experience": [
+      "ссылка с ограниченным сроком действия",
+      "прозрачное уведомление и согласие",
+      "проверка камеры и микрофона",
+      "6 вопросов за 25–30 минут",
+      "отдельная запись каждого ответа",
+      "возможность продолжить после сетевого сбоя"
+    ],
+    "output": [
+      "видео и транскрипт по вопросам",
+      "criterion-level evidence",
+      "рекомендация fit/no_fit/additional_review",
+      "сильные стороны и риски",
+      "missing information и вопросы на финал",
+      "integrity signals без автоматического наказания",
+      "отдельные решения рекрутёра и нанимающего менеджера"
+    ]
+  },
+  "roles": [
+    {
+      "role": "recruiter",
+      "scope": "Все вакансии и кандидаты",
+      "responsibilities": [
+        "создать вакансию и требования",
+        "запустить generation/review вопросов",
+        "пригласить кандидата",
+        "проверить отчёт, видео и transcript",
+        "оставить заметки и принять первичное решение",
+        "назначить кандидата конкретному hiring manager"
+      ]
+    },
+    {
+      "role": "technical_specialist",
+      "scope": "Назначенные шаблоны, calibration и escalations",
+      "responsibilities": [
+        "проверить competencies, anchors и вопросы",
+        "утвердить interview version",
+        "разобрать неоднозначные случаи",
+        "размечать ошибки для calibration backlog"
+      ]
+    },
+    {
+      "role": "hiring_manager",
+      "scope": "Только назначенные рекрутёром кандидаты",
+      "responsibilities": [
+        "просмотреть evidence, видео и заметки рекрутёра",
+        "принять решение по своей команде",
+        "использовать unresolved gaps на финальном интервью"
+      ]
+    },
+    {
+      "role": "candidate",
+      "scope": "Собственное приглашение и интервью",
+      "responsibilities": [
+        "подтвердить условия записи",
+        "пройти device check",
+        "ответить на вопросы с камерой и микрофоном"
+      ]
+    }
+  ],
+  "customer_profiles": [
+    {
+      "segment": "Recruiter Process Owner",
+      "jobs": [
+        "обработать сотни откликов без потери сильных кандидатов с плохим резюме",
+        "настроить объединённый биографический и технический скрин",
+        "сформировать shortlist без полного просмотра всех видео",
+        "направить кандидата в подходящую команду"
+      ],
+      "pains": [
+        "невозможно вручную разобрать 700–6700 откликов",
+        "resume screening недостаточно точен",
+        "рекрутёр не может самостоятельно подтвердить технический уровень",
+        "black-box recommendation создаёт кадровый риск"
+      ],
+      "gains": [
+        "structured report с evidence и missing information",
+        "review отчёта за пять минут или меньше",
+        "прозрачный human decision trail",
+        "корректный candidate experience"
+      ]
+    },
+    {
+      "segment": "Technical Knowledge Owner",
+      "jobs": [
+        "утвердить измеряемые Python-компетенции и вопросы",
+        "избавиться от повторяющихся 1,5-часовых интервью",
+        "разбирать только спорные случаи",
+        "улучшать rubric по реальным ошибкам"
+      ],
+      "pains": [
+        "интервью отнимают время у продуктовой команды",
+        "вопросы инженеров несопоставимы",
+        "без live coding неполно проверяется практический навык",
+        "свободное LLM-суждение может быть технически неверным"
+      ],
+      "gains": [
+        "question/rubric review за двадцать минут или меньше",
+        "версионированный стандарт",
+        "evidence для каждого спорного score",
+        "calibration backlog вместо повторения интервью"
+      ]
+    },
+    {
+      "segment": "Hiring Manager Decision Owner",
+      "jobs": [
+        "получить только предварительно проверенных кандидатов",
+        "быстро увидеть evidence, recruiter notes и gaps",
+        "подготовить живой финал",
+        "не видеть общую воронку и чужие команды"
+      ],
+      "pains": [
+        "слабые кандидаты в финале разрушают доверие к скринингу",
+        "длинные отчёты и полные видео замедляют решение",
+        "неясно, что именно дополнительно проверить"
+      ],
+      "gains": [
+        "review за семь минут или меньше",
+        "каждый technical claim связан с answer evidence",
+        "готовый список вопросов на финал",
+        "ranking только внутри сопоставимой interview version"
+      ]
+    },
+    {
+      "segment": "Eligible IT Candidate",
+      "jobs": [
+        "пройти интервью в удобное время",
+        "показать способность лучше, чем это делает резюме",
+        "понимать запись, antifraud и роль ИИ",
+        "не потерять ответы из-за нестабильной сети"
+      ],
+      "pains": [
+        "негативное восприятие разговора с машиной",
+        "длинное интервью снижает желание завершить",
+        "камера и antifraud вызывают тревогу",
+        "нельзя уточнить двусмысленный вопрос"
+      ],
+      "gains": [
+        "короткий и понятный сценарий",
+        "справедливый шанс вне зависимости от качества CV",
+        "прозрачность human-in-the-loop",
+        "подтверждение успешного завершения"
+      ]
+    }
+  ],
+  "pain_map": [
+    {
+      "pain": "Рекрутёр не может вручную обработать объём откликов.",
+      "evidence": "6700 откликов за неделю в пике; около 700 в первые дни Python-вакансии.",
+      "severity": 5,
+      "frequency": 5,
+      "reach": 5,
+      "confidence": 5,
+      "priority_score": 50
+    },
+    {
+      "pain": "Инженеры тратят время на заведомо неподходящих кандидатов.",
+      "evidence": "До 1,5 часа технического специалиста на одно интервью.",
+      "severity": 5,
+      "frequency": 5,
+      "reach": 5,
+      "confidence": 5,
+      "priority_score": 50
+    },
+    {
+      "pain": "Resume-only screening теряет сильных кандидатов и пропускает слабых.",
+      "evidence": "Системы HeadHunter/Cooku оцениваются как недостаточно хорошие; кандидаты не всегда умеют писать резюме.",
+      "severity": 5,
+      "frequency": 4,
+      "reach": 5,
+      "confidence": 5,
+      "priority_score": 47
+    },
+    {
+      "pain": "Пропуск слабых кандидатов разрушит доверие к системе.",
+      "evidence": "Наполнение следующего этапа преимущественно слабыми кандидатами названо критерием провала.",
+      "severity": 5,
+      "frequency": 4,
+      "reach": 5,
+      "confidence": 5,
+      "priority_score": 47
+    },
+    {
+      "pain": "Непонятен личный вклад кандидата в описываемый проект.",
+      "evidence": "Stakeholders отдельно выделили вопрос о конкретной роли кандидата.",
+      "severity": 4,
+      "frequency": 4,
+      "reach": 4,
+      "confidence": 5,
+      "priority_score": 41
+    },
+    {
+      "pain": "Избыточное число вопросов снижает completion.",
+      "evidence": "Влияние длины интервью на конверсию обозначено явно.",
+      "severity": 4,
+      "frequency": 4,
+      "reach": 5,
+      "confidence": 4,
+      "priority_score": 42
+    },
+    {
+      "pain": "Вопросы могут утечь и заучиваться.",
+      "evidence": "Ротация и вариативность приняты как опциональное улучшение.",
+      "severity": 3,
+      "frequency": 3,
+      "reach": 4,
+      "confidence": 4,
+      "priority_score": 33
+    },
+    {
+      "pain": "Не определены разрешённые model providers и контур данных.",
+      "evidence": "Решение по зарубежным моделям открыто; требуется быстрая смена моделей.",
+      "severity": 5,
+      "frequency": 3,
+      "reach": 5,
+      "confidence": 5,
+      "priority_score": 44
+    }
+  ],
+  "jtbd": [
+    {
+      "segment": "Recruiter Process Owner",
+      "job_statement": "Когда вакансия получает сотни откликов, я хочу автоматически провести единый биографический и технический скрин для минимально подходящих кандидатов, чтобы сформировать качественный shortlist без участия инженера в каждом интервью.",
+      "acceptance_criteria": [
+        "exact agreement не ниже 80%",
+        "сбалансированные false pass и false reject",
+        "median recruiter review не больше 5 минут",
+        "ни одного автоматического кадрового решения"
+      ]
+    },
+    {
+      "segment": "Technical Knowledge Owner",
+      "job_statement": "Когда новая версия интервью готовится к запуску, я хочу быстро проверить competencies, anchors и вопросы, чтобы делегировать массовый скрин системе, сохранив технический стандарт команды.",
+      "acceptance_criteria": [
+        "question/rubric review не больше 20 минут",
+        "версионирование и audit",
+        "evidence для каждого спорного score",
+        "ошибку можно добавить в calibration backlog"
+      ]
+    },
+    {
+      "segment": "Hiring Manager Decision Owner",
+      "job_statement": "Когда рекрутёр назначает кандидата моей команде, я хочу увидеть короткий evidence-backed profile и нерешённые вопросы, чтобы выбрать кандидатов на финал и потратить живое время на глубину, soft skills и culture fit.",
+      "acceptance_criteria": [
+        "server-side scoped access",
+        "review не больше 7 минут",
+        "каждый technical claim связан с ответом",
+        "ranking только внутри одной interview version"
+      ]
+    },
+    {
+      "segment": "Eligible IT Candidate",
+      "job_statement": "Когда резюме не полностью показывает мои способности, я хочу пройти короткое понятное интервью в удобное время, чтобы справедливо продемонстрировать опыт и знать, что финальное решение принимает человек.",
+      "acceptance_criteria": [
+        "5–7 вопросов",
+        "ожидаемая длительность не больше 30 минут",
+        "device check и resume",
+        "прозрачное согласие",
+        "уважительный тон и completion receipt"
+      ]
+    }
+  ],
+  "value_proposition": {
+    "customer_jobs": [
+      "массовый биографический и технический скрин",
+      "проверяемая оценка без участия инженера в каждом интервью",
+      "подготовка качественного финального живого этапа"
+    ],
+    "pain_relievers": [
+      "асинхронное прохождение без календарной координации",
+      "короткий evidence-first report вместо полного просмотра видео",
+      "insufficient_information и expert escalation вместо выдуманного ответа",
+      "техническое утверждение question/rubric version",
+      "human decision trail"
+    ],
+    "gain_creators": [
+      "справедливый дополнительный сигнал помимо резюме",
+      "высвобождённые engineering hours",
+      "структурированные gaps для финального интервью",
+      "повторяемое сравнение кандидатов одной версии",
+      "model portability через adapters"
+    ],
+    "unique_value_proposition": "Из 700 откликов к команде доходят кандидаты с проверяемым technical evidence, а инженер подключается только к сложным случаям и финалу."
+  },
+  "question_strategy": {
+    "pilot_role": "Python developer",
+    "grade": "to_be_confirmed",
+    "main_questions": 6,
+    "target_duration_minutes": 30,
+    "blocks": [
+      "biography и personal ownership",
+      "Python fundamentals и trade-offs",
+      "concurrency/async",
+      "data layer и consistency/performance",
+      "debugging/operations",
+      "system thinking"
+    ],
+    "required_rubric_fields": [
+      "competency_id",
+      "grade_specific_depth",
+      "positive_anchors",
+      "negative_anchors",
+      "personal_contribution_signals",
+      "acceptable_alternatives",
+      "insufficient_information_rule",
+      "weight"
+    ],
+    "rotation_policy": "Использовать только технически проверенный item bank из эквивалентных вариантов; логировать item IDs.",
+    "not_required": [
+      "идеальный ответ от hiring manager",
+      "Jira context",
+      "codebase context",
+      "live coding в MVP"
+    ]
+  },
+  "hypotheses": [
+    {
+      "rank": 1,
+      "hypothesis": "Версионированный rubric и answer evidence обеспечат не менее 80% совпадения с adjudicated human recommendation.",
+      "metric": "Exact agreement, macro-F1, balanced accuracy и confusion matrix на frozen test set.",
+      "reach": 100,
+      "impact": 3,
+      "confidence": 0.65,
+      "effort": 3.0,
+      "rice_score": 65.0
+    },
+    {
+      "rank": 2,
+      "hypothesis": "Evidence card и recruiter notes сократят human review без потери контроля.",
+      "metric": "Median recruiter review не больше 5 минут и 100% scored claims с evidence либо missing-information marker.",
+      "reach": 100,
+      "impact": 2,
+      "confidence": 0.8,
+      "effort": 2.5,
+      "rice_score": 64.0
+    },
+    {
+      "rank": 3,
+      "hypothesis": "Escalation по недостатку evidence удержит качество при сокращении expert load.",
+      "metric": "Coverage-quality curve, escalation share и balanced error rate.",
+      "reach": 100,
+      "impact": 3,
+      "confidence": 0.7,
+      "effort": 3.5,
+      "rice_score": 60.0
+    },
+    {
+      "rank": 4,
+      "hypothesis": "Шесть открытых вопросов объединят biography и technical screen с приемлемой completion.",
+      "metric": "Completion не ниже 70% от started; median duration не больше 30 минут.",
+      "reach": 100,
+      "impact": 2,
+      "confidence": 0.75,
+      "effort": 2.5,
+      "rice_score": 60.0
+    },
+    {
+      "rank": 5,
+      "hypothesis": "AI draft плюс technical approval обеспечат релевантные вопросы за 20 минут или меньше.",
+      "metric": "Review time, edit/reject rate и item quality после pilot.",
+      "reach": 100,
+      "impact": 2,
+      "confidence": 0.75,
+      "effort": 2.5,
+      "rice_score": 60.0
+    },
+    {
+      "rank": 6,
+      "hypothesis": "Provider-neutral model gateway позволит сменить ASR/LLM без переписывания workflow.",
+      "metric": "Смена одного provider за один рабочий день с теми же contracts и evaluation suite.",
+      "reach": 100,
+      "impact": 1,
+      "confidence": 0.8,
+      "effort": 2.0,
+      "rice_score": 40.0
+    },
+    {
+      "rank": 7,
+      "hypothesis": "Видео и tab events дадут полезные базовые integrity signals без автоматического отказа.",
+      "metric": "Signal capture не ниже 95%, human usefulness и число ошибочных обвинений.",
+      "reach": 100,
+      "impact": 1,
+      "confidence": 0.7,
+      "effort": 2.0,
+      "rice_score": 35.0
+    },
+    {
+      "rank": 8,
+      "hypothesis": "Reviewed item rotation снизит повтор вопросов без потери comparability.",
+      "metric": "Duplicate exposure, item difficulty drift и agreement по variants.",
+      "reach": 100,
+      "impact": 1,
+      "confidence": 0.6,
+      "effort": 2.5,
+      "rice_score": 24.0
+    }
+  ],
+  "lean_canvas": {
+    "problem": [
+      "Recruiter throughput не соответствует сотням и тысячам откликов.",
+      "Инженеры теряют до 1,5 часа на нерелевантных кандидатов.",
+      "Resume-only filter теряет сильных кандидатов с плохим CV."
+    ],
+    "existing_alternatives": [
+      "HeadHunter/Cooku resume analysis",
+      "рекрутёрское и инженерное live интервью",
+      "Zoom/Телемост и ручной feedback",
+      "Huntflow как CRM",
+      "внешние async interview platforms"
+    ],
+    "solution": [
+      "combined biography и verbal technical async interview",
+      "AI-generated и technically approved question/rubric version",
+      "video, transcript, evidence scoring и insufficient-information state",
+      "recruiter notes и scoped manager access",
+      "expert calibration на тех же видео"
+    ],
+    "high_level_concept": "Асинхронный первый и второй этап найма, собранные в один проверяемый interview dossier.",
+    "unfair_advantage": "Потенциальный, ещё не доказанный: собственный набор реальных Python-вакансий, видео, human labels и overrides Napoleon IT.",
+    "early_adopter": "Python hiring team с высоким потоком, определённым grade, technical reviewer и данными для blind evaluation.",
+    "channels": [
+      "HeadHunter",
+      "сайт компании",
+      "Telegram-каналы",
+      "employee referrals",
+      "Huntflow",
+      "email и messenger invite"
+    ],
+    "cost_structure": [
+      "video storage и traffic",
+      "ASR/TTS/LLM",
+      "application infrastructure и security",
+      "technical question review",
+      "gold-label creation и calibration",
+      "candidate support"
+    ],
+    "internal_value_capture": [
+      "высвобождённые engineering hours",
+      "снижение стоимости technical screen",
+      "сокращение time-to-shortlist",
+      "меньше потерь сильных кандидатов"
+    ]
+  },
+  "mvp_scope": {
+    "p0": [
+      "recruiter login и vacancy draft",
+      "grade, requirements и must-haves",
+      "AI question/rubric draft",
+      "technical approve/publish",
+      "expiring candidate link",
+      "consent placeholder и device check",
+      "six-question per-answer video interview",
+      "resumable upload и completion receipt",
+      "tab visibility event log",
+      "ASR adapter и vacancy glossary",
+      "evidence extraction и criterion score",
+      "deterministic recommendation",
+      "recruiter report, notes и decision",
+      "candidate assignment и scoped manager view",
+      "blind benchmark page"
+    ],
+    "p1": [
+      "один specificity follow-up",
+      "reviewed question variants",
+      "ranking внутри одной interview version",
+      "JSON/PDF export",
+      "Huntflow deep link или CSV",
+      "admin model comparison"
+    ],
+    "out_of_scope": [
+      "live coding IDE",
+      "неограниченный adaptive interviewer",
+      "face/emotion/voice confidence scoring",
+      "automatic reject/invite",
+      "recruiter workload balancing",
+      "candidate feedback",
+      "production Huntflow integration",
+      "универсальная calibration всех ролей и грейдов"
+    ]
+  },
+  "evaluation": {
+    "gold_label_process": [
+      "Рекрутёр независимо размечает biography, motivation и recruiting risk.",
+      "Технический эксперт независимо ставит criterion-level scores и recommendation.",
+      "Расхождения adjudicate по заранее утверждённому правилу.",
+      "ИИ не видит human labels до завершения frozen run."
+    ],
+    "quality_metrics": [
+      "exact agreement target не ниже 80%",
+      "macro-F1",
+      "balanced accuracy",
+      "false pass и false reject с одинаковым весом",
+      "confusion matrix",
+      "must-have competency agreement",
+      "evidence precision",
+      "unsupported-claim rate",
+      "ASR technical-term accuracy",
+      "human inter-rater agreement"
+    ],
+    "efficiency_metrics": [
+      "expert escalation share с целью приблизиться к 5% после quality gate",
+      "engineering hours на 100 eligible candidates до и после",
+      "recruiter review minutes",
+      "cost per completed interview",
+      "time from invite to shortlist"
+    ],
+    "funnel": [
+      "applications",
+      "pass_minimum_requirements",
+      "invited",
+      "opened",
+      "consented",
+      "started",
+      "completed",
+      "ai_recommendation",
+      "recruiter_approved",
+      "assigned_to_manager",
+      "final_interview"
+    ],
+    "gate_order": [
+      "recording reliability",
+      "ASR sufficiency",
+      "evidence correctness",
+      "human agreement and balanced errors",
+      "candidate completion",
+      "expert escalation",
+      "cost and engineering-hour reduction"
+    ]
+  },
+  "architecture": {
+    "frontend": "Next.js/React candidate and staff UI",
+    "backend": "FastAPI application API",
+    "database": "PostgreSQL",
+    "media": "S3-compatible regional object storage",
+    "jobs": "Redis/queue workers",
+    "model_gateway": [
+      "ASR adapter",
+      "TTS adapter",
+      "LLM evidence/judge adapter"
+    ],
+    "evaluation_service": "Frozen datasets, metrics and model comparisons",
+    "required_run_metadata": [
+      "provider",
+      "model_id",
+      "prompt_hash",
+      "rubric_version",
+      "response_id"
+    ],
+    "decision_separation": [
+      "ai_recommendation",
+      "recruiter_decision",
+      "hiring_manager_decision"
+    ]
+  },
+  "antifraud_policy": {
+    "p0_signals": [
+      "tab hidden/visible timestamps",
+      "camera recording for human identity-continuity review",
+      "unexpected additional audio only if detection is reliable",
+      "answer start/stop/upload audit"
+    ],
+    "rule": "Integrity signal никогда не меняет technical score и не создаёт автоматический отказ.",
+    "allowed": "Обычная подготовка кандидата к интервью.",
+    "mitigation": "Reviewed item rotation и вопросы о личном контексте, trade-offs и конкретном вкладе."
+  },
+  "risks": [
+    {
+      "risk": "Weak-pass error destroys trust",
+      "mitigation": "Blind benchmark, balanced errors, insufficient-information state и escalation."
+    },
+    {
+      "risk": "False reject loses a strong candidate",
+      "mitigation": "Human review, evidence links, separate minimum filter и override logging."
+    },
+    {
+      "risk": "Verbal screen overclaims coding ability",
+      "mitigation": "Report limitation explicitly; practical coding remains for later live stage."
+    },
+    {
+      "risk": "Candidate abandons AI interview",
+      "mitigation": "Six questions, 30-minute expectation, respectful copy, preflight и resumable upload."
+    },
+    {
+      "risk": "Model/provider cannot be used with candidate data",
+      "mitigation": "Regional storage, provider adapters, transfer review и frozen eval before switch."
+    },
+    {
+      "risk": "Bias from emotion, appearance, accent or confidence",
+      "mitigation": "Automatic score uses content criteria only; video remains human evidence."
+    }
+  ],
+  "competitor_scan": [
+    {
+      "product": "HireVue",
+      "url": "https://www.hirevue.com/platform/online-video-interviewing-software",
+      "observed_pattern": "On-demand/live video, recordings, structured rating scales/interview guides and ATS integrations.",
+      "implication": "Basic async video flow is table stakes, not differentiation."
+    },
+    {
+      "product": "HireVue Assessments",
+      "url": "https://www.hirevue.com/platform/assessment-software",
+      "observed_pattern": "AI-scored interviews and technical/coding challenges.",
+      "implication": "Coding is a separate assessment capability and can remain outside Napoleon IT MVP."
+    },
+    {
+      "product": "Hyring AI Interviewer",
+      "url": "https://hyring.com/ai-interviewer",
+      "observed_pattern": "Async/live interview, JD-based questions, transcripts, scored reports and technical pre-screen.",
+      "implication": "Workflow is category-standard; differentiation must come from local calibration and evidence."
+    },
+    {
+      "product": "Interviewer.AI",
+      "url": "https://interviewer.ai/asynchronous-video-interviews/",
+      "observed_pattern": "One-way invitation, scorecard and anytime completion.",
+      "implication": "Candidate self-service pattern is established, but vendor claims do not validate Napoleon IT quality."
+    }
+  ],
+  "legal_and_data_guardrails": {
+    "not_legal_advice": true,
+    "requirements": [
+      "Получить информирование/согласие до реальной записи кандидата.",
+      "Указать цель, категории данных, viewers, retention и deletion process.",
+      "Дать manager server-side scoped access, а не только скрытую ссылку.",
+      "Шифровать media и логировать доступ.",
+      "Проверить трансграничную передачу до использования foreign ASR/LLM.",
+      "Не принимать кадровое решение исключительно автоматически.",
+      "Если face/voice используется для идентификации, провести отдельную biometric assessment."
+    ],
+    "sources": [
+      {
+        "title": "152-ФЗ, статья 16",
+        "url": "https://www.consultant.ru/document/cons_doc_LAW_61801/22e884a41450dcb5cb62d956583ad32abe2bbbe9/"
+      },
+      {
+        "title": "152-ФЗ, статья 18",
+        "url": "https://www.consultant.ru/document/cons_doc_LAW_61801/cbf4e15b7c330f9372e876cdf2bc928bad7950ef/"
+      },
+      {
+        "title": "152-ФЗ, статья 11",
+        "url": "https://www.consultant.ru/document/cons_doc_LAW_61801/7336c78762a98b5f4f698b8c3800dca1111acc16/"
+      }
+    ]
+  },
+  "open_questions": [
+    "Из 700 Python-откликов сколько проходят minimum filter, получают invite, начинают и завершают интервью?",
+    "Какой grade Python-разработчика выбран для пилота?",
+    "Какие must-have competencies и что является безусловным no_fit?",
+    "Есть ли structured expert labels или только свободный feedback?",
+    "Сколько независимых размеченных видео доступно для development и frozen holdout?",
+    "Какова фактическая стоимость engineering hour и число technical interviews в месяц?",
+    "Какой additional_review rate допустим до потери экономического эффекта?",
+    "Где разрешено хранить media и какие model providers могут их получать?",
+    "Каков retention period для откликов, видео и AI reports?",
+    "Кто утверждает rubric и adjudicates расхождения human reviewers?"
+  ],
+  "final_recommendation": [
+    "Одна Python vacancy и один grade.",
+    "Шесть технически проверенных вопросов.",
+    "Реальное browser video interview.",
+    "Criterion evidence и missing-information state.",
+    "Отдельные human notes и decisions.",
+    "Side-by-side AI versus human benchmark.",
+    "Model switch через единый adapter contract."
+  ]
+}
