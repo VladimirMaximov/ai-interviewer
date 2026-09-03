@@ -11,6 +11,7 @@ from app.api.candidate import (
     ConfirmUploadRequest,
     ConfirmRecordingChunkRequest,
     FinishRecordingRequest,
+    FollowUpQuestionView,
     InvitationView,
     RecordingChunkGrant,
     RecordingChunkGrantRequest,
@@ -26,6 +27,8 @@ from app.api.candidate import (
 from app.models.hiring_context import CandidateResume, Vacancy
 from app.models.interview import (
     CandidateResponse,
+    FollowUpStatus,
+    InterviewFollowUpQuestion,
     InterviewInvitation,
     InterviewRecording,
     InterviewRecordingChunk,
@@ -195,6 +198,49 @@ class SqlCandidateWorkflow:
         # is a private prefix, not a large object uploaded at the end.
         return RecordingGrant(recording_id=recording.id, storage_key=recording.storage_key, upload_url="", content_type=recording.content_type)
 
+    def _schedule_completed_response_segments(
+        self,
+        session: InterviewSession,
+        recording: InterviewRecording,
+    ) -> None:
+        """Start STT once an answer is wholly covered by uploaded chunks.
+
+        The candidate never waits for this work: each response remains pending
+        until the next 10-second media chunk closes and is confirmed.  A future
+        clarification agent can therefore consume a transcript during the same
+        interview rather than only after its final submission.
+        """
+        if not self.scheduler:
+            return
+        chunks = list(self.db.scalars(select(InterviewRecordingChunk).where(
+            InterviewRecordingChunk.recording_id == recording.id,
+        ).order_by(InterviewRecordingChunk.sequence)))
+        if not chunks or any(chunk.uploaded_at is None for chunk in chunks):
+            return
+        if [chunk.sequence for chunk in chunks] != list(range(len(chunks))):
+            return
+        covered_until_ms = chunks[-1].end_offset_ms
+        responses = list(self.db.scalars(select(CandidateResponse).where(
+            CandidateResponse.session_id == session.id,
+            CandidateResponse.start_offset_ms.is_not(None),
+            CandidateResponse.end_offset_ms.is_not(None),
+            CandidateResponse.end_offset_ms <= covered_until_ms,
+            CandidateResponse.transcription_status == TranscriptionStatus.PENDING,
+        )))
+        if not responses:
+            return
+        for response in responses:
+            response.transcription_status = TranscriptionStatus.PROCESSING
+        self.db.commit()
+        chunk_sources = [(chunk.storage_key, chunk.start_offset_ms, chunk.end_offset_ms) for chunk in chunks]
+        for response in responses:
+            self.scheduler.schedule_segment_chunks(
+                response.id,
+                chunk_sources,
+                response.start_offset_ms,
+                response.end_offset_ms,
+            )
+
     def finish_recording(self, secret: str, request: FinishRecordingRequest) -> bool:
         session = self._session(secret); recording = self.db.get(InterviewRecording, request.recording_id) if session else None
         if not recording or recording.session_id != session.id or recording.ended_at is not None:
@@ -264,6 +310,7 @@ class SqlCandidateWorkflow:
         chunk.checksum = request.checksum
         chunk.uploaded_at = datetime.now(timezone.utc)
         self.db.commit()
+        self._schedule_completed_response_segments(session, recording)
         return True
 
     def save_response_segment(self, secret: str, request: ResponseSegmentRequest) -> ResponseSegmentView | None:
@@ -294,5 +341,48 @@ class SqlCandidateWorkflow:
             response.end_offset_ms = request.end_offset_ms
             response.transcription_status = TranscriptionStatus.PENDING
             response.transcript_text = None
-        self.db.commit(); self.db.refresh(response)
+        follow_up = self.db.get(InterviewFollowUpQuestion, request.question_id)
+        if follow_up and follow_up.session_id == session.id:
+            follow_up.status = FollowUpStatus.ANSWERED
+            follow_up.answered_at = datetime.now(timezone.utc)
+        self.db.commit()
+        self._schedule_completed_response_segments(session, recording)
+        self.db.refresh(response)
         return ResponseSegmentView(response_id=response.id, status=response.transcription_status)
+
+    def follow_up_questions(self, secret: str) -> list[FollowUpQuestionView] | None:
+        session = self._session(secret)
+        if not session:
+            return None
+        follow_ups = list(self.db.scalars(select(InterviewFollowUpQuestion).where(
+            InterviewFollowUpQuestion.session_id == session.id,
+            InterviewFollowUpQuestion.status.in_((FollowUpStatus.READY, FollowUpStatus.PRESENTED, FollowUpStatus.ANSWERED)),
+        ).order_by(InterviewFollowUpQuestion.created_at)))
+        for follow_up in follow_ups:
+            if follow_up.status is FollowUpStatus.READY:
+                follow_up.status = FollowUpStatus.PRESENTED
+                follow_up.presented_at = datetime.now(timezone.utc)
+        self.db.commit()
+        return [FollowUpQuestionView(id=item.id, source_response_id=item.source_response_id, text=item.text, status=item.status) for item in follow_ups]
+
+    def queue_follow_up(self, session_id, text: str, *, source_response_id=None, transcript_snapshot: str | None = None) -> InterviewFollowUpQuestion:
+        """Internal integration point for a future clarification agent, not public API."""
+        if not text.strip():
+            raise ValueError("follow-up text is required")
+        existing = self.db.scalar(select(InterviewFollowUpQuestion).where(
+            InterviewFollowUpQuestion.session_id == session_id,
+            InterviewFollowUpQuestion.source_response_id == source_response_id,
+            InterviewFollowUpQuestion.status.in_((FollowUpStatus.PENDING, FollowUpStatus.READY, FollowUpStatus.PRESENTED)),
+        ))
+        if existing:
+            return existing
+        follow_up = InterviewFollowUpQuestion(
+            session_id=session_id,
+            source_response_id=source_response_id,
+            text=text.strip(),
+            status=FollowUpStatus.READY,
+            transcript_snapshot=transcript_snapshot,
+            created_at=datetime.now(timezone.utc),
+        )
+        self.db.add(follow_up); self.db.commit(); self.db.refresh(follow_up)
+        return follow_up

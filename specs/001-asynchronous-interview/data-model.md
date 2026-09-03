@@ -17,6 +17,9 @@
 - **CandidateResponse**: session/question reference plus `start_offset_ms` and `end_offset_ms`
   into the continuous recording, transcription state `pending|processing|completed|failed`, and
   transcript text. Failed transcription never creates text.
+- **InterviewFollowUpQuestion**: an optional queued clarification with a source-response reference,
+  transcript snapshot and lifecycle state; it is reserved for a future agent and never blocks the
+  approved base sequence.
 - **ReviewerAssignment**: maps recruiter or hiring manager to an interview.
 - **ReviewDecision**: exactly one owner type: `ai_recommendation`, `recruiter_decision`, or
   `hiring_manager_decision`; AI may not create a final candidate outcome.

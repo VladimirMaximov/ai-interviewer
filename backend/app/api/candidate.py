@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.api.errors import invalid_invitation
 from app.models.interview import TranscriptionStatus
-from app.models.interview import TimelineEventType
+from app.models.interview import FollowUpStatus, TimelineEventType
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
 
@@ -93,6 +93,13 @@ class ResponseSegmentView(BaseModel):
     status: TranscriptionStatus
 
 
+class FollowUpQuestionView(BaseModel):
+    id: UUID
+    source_response_id: UUID | None
+    text: str
+    status: FollowUpStatus
+
+
 class CandidateWorkflow(Protocol):
     def resolve(self, secret: str) -> InvitationView | None: ...
     def consent(self, secret: str) -> InvitationView | None: ...
@@ -113,6 +120,7 @@ class CandidateWorkflow(Protocol):
     def create_recording_chunk_grant(self, secret: str, request: RecordingChunkGrantRequest) -> RecordingChunkGrant | None: ...
     def confirm_recording_chunk(self, secret: str, request: ConfirmRecordingChunkRequest) -> bool: ...
     def save_response_segment(self, secret: str, request: ResponseSegmentRequest) -> ResponseSegmentView | None: ...
+    def follow_up_questions(self, secret: str) -> list[FollowUpQuestionView] | None: ...
 
 
 def get_workflow(request: Request) -> CandidateWorkflow:
@@ -205,3 +213,9 @@ def save_response_segment(secret: str, request: ResponseSegmentRequest,
     if request.end_offset_ms <= request.start_offset_ms:
         raise invalid_invitation()
     return workflow.save_response_segment(secret, request) or (_ for _ in ()).throw(invalid_invitation())
+
+
+@router.get("/{secret}/follow-ups", response_model=list[FollowUpQuestionView])
+def follow_up_questions(secret: str, workflow: CandidateWorkflow = Depends(get_workflow)) -> list[FollowUpQuestionView]:
+    questions = workflow.follow_up_questions(secret)
+    return questions if questions is not None else (_ for _ in ()).throw(invalid_invitation())

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CandidateApi, RecordingGrant, Transcript } from "../../api/candidate";
+import { CandidateApi, FollowUpQuestion, RecordingGrant, Transcript } from "../../api/candidate";
 import { CameraPreview } from "./CameraPreview";
 import { QuestionPlayer } from "./QuestionPlayer";
 import { RecordingChunk, useContinuousRecorder } from "./useContinuousRecorder";
@@ -7,13 +7,14 @@ import { useInterviewMediaStream } from "./useInterviewMediaStream";
 import { InterviewerAvatar } from "./InterviewerAvatar";
 import { useQuestionSpeech } from "./useQuestionSpeech";
 
-const questions = [
+const baseQuestions = [
   { id: "11111111-1111-4111-8111-111111111111", text: "Расскажите о последнем проекте и вашей роли в нём." },
   { id: "22222222-2222-4222-8222-222222222222", text: "Как вы обычно находите и устраняете сложную техническую проблему?" },
   { id: "33333333-3333-4333-8333-333333333333", text: "Какие технологии вы хотели бы применять в следующем проекте?" },
 ];
 
 type SavedAnswer = { responseId: string; startOffsetMs: number; endOffsetMs: number; transcript: Transcript };
+type InterviewQuestion = { id: string; text: string; isFollowUp?: boolean };
 
 function debugTranscript(answer: SavedAnswer | undefined, finished: boolean): string {
   if (!answer) return "ещё не сохранён";
@@ -43,6 +44,7 @@ export function InterviewPage() {
   const speech = useQuestionSpeech();
   const api = useMemo(() => new CandidateApi(), []);
   const [index, setIndex] = useState(0);
+  const [questions, setQuestions] = useState<InterviewQuestion[]>(baseQuestions);
   const [recordingGrant, setRecordingGrant] = useState<RecordingGrant | null>(null);
   const [answerStartedAt, setAnswerStartedAt] = useState(0);
   const [answers, setAnswers] = useState<Record<string, SavedAnswer>>({});
@@ -60,6 +62,14 @@ export function InterviewPage() {
   useEffect(() => {
     if (continuous.recording) speech.speak(question.text);
   }, [continuous.recording, index, question.text, speech.speak]);
+
+  const refreshFollowUps = async (): Promise<InterviewQuestion[]> => {
+    if (!token) return questions;
+    const followUps: FollowUpQuestion[] = await api.followUps(token);
+    const updated = [...baseQuestions, ...followUps.map((item) => ({ id: item.id, text: item.text, isFollowUp: true }))];
+    setQuestions(updated);
+    return updated;
+  };
 
   useEffect(() => {
     if (!continuous.recording || !token) return;
@@ -121,7 +131,15 @@ export function InterviewPage() {
       const segment = await api.saveSegment(token, question.id, answerStartedAt, endOffsetMs);
       await api.timeline(token, "answer_saved", endOffsetMs, question.id);
       setAnswers((current) => ({ ...current, [question.id]: { responseId: segment.response_id, startOffsetMs: answerStartedAt, endOffsetMs, transcript: { status: segment.status, text: null } } }));
-      if (index < questions.length - 1) {
+      // A temporary failure while checking for a future agent's follow-up must
+      // never interrupt the candidate after their answer was safely saved.
+      let updatedQuestions = questions;
+      try {
+        updatedQuestions = await refreshFollowUps();
+      } catch {
+        // The next refresh will pick up the queued clarification.
+      }
+      if (index < updatedQuestions.length - 1) {
         await api.timeline(token, "next_question_clicked", endOffsetMs, question.id);
         setIndex((current) => current + 1);
         setAnswerStartedAt(endOffsetMs);
@@ -176,7 +194,7 @@ export function InterviewPage() {
     <section className="interview-stage">
       <CameraPreview stream={stream} />
       <div className="stage-topline"><span>ВАША КАМЕРА</span><span>Вопрос {index + 1} / {questions.length}</span></div>
-      <div className="question-overlay"><InterviewerAvatar compact speaking={speech.speaking} /><QuestionPlayer index={index} total={questions.length} text={question.text} onSpeak={() => speech.speak(question.text)} speaking={speech.speaking} /></div>
+      <div className="question-overlay"><InterviewerAvatar compact speaking={speech.speaking} /><QuestionPlayer index={index} total={questions.length} text={question.text} isFollowUp={question.isFollowUp} onSpeak={() => speech.speak(question.text)} speaking={speech.speaking} /></div>
     </section>
     <section className="recording-controls"><div><p role="status">{message}</p>{continuous.recording && <span className="recording-controls__status">{Math.round(continuous.offset() / 1000)} с · сохранено фрагментов: {continuous.uploadedChunks}</span>}</div>{!continuous.recording && !finished && <button disabled={!stream || submitting} onClick={() => void start()}>Начать интервью</button>}{continuous.recording && !answers[question.id] && <button disabled={submitting} onClick={() => void saveAndContinue()}>{index === questions.length - 1 ? "Сохранить ответ" : "Сохранить и продолжить"}</button>}{continuous.recording && index === questions.length - 1 && allSaved && <button disabled={submitting} onClick={() => void finish()}>Завершить интервью</button>}</section>
     {debug && <section className="debug-panel" aria-label="Отладочная расшифровка"><h2>Отладка: расшифровка</h2><p>Буфер чанков в приложении: {(continuous.bufferedBytes / 1024 / 1024).toFixed(1)} MiB; пик: {(continuous.peakBufferedBytes / 1024 / 1024).toFixed(1)} MiB.</p>{questions.map(({ id }, itemIndex) => <p key={id}>Вопрос {itemIndex + 1}: {debugTranscript(answers[id], finished)}</p>)}</section>}

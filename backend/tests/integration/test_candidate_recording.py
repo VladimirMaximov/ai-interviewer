@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.api.candidate import (
     ConfirmUploadRequest,
+    FollowUpQuestionView,
     InvitationView,
     MonitoringEvidenceGrant,
     MonitoringEventView,
@@ -15,13 +16,14 @@ from app.api.candidate import (
 )
 from app.main import app
 from app.domain.proctoring import MonitoringEventKind, MonitoringReviewStatus
-from app.models.interview import TranscriptionStatus
+from app.models.interview import FollowUpStatus, TranscriptionStatus
 
 
 class Workflow:
     def __init__(self) -> None:
         self.session_id = uuid4()
         self.response_id = uuid4()
+        self.follow_up_id = uuid4()
 
     def resolve(self, secret: str):
         return InvitationView(session_id=self.session_id, consented=False) if secret == "valid" else None
@@ -60,6 +62,16 @@ class Workflow:
             ended_at_ms=request.ended_at_ms,
             review_status=MonitoringReviewStatus.PENDING,
         )
+
+    def follow_up_questions(self, secret: str):
+        if secret != "valid":
+            return None
+        return [FollowUpQuestionView(
+            id=self.follow_up_id,
+            source_response_id=self.response_id,
+            text="Что было результатом проекта?",
+            status=FollowUpStatus.PRESENTED,
+        )]
 
 
 class CandidateApiTests(unittest.TestCase):
@@ -130,3 +142,9 @@ class CandidateApiTests(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 422)
+
+    def test_candidate_can_read_ready_follow_up_without_waiting(self) -> None:
+        response = self.client.get("/candidate/valid/follow-ups")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["source_response_id"], str(self.workflow.response_id))
+        self.assertEqual(response.json()[0]["status"], "presented")

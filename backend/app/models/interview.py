@@ -25,6 +25,15 @@ class TranscriptionStatus(StrEnum):
     FAILED = "failed"
 
 
+class FollowUpStatus(StrEnum):
+    PENDING = "pending"
+    READY = "ready"
+    PRESENTED = "presented"
+    ANSWERED = "answered"
+    SKIPPED = "skipped"
+    FAILED = "failed"
+
+
 class TimelineEventType(StrEnum):
     RECORDING_STARTED = "recording_started"
     QUESTION_SHOWN = "question_shown"
@@ -137,3 +146,21 @@ class InterviewTimelineEvent(Base):
     event_type: Mapped[TimelineEventType] = mapped_column(Enum(TimelineEventType, values_callable=lambda items: [item.value for item in items]))
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     recording_offset_ms: Mapped[int] = mapped_column()
+
+
+class InterviewFollowUpQuestion(Base):
+    """A future agent may enqueue one optional clarification for a response."""
+
+    __tablename__ = "interview_follow_up_questions"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    session_id: Mapped[UUID] = mapped_column(ForeignKey("interview_sessions.id"), index=True)
+    source_response_id: Mapped[UUID | None] = mapped_column(ForeignKey("candidate_responses.id"), nullable=True)
+    text: Mapped[str] = mapped_column(Text)
+    status: Mapped[FollowUpStatus] = mapped_column(
+        Enum(FollowUpStatus, values_callable=lambda items: [item.value for item in items]), default=FollowUpStatus.PENDING
+    )
+    transcript_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    presented_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    answered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

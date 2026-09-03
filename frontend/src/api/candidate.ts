@@ -4,6 +4,7 @@ export type Transcript = { status: "pending" | "processing" | "completed" | "fai
 export type RecordingGrant = { recording_id: string; storage_key: string; upload_url: string; content_type: string };
 export type ResponseSegment = { response_id: string; status: Transcript["status"] };
 export type RecordingChunkGrant = { chunk_id: string; upload_url: string; content_type: string };
+export type FollowUpQuestion = { id: string; source_response_id: string | null; text: string; status: "ready" | "presented" | "answered" };
 
 export class CandidateApi {
   constructor(private readonly baseUrl = "/candidate") {}
@@ -39,6 +40,7 @@ export class CandidateApi {
   async saveSegment(secret: string, questionId: string, startOffsetMs: number, endOffsetMs: number): Promise<ResponseSegment> {
     return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/responses/segments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question_id: questionId, start_offset_ms: startOffsetMs, end_offset_ms: endOffsetMs }) });
   }
+  async followUps(secret: string): Promise<FollowUpQuestion[]> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/follow-ups`); }
 
   private async request<T>(url: string, init?: RequestInit): Promise<T> {
     const response = await fetch(url, init);

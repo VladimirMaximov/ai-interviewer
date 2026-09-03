@@ -36,6 +36,7 @@ and hiring decisions.
 - [X] T013d Implement a continuous session recorder and timeline-event service; preserve `recording_offset_ms` for every candidate action
 - [X] T013e Implement `useInterviewMediaStream` and `CameraPreview` with one live video+audio stream for the whole interview
 - [X] T013f Stream 720p video as private 10-second chunks with upload confirmation and retry; retain answer offsets against the logical recording
+- [X] T013g Add an asynchronous, traceable optional follow-up question queue for a future agent without blocking base questions
 
 **Goal**: A synthetic invited candidate can consent, hear a question, record an audio answer,
 submit it, and see its transcription status and completed text.
