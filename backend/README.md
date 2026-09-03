@@ -6,6 +6,20 @@ provider. This is the baseline because candidate answers are normally longer tha
 
 ## Local setup
 
+## Full local demo
+
+In three terminals from the repository root:
+
+```bash
+docker compose up -d
+PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
+PYTHONPATH=backend python backend/scripts/create_demo_invitation.py
+```
+
+Install backend dependencies once with `pip install -e ./backend`, then run the API with
+`PYTHONPATH=backend uvicorn app.main:app --reload`. In another terminal run `npm --prefix frontend run dev`.
+Open the URL printed by `create_demo_invitation.py`. It is synthetic, expires after 24 hours, and is intended only for local testing.
+
 Install `ffmpeg` and build the `whisper-cli` executable. Download a multilingual Whisper GGML
 model, then configure its explicit local path:
 

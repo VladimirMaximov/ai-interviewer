@@ -31,7 +31,7 @@ class InterviewInvitation(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     token_digest: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    status: Mapped[InvitationStatus] = mapped_column(Enum(InvitationStatus), default=InvitationStatus.ACTIVE)
+    status: Mapped[InvitationStatus] = mapped_column(Enum(InvitationStatus, values_callable=lambda items: [item.value for item in items]), default=InvitationStatus.ACTIVE)
 
 
 class InterviewSession(Base):
@@ -53,6 +53,6 @@ class CandidateResponse(Base):
     content_type: Mapped[str] = mapped_column(String(128))
     checksum: Mapped[str] = mapped_column(String(128))
     transcription_status: Mapped[TranscriptionStatus] = mapped_column(
-        Enum(TranscriptionStatus), default=TranscriptionStatus.PENDING
+        Enum(TranscriptionStatus, values_callable=lambda items: [item.value for item in items]), default=TranscriptionStatus.PENDING
     )
     transcript_text: Mapped[str | None] = mapped_column(Text, nullable=True)

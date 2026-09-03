@@ -1,11 +1,13 @@
 """Private audio storage contract and local MinIO-compatible implementation."""
 
+from pathlib import Path
 from typing import Protocol
 
 
 class PrivateObjectStorage(Protocol):
     def create_upload_url(self, key: str, content_type: str) -> str: ...
     def object_exists(self, key: str) -> bool: ...
+    def download_to(self, key: str, destination: Path) -> None: ...
 
 
 class S3ObjectStorage:
@@ -26,3 +28,6 @@ class S3ObjectStorage:
         except Exception:
             return False
         return True
+
+    def download_to(self, key: str, destination: Path) -> None:
+        self._client.download_file(self._bucket, key, str(destination))
