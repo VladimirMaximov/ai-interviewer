@@ -9,11 +9,16 @@ from sqlalchemy.orm import Session
 from app.adapters.storage import PrivateObjectStorage
 from app.api.candidate import (
     ConfirmUploadRequest,
+    ConfirmRecordingChunkRequest,
+    FinishRecordingRequest,
     InvitationView,
-    MonitoringEvidenceGrant,
-    MonitoringEvidenceGrantRequest,
-    MonitoringEventRequest,
-    MonitoringEventView,
+    RecordingChunkGrant,
+    RecordingChunkGrantRequest,
+    RecordingGrant,
+    ResponseSegmentRequest,
+    ResponseSegmentView,
+    StartRecordingRequest,
+    TimelineEventRequest,
     TranscriptView,
     UploadGrant,
     UploadGrantRequest,
@@ -22,7 +27,9 @@ from app.models.hiring_context import CandidateResume, Vacancy
 from app.models.interview import (
     CandidateResponse,
     InterviewInvitation,
-    InterviewMonitoringEvent,
+    InterviewRecording,
+    InterviewRecordingChunk,
+    InterviewTimelineEvent,
     InterviewSession,
     InvitationStatus,
     TranscriptionStatus,
@@ -30,21 +37,11 @@ from app.models.interview import (
 from app.security.invitations import digest_invitation_secret
 
 
-MAX_MONITORING_EVIDENCE_BYTES = 2_000_000
-
-
 class SqlCandidateWorkflow:
     def __init__(
-        self,
-        session: Session,
-        storage: PrivateObjectStorage,
-        scheduler=None,
-        voice_scheduler=None,
+        self, session: Session, storage: PrivateObjectStorage, scheduler=None
     ) -> None:
-        self.db = session
-        self.storage = storage
-        self.scheduler = scheduler
-        self.voice_scheduler = voice_scheduler
+        self.db, self.storage, self.scheduler = session, storage, scheduler
 
     def _session(self, secret: str) -> InterviewSession | None:
         invitation = self.db.scalar(
@@ -114,16 +111,29 @@ class SqlCandidateWorkflow:
         session = self._session(secret)
         if not session or session.consented_at is None:
             return None
-        response = CandidateResponse(
-            session_id=session.id,
-            question_id=request.question_id,
-            storage_key=f"responses/{session.id}/{uuid4()}.webm",
-            content_type=request.content_type,
-            checksum="",
-            transcription_status=TranscriptionStatus.PENDING,
-            created_at=datetime.now(timezone.utc),
+        response = self.db.scalar(
+            select(CandidateResponse).where(
+                CandidateResponse.session_id == session.id,
+                CandidateResponse.question_id == request.question_id,
+            )
         )
-        self.db.add(response)
+        if response:
+            response.storage_key = f"responses/{session.id}/{uuid4()}.webm"
+            response.content_type = request.content_type
+            response.checksum = ""
+            response.transcription_status = TranscriptionStatus.PENDING
+            response.transcript_text = None
+        else:
+            response = CandidateResponse(
+                session_id=session.id,
+                question_id=request.question_id,
+                storage_key=f"responses/{session.id}/{uuid4()}.webm",
+                content_type=request.content_type,
+                checksum="",
+                transcription_status=TranscriptionStatus.PENDING,
+                created_at=datetime.now(timezone.utc),
+            )
+            self.db.add(response)
         self.db.commit()
         self.db.refresh(response)
         return UploadGrant(
@@ -152,8 +162,6 @@ class SqlCandidateWorkflow:
         self.db.commit()
         if self.scheduler:
             self.scheduler.schedule(response.id, response.storage_key)
-        if self.voice_scheduler:
-            self.voice_scheduler.schedule(response.id)
         return TranscriptView(status=response.transcription_status)
 
     def transcript(self, secret: str, response_id):
@@ -165,129 +173,126 @@ class SqlCandidateWorkflow:
             status=response.transcription_status, text=response.transcript_text
         )
 
-    def create_monitoring_evidence_grant(
-        self, secret: str, request: MonitoringEvidenceGrantRequest
-    ) -> MonitoringEvidenceGrant | None:
+    def record_timeline_event(self, secret: str, request: TimelineEventRequest) -> bool:
         session = self._session(secret)
-        response = (
-            self.db.get(CandidateResponse, request.response_id) if session else None
-        )
-        if (
-            not session
-            or session.consented_at is None
-            or not response
-            or response.session_id != session.id
-            or response.question_id != request.question_id
-        ):
-            return None
-        existing = self.db.get(
-            InterviewMonitoringEvent, request.client_event_id
-        )
-        if existing and (
-            existing.session_id != session.id
-            or existing.response_id != response.id
-            or existing.question_id != response.question_id
-            or existing.evidence_content_type != request.content_type
-        ):
-            return None
-        suffix = ".mp4" if request.content_type == "video/mp4" else ".webm"
-        storage_key = self._monitoring_storage_key(
-            session.id, request.client_event_id, suffix
-        )
-        return MonitoringEvidenceGrant(
-            client_event_id=request.client_event_id,
-            upload_url=self.storage.create_upload_url(
-                storage_key, request.content_type
-            ),
-        )
-
-    def record_monitoring_event(
-        self, secret: str, request: MonitoringEventRequest
-    ) -> MonitoringEventView | None:
-        session = self._session(secret)
-        response = (
-            self.db.get(CandidateResponse, request.response_id) if session else None
-        )
-        if (
-            not session
-            or session.consented_at is None
-            or not response
-            or response.session_id != session.id
-            or response.question_id != request.question_id
-        ):
-            return None
-
-        existing = self.db.get(InterviewMonitoringEvent, request.client_event_id)
-        if existing:
-            matches_request = (
-                existing.session_id == session.id
-                and existing.response_id == response.id
-                and existing.question_id == response.question_id
-                and existing.kind == request.kind
-                and existing.started_at_ms == request.started_at_ms
-                and existing.ended_at_ms == request.ended_at_ms
-                and existing.evidence_content_type
-                == request.evidence_content_type
-                and existing.evidence_checksum == request.evidence_checksum
-            )
-            return (
-                self._monitoring_event_view(existing)
-                if matches_request
-                else None
-            )
-
-        evidence_storage_key = None
-        if request.evidence_content_type:
-            suffix = (
-                ".mp4"
-                if request.evidence_content_type == "video/mp4"
-                else ".webm"
-            )
-            evidence_storage_key = self._monitoring_storage_key(
-                session.id, request.client_event_id, suffix
-            )
-            try:
-                if not self.storage.object_exists(evidence_storage_key):
-                    return None
-                evidence_size = self.storage.object_size(evidence_storage_key)
-            except Exception:
-                return None
-            if evidence_size <= 0 or evidence_size > MAX_MONITORING_EVIDENCE_BYTES:
-                return None
-
-        event = InterviewMonitoringEvent(
-            id=request.client_event_id,
-            session_id=session.id,
-            response_id=response.id,
-            question_id=response.question_id,
-            kind=request.kind,
-            started_at_ms=request.started_at_ms,
-            ended_at_ms=request.ended_at_ms,
-            confidence=request.confidence,
-            source="browser_face",
-            detector_name=request.detector_name,
-            detector_version=request.detector_version,
-            evidence_storage_key=evidence_storage_key,
-            evidence_content_type=request.evidence_content_type,
-            evidence_checksum=request.evidence_checksum,
-            created_at=datetime.now(timezone.utc),
-        )
-        self.db.add(event)
+        if not session:
+            return False
+        self.db.add(InterviewTimelineEvent(session_id=session.id, question_id=request.question_id, event_type=request.event_type, occurred_at=datetime.now(timezone.utc), recording_offset_ms=request.recording_offset_ms))
         self.db.commit()
-        return self._monitoring_event_view(event)
+        return True
 
-    @staticmethod
-    def _monitoring_storage_key(session_id, event_id, suffix: str) -> str:
-        return f"monitoring/{session_id}/{event_id}{suffix}"
+    def start_recording(self, secret: str, request: StartRecordingRequest) -> RecordingGrant | None:
+        session = self._session(secret)
+        if not session or session.consented_at is None:
+            return None
+        recording = self.db.scalar(select(InterviewRecording).where(InterviewRecording.session_id == session.id))
+        if recording and recording.ended_at is not None:
+            return None
+        if not recording:
+            recording = InterviewRecording(session_id=session.id, storage_key=f"recordings/{session.id}/{uuid4()}", content_type=request.content_type, started_at=datetime.now(timezone.utc))
+            self.db.add(recording); self.db.commit(); self.db.refresh(recording)
+        # Chunks receive their own short-lived upload grants. The recording key
+        # is a private prefix, not a large object uploaded at the end.
+        return RecordingGrant(recording_id=recording.id, storage_key=recording.storage_key, upload_url="", content_type=recording.content_type)
 
-    @staticmethod
-    def _monitoring_event_view(
-        event: InterviewMonitoringEvent,
-    ) -> MonitoringEventView:
-        return MonitoringEventView(
-            id=event.id,
-            kind=event.kind,
-            started_at_ms=event.started_at_ms,
-            ended_at_ms=event.ended_at_ms,
-            review_status=event.review_status,
+    def finish_recording(self, secret: str, request: FinishRecordingRequest) -> bool:
+        session = self._session(secret); recording = self.db.get(InterviewRecording, request.recording_id) if session else None
+        if not recording or recording.session_id != session.id or recording.ended_at is not None:
+            return False
+        chunks = list(self.db.scalars(select(InterviewRecordingChunk).where(
+            InterviewRecordingChunk.recording_id == recording.id,
+        ).order_by(InterviewRecordingChunk.sequence)))
+        if not chunks or any(chunk.uploaded_at is None for chunk in chunks) or [chunk.sequence for chunk in chunks] != list(range(len(chunks))):
+            return False
+        recording.checksum = request.checksum; recording.ended_at = datetime.now(timezone.utc)
+        session.submitted_at = recording.ended_at
+        responses = list(self.db.scalars(select(CandidateResponse).where(
+            CandidateResponse.session_id == session.id,
+            CandidateResponse.start_offset_ms.is_not(None),
+            CandidateResponse.end_offset_ms.is_not(None),
+            CandidateResponse.transcription_status == TranscriptionStatus.PENDING,
+        )))
+        for response in responses:
+            response.transcription_status = TranscriptionStatus.PROCESSING
+        self.db.commit()
+        if self.scheduler:
+            for response in responses:
+                self.scheduler.schedule_segment_chunks(
+                    response.id,
+                    [(chunk.storage_key, chunk.start_offset_ms, chunk.end_offset_ms) for chunk in chunks],
+                    response.start_offset_ms,
+                    response.end_offset_ms,
+                )
+        return True
+
+    def create_recording_chunk_grant(self, secret: str, request: RecordingChunkGrantRequest) -> RecordingChunkGrant | None:
+        session = self._session(secret)
+        recording = self.db.get(InterviewRecording, request.recording_id) if session else None
+        if not recording or recording.session_id != session.id or recording.ended_at is not None:
+            return None
+        if request.content_type != recording.content_type or request.end_offset_ms <= request.start_offset_ms:
+            return None
+        chunk = self.db.scalar(select(InterviewRecordingChunk).where(
+            InterviewRecordingChunk.recording_id == recording.id,
+            InterviewRecordingChunk.sequence == request.sequence,
+        ))
+        if not chunk:
+            extension = "mp4" if request.content_type == "video/mp4" else "webm"
+            chunk = InterviewRecordingChunk(
+                recording_id=recording.id,
+                sequence=request.sequence,
+                storage_key=f"{recording.storage_key}/chunks/{request.sequence:06d}.{extension}",
+                content_type=request.content_type,
+                start_offset_ms=request.start_offset_ms,
+                end_offset_ms=request.end_offset_ms,
+            )
+            self.db.add(chunk); self.db.commit(); self.db.refresh(chunk)
+        return RecordingChunkGrant(
+            chunk_id=chunk.id,
+            upload_url=self.storage.create_upload_url(chunk.storage_key, chunk.content_type),
+            content_type=chunk.content_type,
         )
+
+    def confirm_recording_chunk(self, secret: str, request: ConfirmRecordingChunkRequest) -> bool:
+        session = self._session(secret)
+        chunk = self.db.get(InterviewRecordingChunk, request.chunk_id) if session else None
+        if not chunk or not self.storage.object_exists(chunk.storage_key):
+            return False
+        recording = self.db.get(InterviewRecording, chunk.recording_id)
+        if not recording or recording.session_id != session.id or recording.ended_at is not None:
+            return False
+        chunk.checksum = request.checksum
+        chunk.uploaded_at = datetime.now(timezone.utc)
+        self.db.commit()
+        return True
+
+    def save_response_segment(self, secret: str, request: ResponseSegmentRequest) -> ResponseSegmentView | None:
+        session = self._session(secret)
+        if not session or session.consented_at is None or request.end_offset_ms <= request.start_offset_ms:
+            return None
+        recording = self.db.scalar(select(InterviewRecording).where(InterviewRecording.session_id == session.id))
+        if not recording or recording.ended_at is not None:
+            return None
+        response = self.db.scalar(select(CandidateResponse).where(
+            CandidateResponse.session_id == session.id,
+            CandidateResponse.question_id == request.question_id,
+        ))
+        if not response:
+            response = CandidateResponse(
+                session_id=session.id,
+                question_id=request.question_id,
+                storage_key=None,
+                content_type=recording.content_type,
+                checksum="",
+                transcription_status=TranscriptionStatus.PENDING,
+                start_offset_ms=request.start_offset_ms,
+                end_offset_ms=request.end_offset_ms,
+            )
+            self.db.add(response)
+        else:
+            response.start_offset_ms = request.start_offset_ms
+            response.end_offset_ms = request.end_offset_ms
+            response.transcription_status = TranscriptionStatus.PENDING
+            response.transcript_text = None
+        self.db.commit(); self.db.refresh(response)
+        return ResponseSegmentView(response_id=response.id, status=response.transcription_status)

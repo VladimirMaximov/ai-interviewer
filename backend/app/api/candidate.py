@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Literal, Protocol
+from typing import Protocol
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from app.api.errors import invalid_invitation
-from app.domain.proctoring import MonitoringEventKind, MonitoringReviewStatus
 from app.models.interview import TranscriptionStatus
+from app.models.interview import TimelineEventType
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
 
@@ -25,7 +25,7 @@ class InvitationView(BaseModel):
 
 class UploadGrantRequest(BaseModel):
     question_id: UUID
-    content_type: str = Field(pattern=r"^audio/")
+    content_type: str = Field(pattern=r"^(audio|video)/")
 
 
 class UploadGrant(BaseModel):
@@ -43,63 +43,59 @@ class TranscriptView(BaseModel):
     status: TranscriptionStatus
     text: str | None = None
 
+class TimelineEventRequest(BaseModel):
+    question_id: UUID | None = None
+    event_type: TimelineEventType
+    recording_offset_ms: int = Field(ge=0)
 
-class MonitoringEvidenceGrantRequest(BaseModel):
-    client_event_id: UUID
-    response_id: UUID
-    question_id: UUID
+class RecordingGrant(BaseModel):
+    recording_id: UUID
+    storage_key: str
+    upload_url: str
+    content_type: str
+
+
+class StartRecordingRequest(BaseModel):
+    content_type: str = Field(pattern=r"^video/(webm|mp4)$")
+
+class FinishRecordingRequest(BaseModel):
+    recording_id: UUID
+    checksum: str = Field(min_length=16, max_length=128)
+
+
+class RecordingChunkGrantRequest(BaseModel):
+    recording_id: UUID
+    sequence: int = Field(ge=0)
+    start_offset_ms: int = Field(ge=0)
+    end_offset_ms: int = Field(gt=0)
     content_type: str = Field(pattern=r"^video/(webm|mp4)$")
 
 
-class MonitoringEvidenceGrant(BaseModel):
-    client_event_id: UUID
+class RecordingChunkGrant(BaseModel):
+    chunk_id: UUID
     upload_url: str
+    content_type: str
 
 
-class MonitoringEventRequest(BaseModel):
-    client_event_id: UUID
-    response_id: UUID
+class ConfirmRecordingChunkRequest(BaseModel):
+    chunk_id: UUID
+    checksum: str = Field(min_length=16, max_length=128)
+
+
+class ResponseSegmentRequest(BaseModel):
     question_id: UUID
-    kind: Literal[
-        MonitoringEventKind.FACE_MISSING,
-        MonitoringEventKind.MULTIPLE_FACES,
-        MonitoringEventKind.FACE_DETECTION_UNAVAILABLE,
-    ]
-    started_at_ms: int = Field(ge=0, le=14_400_000)
-    ended_at_ms: int = Field(gt=0, le=14_400_000)
-    confidence: float | None = Field(default=None, ge=0, le=1)
-    detector_name: str = Field(min_length=1, max_length=120)
-    detector_version: str = Field(min_length=1, max_length=80)
-    evidence_content_type: str | None = Field(
-        default=None, pattern=r"^video/(webm|mp4)$"
-    )
-    evidence_checksum: str | None = Field(
-        default=None, min_length=16, max_length=128
-    )
-
-    @model_validator(mode="after")
-    def validate_interval_and_evidence(self) -> "MonitoringEventRequest":
-        if self.ended_at_ms <= self.started_at_ms:
-            raise ValueError("event end must be after its start")
-        if bool(self.evidence_content_type) != bool(self.evidence_checksum):
-            raise ValueError(
-                "evidence content type and checksum must be supplied together"
-            )
-        return self
+    start_offset_ms: int = Field(ge=0)
+    end_offset_ms: int = Field(gt=0)
 
 
-class MonitoringEventView(BaseModel):
-    id: UUID
-    kind: MonitoringEventKind
-    started_at_ms: int
-    ended_at_ms: int
-    review_status: MonitoringReviewStatus
+class ResponseSegmentView(BaseModel):
+    response_id: UUID
+    status: TranscriptionStatus
 
 
 class CandidateWorkflow(Protocol):
     def resolve(self, secret: str) -> InvitationView | None: ...
     def consent(self, secret: str) -> InvitationView | None: ...
-
     def create_upload_grant(
         self, secret: str, request: UploadGrantRequest
     ) -> UploadGrant | None: ...
@@ -111,14 +107,12 @@ class CandidateWorkflow(Protocol):
     def transcript(
         self, secret: str, response_id: UUID
     ) -> TranscriptView | None: ...
-
-    def create_monitoring_evidence_grant(
-        self, secret: str, request: MonitoringEvidenceGrantRequest
-    ) -> MonitoringEvidenceGrant | None: ...
-
-    def record_monitoring_event(
-        self, secret: str, request: MonitoringEventRequest
-    ) -> MonitoringEventView | None: ...
+    def record_timeline_event(self, secret: str, request: TimelineEventRequest) -> bool: ...
+    def start_recording(self, secret: str, request: StartRecordingRequest) -> RecordingGrant | None: ...
+    def finish_recording(self, secret: str, request: FinishRecordingRequest) -> bool: ...
+    def create_recording_chunk_grant(self, secret: str, request: RecordingChunkGrantRequest) -> RecordingChunkGrant | None: ...
+    def confirm_recording_chunk(self, secret: str, request: ConfirmRecordingChunkRequest) -> bool: ...
+    def save_response_segment(self, secret: str, request: ResponseSegmentRequest) -> ResponseSegmentView | None: ...
 
 
 def get_workflow(request: Request) -> CandidateWorkflow:
@@ -174,30 +168,40 @@ def transcript_status(
         invalid_invitation()
     )
 
+@router.post("/{secret}/timeline-events", status_code=204)
+def timeline_event(secret: str, request: TimelineEventRequest, workflow: CandidateWorkflow = Depends(get_workflow)) -> None:
+    if not workflow.record_timeline_event(secret, request):
+        raise invalid_invitation()
 
-@router.post(
-    "/{secret}/monitoring-evidence-grants",
-    response_model=MonitoringEvidenceGrant,
-)
-def request_monitoring_evidence_grant(
-    secret: str,
-    request: MonitoringEvidenceGrantRequest,
-    workflow: CandidateWorkflow = Depends(get_workflow),
-) -> MonitoringEvidenceGrant:
-    return workflow.create_monitoring_evidence_grant(secret, request) or (
-        _ for _ in ()
-    ).throw(invalid_invitation())
+@router.post("/{secret}/recording", response_model=RecordingGrant)
+def start_recording(secret: str, request: StartRecordingRequest,
+                    workflow: CandidateWorkflow = Depends(get_workflow)) -> RecordingGrant:
+    return workflow.start_recording(secret, request) or (_ for _ in ()).throw(invalid_invitation())
+
+@router.post("/{secret}/recording/finish", status_code=204)
+def finish_recording(secret: str, request: FinishRecordingRequest, workflow: CandidateWorkflow = Depends(get_workflow)) -> None:
+    if not workflow.finish_recording(secret, request):
+        raise invalid_invitation()
 
 
-@router.post(
-    "/{secret}/monitoring-events",
-    response_model=MonitoringEventView,
-)
-def record_monitoring_event(
-    secret: str,
-    request: MonitoringEventRequest,
-    workflow: CandidateWorkflow = Depends(get_workflow),
-) -> MonitoringEventView:
-    return workflow.record_monitoring_event(secret, request) or (
-        _ for _ in ()
-    ).throw(invalid_invitation())
+@router.post("/{secret}/recording/chunks", response_model=RecordingChunkGrant)
+def request_recording_chunk(secret: str, request: RecordingChunkGrantRequest,
+                            workflow: CandidateWorkflow = Depends(get_workflow)) -> RecordingChunkGrant:
+    if request.end_offset_ms <= request.start_offset_ms:
+        raise invalid_invitation()
+    return workflow.create_recording_chunk_grant(secret, request) or (_ for _ in ()).throw(invalid_invitation())
+
+
+@router.post("/{secret}/recording/chunks/confirm", status_code=204)
+def confirm_recording_chunk(secret: str, request: ConfirmRecordingChunkRequest,
+                            workflow: CandidateWorkflow = Depends(get_workflow)) -> None:
+    if not workflow.confirm_recording_chunk(secret, request):
+        raise invalid_invitation()
+
+
+@router.post("/{secret}/responses/segments", response_model=ResponseSegmentView)
+def save_response_segment(secret: str, request: ResponseSegmentRequest,
+                          workflow: CandidateWorkflow = Depends(get_workflow)) -> ResponseSegmentView:
+    if request.end_offset_ms <= request.start_offset_ms:
+        raise invalid_invitation()
+    return workflow.save_response_segment(secret, request) or (_ for _ in ()).throw(invalid_invitation())

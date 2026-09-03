@@ -4,23 +4,8 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from sqlalchemy import (
-    CheckConstraint,
-    DateTime,
-    Enum,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-)
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-from app.domain.proctoring import (
-    MonitoringEventKind,
-    MonitoringReviewStatus,
-    VoiceProfileStatus,
-)
 
 
 class Base(DeclarativeBase):
@@ -38,6 +23,19 @@ class TranscriptionStatus(StrEnum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class TimelineEventType(StrEnum):
+    RECORDING_STARTED = "recording_started"
+    QUESTION_SHOWN = "question_shown"
+    ANSWER_SAVED = "answer_saved"
+    NEXT_QUESTION_CLICKED = "next_question_clicked"
+    INTERVIEW_SUBMITTED = "interview_submitted"
+    PAGE_HIDDEN = "page_hidden"
+    PAGE_VISIBLE = "page_visible"
+    WINDOW_BLURRED = "window_blurred"
+    WINDOW_FOCUSED = "window_focused"
+    PAGE_COPY = "page_copy"
 
 
 class InterviewInvitation(Base):
@@ -83,7 +81,9 @@ class CandidateResponse(Base):
         ForeignKey("interview_sessions.id"), index=True
     )
     question_id: Mapped[UUID] = mapped_column(index=True)
-    storage_key: Mapped[str] = mapped_column(String(512), unique=True)
+    # Legacy per-answer uploads may have a key. New responses point to an
+    # interval in InterviewRecording instead, so a key is intentionally null.
+    storage_key: Mapped[str | None] = mapped_column(String(512), unique=True, nullable=True)
     content_type: Mapped[str] = mapped_column(String(128))
     checksum: Mapped[str] = mapped_column(String(128))
     transcription_status: Mapped[TranscriptionStatus] = mapped_column(
@@ -97,82 +97,43 @@ class CandidateResponse(Base):
     created_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    start_offset_ms: Mapped[int | None] = mapped_column(nullable=True)
+    end_offset_ms: Mapped[int | None] = mapped_column(nullable=True)
 
 
-class InterviewMonitoringEvent(Base):
-    """A bounded media interval requiring review, never a hiring decision."""
+class InterviewRecording(Base):
+    __tablename__ = "interview_recordings"
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    session_id: Mapped[UUID] = mapped_column(ForeignKey("interview_sessions.id"), unique=True)
+    storage_key: Mapped[str] = mapped_column(String(512), unique=True)
+    content_type: Mapped[str] = mapped_column(String(128))
+    checksum: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    __tablename__ = "interview_monitoring_events"
-    __table_args__ = (
-        CheckConstraint(
-            "started_at_ms >= 0 AND ended_at_ms > started_at_ms",
-            name="ck_monitoring_event_interval",
-        ),
-    )
+
+class InterviewRecordingChunk(Base):
+    """One independently uploaded ten-second fragment of a recording."""
+
+    __tablename__ = "interview_recording_chunks"
+    __table_args__ = (UniqueConstraint("recording_id", "sequence", name="uq_recording_chunk_sequence"),)
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    session_id: Mapped[UUID] = mapped_column(
-        ForeignKey("interview_sessions.id"), index=True
-    )
-    response_id: Mapped[UUID] = mapped_column(
-        ForeignKey("candidate_responses.id"), index=True
-    )
-    question_id: Mapped[UUID] = mapped_column(index=True)
-    kind: Mapped[MonitoringEventKind] = mapped_column(
-        Enum(
-            MonitoringEventKind,
-            values_callable=lambda items: [item.value for item in items],
-        )
-    )
-    started_at_ms: Mapped[int] = mapped_column(Integer)
-    ended_at_ms: Mapped[int] = mapped_column(Integer)
-    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    source: Mapped[str] = mapped_column(String(40))
-    detector_name: Mapped[str] = mapped_column(String(120))
-    detector_version: Mapped[str] = mapped_column(String(80))
-    evidence_storage_key: Mapped[str | None] = mapped_column(
-        String(512), unique=True, nullable=True
-    )
-    evidence_content_type: Mapped[str | None] = mapped_column(
-        String(128), nullable=True
-    )
-    evidence_checksum: Mapped[str | None] = mapped_column(
-        String(128), nullable=True
-    )
-    review_status: Mapped[MonitoringReviewStatus] = mapped_column(
-        Enum(
-            MonitoringReviewStatus,
-            values_callable=lambda items: [item.value for item in items],
-        ),
-        default=MonitoringReviewStatus.PENDING,
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    recording_id: Mapped[UUID] = mapped_column(ForeignKey("interview_recordings.id"), index=True)
+    sequence: Mapped[int] = mapped_column(Integer)
+    storage_key: Mapped[str] = mapped_column(String(512), unique=True)
+    content_type: Mapped[str] = mapped_column(String(128))
+    start_offset_ms: Mapped[int] = mapped_column(Integer)
+    end_offset_ms: Mapped[int] = mapped_column(Integer)
+    checksum: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    uploaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
-class InterviewVoiceProfile(Base):
-    """Profile readiness and references; no biometric embedding is persisted."""
-
-    __tablename__ = "interview_voice_profiles"
-
+class InterviewTimelineEvent(Base):
+    __tablename__ = "interview_timeline_events"
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    session_id: Mapped[UUID] = mapped_column(
-        ForeignKey("interview_sessions.id"), unique=True, index=True
-    )
-    first_response_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("candidate_responses.id"), nullable=True
-    )
-    second_response_id: Mapped[UUID | None] = mapped_column(
-        ForeignKey("candidate_responses.id"), nullable=True
-    )
-    status: Mapped[VoiceProfileStatus] = mapped_column(
-        Enum(
-            VoiceProfileStatus,
-            values_callable=lambda items: [item.value for item in items],
-        ),
-        default=VoiceProfileStatus.COLLECTING,
-    )
-    reason_code: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    detector_name: Mapped[str] = mapped_column(String(120))
-    detector_version: Mapped[str] = mapped_column(String(80))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    session_id: Mapped[UUID] = mapped_column(ForeignKey("interview_sessions.id"), index=True)
+    question_id: Mapped[UUID | None] = mapped_column(nullable=True)
+    event_type: Mapped[TimelineEventType] = mapped_column(Enum(TimelineEventType, values_callable=lambda items: [item.value for item in items]))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    recording_offset_ms: Mapped[int] = mapped_column()

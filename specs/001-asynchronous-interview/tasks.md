@@ -30,6 +30,13 @@ and hiring decisions.
 
 ## Phase 3: User Story 1 — Record, Save, and Read Text (Priority: P1) 🎯 MVP
 
+### Continuous media and timeline foundation
+
+- [X] T013c Add `InterviewRecording` and `InterviewTimelineEvent` persistence models plus a migration; change responses to recording offsets rather than separate media objects
+- [X] T013d Implement a continuous session recorder and timeline-event service; preserve `recording_offset_ms` for every candidate action
+- [X] T013e Implement `useInterviewMediaStream` and `CameraPreview` with one live video+audio stream for the whole interview
+- [X] T013f Stream 720p video as private 10-second chunks with upload confirmation and retry; retain answer offsets against the logical recording
+
 **Goal**: A synthetic invited candidate can consent, hear a question, record an audio answer,
 submit it, and see its transcription status and completed text.
 
@@ -42,12 +49,12 @@ browser, confirm it is private and attached to the question, and retrieve its tr
 - [X] T014 [P] [US1] Implement RouterAI provider using `openai/gpt-4o-mini-transcribe` and `language="ru"` in `backend/app/adapters/routerai_transcription.py`
 - [X] T015 [P] [US1] Implement local Silero `v5_ru` question-speech provider in `backend/app/adapters/silero_tts.py`; asset cache remains with response flow
 - [X] T016 [US1] Implement response upload confirmation and asynchronous transcription orchestration in `backend/app/services/response_service.py`
-- [ ] T017 [US1] Implement candidate invitation, consent, upload-grant, response-confirmation, and transcript-status endpoints in `backend/app/api/candidate.py` (routes and contract tests complete; PostgreSQL/MinIO workflow wiring remains)
+- [X] T017 [US1] Implement candidate invitation, consent, upload-grant, response-confirmation, and transcript-status endpoints in `backend/app/api/candidate.py` (routes and contract tests complete; PostgreSQL/MinIO workflow wiring remains)
 - [X] T018 [US1] Implement typed candidate API client in `frontend/src/api/candidate.ts`
 - [X] T019 [US1] Implement consent screen in `frontend/src/features/interview/ConsentScreen.tsx` (API persistence remains with T017)
 - [ ] T020 [US1] Implement question player with text alternative in `frontend/src/features/interview/QuestionPlayer.tsx` (cached speech remains)
 - [ ] T021 [US1] Implement MediaRecorder start/stop, unsent-answer replacement, and upload retry in `frontend/src/features/interview/AudioRecorder.tsx`
-- [ ] T022 [US1] Assemble candidate interview flow in `frontend/src/features/interview/InterviewPage.tsx` (transcript status remains)
+- [X] T022 [US1] Assemble candidate interview flow in `frontend/src/features/interview/InterviewPage.tsx` (transcript status remains)
 - [ ] T023 [P] [US1] Add backend contract and integration tests for consent, upload confirmation, and transcript states in `backend/tests/integration/test_candidate_recording.py`
 - [ ] T024 [P] [US1] Add frontend tests for microphone denial, recording state, and transcript status in `frontend/src/features/interview/InterviewPage.test.tsx`
 - [ ] T025 [US1] Add browser E2E synthetic-audio happy-path test in `frontend/tests/e2e/candidate-recording.spec.ts`

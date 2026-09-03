@@ -18,6 +18,7 @@ dist/
 *.egg-info/
 *.sqlite3
 *.tsbuildinfo
+backend/models/
 backend/models/*.bin
 backend/models/speechbrain*/
 runs/

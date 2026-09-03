@@ -59,3 +59,22 @@ class WhisperAudioProcessor:
             if not normalized_path.is_file() or normalized_path.stat().st_size == 0:
                 raise AudioProcessingError("Audio conversion produced no usable file")
             return self._provider.transcribe(normalized_path, language=language)
+
+    def extract_audio_segment(self, source_path: Path, destination: Path,
+                              start_offset_ms: int, end_offset_ms: int) -> None:
+        """Extract an answer interval without retaining a second copy of media."""
+        if end_offset_ms <= start_offset_ms:
+            raise AudioProcessingError("Segment bounds are invalid")
+        try:
+            subprocess.run(
+                [
+                    self._ffmpeg_binary, "-nostdin", "-y", "-ss", str(start_offset_ms / 1000),
+                    "-i", str(source_path), "-t", str((end_offset_ms - start_offset_ms) / 1000),
+                    "-vn", "-c:a", "libopus", str(destination),
+                ],
+                check=True, capture_output=True, text=True, timeout=120,
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            raise AudioProcessingError("Answer segment could not be prepared") from error
+        if not destination.is_file() or destination.stat().st_size == 0:
+            raise AudioProcessingError("Answer segment has no usable audio")
