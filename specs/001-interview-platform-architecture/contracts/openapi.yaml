@@ -1,0 +1,454 @@
+openapi: 3.1.0
+info:
+  title: Three-Role Interview Platform POC API
+  version: 0.2.0
+  description: Candidate, recruiter, and assigned-manager workflows with isolated credentials.
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: Ready without interview data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: {type: string, const: ok}
+
+  /api/recruiter/interviews:
+    get:
+      operationId: recruiterListInterviews
+      security: [{RecruiterKey: []}]
+      responses:
+        '200':
+          description: Complete interview funnel without raw invitation tokens.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [interviews]
+                properties:
+                  interviews:
+                    type: array
+                    items: {$ref: '#/components/schemas/StaffInterview'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      operationId: recruiterCreateInterview
+      security: [{RecruiterKey: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateInterview'}
+      responses:
+        '201':
+          description: Raw token is returned only in this creation response.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [interview, invitation_token, candidate_url]
+                properties:
+                  interview: {$ref: '#/components/schemas/StaffInterview'}
+                  invitation_token: {type: string, minLength: 32}
+                  candidate_url: {type: string}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/recruiter/interviews/{interview_id}:
+    get:
+      operationId: recruiterGetInterview
+      security: [{RecruiterKey: []}]
+      parameters: [{$ref: '#/components/parameters/InterviewId'}]
+      responses:
+        '200':
+          description: Interview, answers, and both separate human review records.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StaffInterview'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/recruiter/interviews/{interview_id}/review:
+    put:
+      operationId: recruiterSaveReview
+      security: [{RecruiterKey: []}]
+      parameters: [{$ref: '#/components/parameters/InterviewId'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/SaveRecruiterReview'}
+      responses:
+        '200':
+          description: Current recruiter review version.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RecruiterReview'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/interviews:
+    get:
+      operationId: managerListAssignedInterviews
+      security: [{ManagerKey: []}]
+      responses:
+        '200':
+          description: Only interviews assigned to the configured manager id.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [interviews]
+                properties:
+                  interviews:
+                    type: array
+                    items: {$ref: '#/components/schemas/StaffInterview'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /api/manager/interviews/{interview_id}:
+    get:
+      operationId: managerGetAssignedInterview
+      security: [{ManagerKey: []}]
+      parameters: [{$ref: '#/components/parameters/InterviewId'}]
+      responses:
+        '200':
+          description: Assigned interview and recruiter review.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/StaffInterview'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404':
+          description: Missing or not assigned; both cases are intentionally indistinguishable.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+
+  /api/manager/interviews/{interview_id}/decision:
+    put:
+      operationId: managerSaveIndependentDecision
+      security: [{ManagerKey: []}]
+      parameters: [{$ref: '#/components/parameters/InterviewId'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [manager_decision, notes]
+              properties:
+                manager_decision: {$ref: '#/components/schemas/HumanDecision'}
+                notes: {type: string, minLength: 1, maxLength: 4000}
+      responses:
+        '200':
+          description: Manager review stored separately from recruiter review.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ManagerReview'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/candidate/interviews/{token}:
+    get:
+      operationId: candidateGetInterview
+      parameters: [{$ref: '#/components/parameters/InvitationToken'}]
+      responses:
+        '200':
+          description: Own interview and candidate-safe published feedback.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CandidateInterview'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/candidate/interviews/{token}/start:
+    post:
+      operationId: candidateStartInterview
+      parameters: [{$ref: '#/components/parameters/InvitationToken'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [consent]
+              properties:
+                consent: {type: boolean, const: true}
+      responses:
+        '200':
+          description: Started or resumed.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CandidateInterview'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/candidate/interviews/{token}/answers/{question_id}:
+    put:
+      operationId: candidateSaveAnswer
+      parameters:
+        - $ref: '#/components/parameters/InvitationToken'
+        - $ref: '#/components/parameters/QuestionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [content]
+              properties:
+                content: {type: string, minLength: 1, maxLength: 10000}
+      responses:
+        '200':
+          description: Current candidate interview.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CandidateInterview'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/candidate/interviews/{token}/complete:
+    post:
+      operationId: candidateCompleteInterview
+      parameters: [{$ref: '#/components/parameters/InvitationToken'}]
+      responses:
+        '200':
+          description: Submitted candidate interview.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CandidateInterview'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+
+components:
+  securitySchemes:
+    RecruiterKey:
+      type: apiKey
+      in: header
+      name: X-Recruiter-Key
+    ManagerKey:
+      type: apiKey
+      in: header
+      name: X-Manager-Key
+  parameters:
+    InterviewId:
+      name: interview_id
+      in: path
+      required: true
+      schema: {type: string}
+    QuestionId:
+      name: question_id
+      in: path
+      required: true
+      schema: {type: string}
+    InvitationToken:
+      name: token
+      in: path
+      required: true
+      schema: {type: string, minLength: 32}
+  responses:
+    Unauthorized:
+      description: The role-specific credential is missing or invalid.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: Resource is unavailable in this access context.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Conflict:
+      description: Operation is invalid in the current state.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    ValidationError:
+      description: Request data violates domain rules.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+  schemas:
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, details]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            details: {type: object, additionalProperties: true}
+    HumanDecision:
+      type: string
+      enum: [advance, hold, reject]
+    InterviewSummary:
+      type: object
+      required: [id, candidate_alias, position_title, status, evidence_type]
+      properties:
+        id: {type: string}
+        candidate_alias: {type: string}
+        position_title: {type: string}
+        status: {type: string, enum: [invited, in_progress, submitted, reviewed]}
+        evidence_type: {type: string, const: synthetic}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    Question:
+      type: object
+      required: [id, prompt, position, required]
+      properties:
+        id: {type: string}
+        prompt: {type: string}
+        position: {type: integer, minimum: 1}
+        required: {type: boolean}
+        answer: {type: [string, 'null']}
+    CandidateFeedback:
+      type: object
+      additionalProperties: false
+      required: [candidate_summary, strengths, next_steps, published_at, version]
+      properties:
+        candidate_summary: {type: string}
+        strengths:
+          type: array
+          items: {type: string}
+        next_steps: {type: string}
+        published_at: {type: string, format: date-time}
+        version: {type: integer, minimum: 1}
+    CandidateInterview:
+      allOf:
+        - $ref: '#/components/schemas/InterviewSummary'
+        - type: object
+          required: [questions, capture, feedback]
+          properties:
+            questions:
+              type: array
+              items: {$ref: '#/components/schemas/Question'}
+            capture:
+              type: object
+              required: [kind, available, message]
+              properties:
+                kind: {type: string, const: text_stub}
+                available: {type: boolean, const: true}
+                message: {type: string}
+            feedback:
+              oneOf:
+                - {$ref: '#/components/schemas/CandidateFeedback'}
+                - {type: 'null'}
+    Evidence:
+      type: object
+      required: [kind, question_id, note]
+      properties:
+        id: {type: string}
+        kind: {type: string, enum: [answer_excerpt, insufficient_information]}
+        question_id: {type: string}
+        excerpt: {type: [string, 'null']}
+        note: {type: string}
+    RecruiterReview:
+      type: object
+      required:
+        - interview_id
+        - candidate_summary
+        - strengths
+        - risks
+        - next_steps
+        - internal_notes
+        - recruiter_decision
+        - assigned_manager
+        - publication_status
+        - evidence
+        - version
+      properties:
+        id: {type: string}
+        interview_id: {type: string}
+        candidate_summary: {type: string}
+        strengths: {type: array, items: {type: string}}
+        risks: {type: array, items: {type: string}}
+        next_steps: {type: string}
+        internal_notes: {type: string}
+        recruiter_decision: {$ref: '#/components/schemas/HumanDecision'}
+        assigned_manager: {type: [string, 'null']}
+        publication_status: {type: string, enum: [draft, published]}
+        evidence: {type: array, minItems: 1, items: {$ref: '#/components/schemas/Evidence'}}
+        version: {type: integer, minimum: 1}
+        published_at: {type: [string, 'null'], format: date-time}
+        updated_at: {type: string, format: date-time}
+    SaveRecruiterReview:
+      type: object
+      additionalProperties: false
+      required:
+        - candidate_summary
+        - strengths
+        - risks
+        - next_steps
+        - internal_notes
+        - recruiter_decision
+        - assigned_manager
+        - evidence
+        - publish
+      properties:
+        candidate_summary: {type: string, minLength: 1, maxLength: 4000}
+        strengths: {type: array, items: {type: string}}
+        risks: {type: array, items: {type: string}}
+        next_steps: {type: string, minLength: 1, maxLength: 2000}
+        internal_notes: {type: string, maxLength: 4000}
+        recruiter_decision: {$ref: '#/components/schemas/HumanDecision'}
+        assigned_manager: {type: [string, 'null']}
+        evidence: {type: array, minItems: 1, items: {$ref: '#/components/schemas/Evidence'}}
+        publish: {type: boolean}
+    ManagerReview:
+      type: object
+      required: [id, interview_id, manager_id, manager_decision, notes, reviewed_at]
+      properties:
+        id: {type: string}
+        interview_id: {type: string}
+        manager_id: {type: string}
+        manager_decision: {$ref: '#/components/schemas/HumanDecision'}
+        notes: {type: string}
+        reviewed_at: {type: string, format: date-time}
+    StaffInterview:
+      allOf:
+        - $ref: '#/components/schemas/InterviewSummary'
+        - type: object
+          required: [questions, ai_recommendation, recruiter_review, manager_review]
+          properties:
+            questions: {type: array, items: {$ref: '#/components/schemas/Question'}}
+            ai_recommendation: {type: 'null'}
+            recruiter_review:
+              oneOf:
+                - {$ref: '#/components/schemas/RecruiterReview'}
+                - {type: 'null'}
+            manager_review:
+              oneOf:
+                - {$ref: '#/components/schemas/ManagerReview'}
+                - {type: 'null'}
+    CreateInterview:
+      type: object
+      additionalProperties: false
+      required: [candidate_alias, position_title, questions]
+      properties:
+        candidate_alias: {type: string, minLength: 1, maxLength: 120}
+        position_title: {type: string, minLength: 1, maxLength: 120}
+        questions:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            type: object
+            additionalProperties: false
+            required: [prompt]
+            properties:
+              prompt: {type: string, minLength: 1, maxLength: 1000}
+              required: {type: boolean, default: true}

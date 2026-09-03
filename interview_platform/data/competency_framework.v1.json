@@ -1,0 +1,271 @@
+{
+  "id": "napoleon-it-competency-framework-v1",
+  "version": 1,
+  "name": "Napoleon IT Competency Framework",
+  "status": "published",
+  "source_reference": "NapoleonIT_Competency Framework.pptx.pdf",
+  "common_competencies": [
+    {
+      "id": "common.learn_it",
+      "code": "learn_it",
+      "display_name": "Learn IT — Обучение и адаптивность",
+      "dimension": "soft_skill",
+      "source_page": 2,
+      "anchors": {
+        "junior": "Осваивает необходимые инструменты, запрашивает обратную связь и применяет ее в работе.",
+        "middle": "Самостоятельно развивает экспертизу, адаптируется к изменениям и делится знаниями.",
+        "senior": "Развивает коллег и использует накопленный опыт для улучшения практик.",
+        "lead_manager": "Создает среду для развития людей и системно усиливает компетенции команды."
+      }
+    },
+    {
+      "id": "common.make_it",
+      "code": "make_it",
+      "display_name": "Make IT — Качество и надежность",
+      "dimension": "soft_skill",
+      "source_page": 2,
+      "anchors": {
+        "junior": "Внимательно выполняет задачу, соблюдает договоренности и проверяет результат.",
+        "middle": "Отвечает за качество блока, предотвращает типовые ошибки и улучшает процесс работы.",
+        "senior": "Задает стандарты, снижает системные риски и обеспечивает устойчивость результата.",
+        "lead_manager": "Формирует культуру качества и ответственности на уровне команды или направления."
+      }
+    },
+    {
+      "id": "common.drive_it",
+      "code": "drive_it",
+      "display_name": "Drive IT — Ценность и инициативность",
+      "dimension": "soft_skill",
+      "source_page": 2,
+      "anchors": {
+        "junior": "Понимает назначение задачи и предлагает улучшения в своей зоне ответственности.",
+        "middle": "Учитывает контекст клиента и бизнеса, проактивно решает проблемы и показывает эффект.",
+        "senior": "Ведет неоднозначные задачи к результату, балансируя ценность, стоимость и риски.",
+        "lead_manager": "Определяет направление и объединяет команды вокруг значимого бизнес-результата."
+      }
+    },
+    {
+      "id": "common.lead_it",
+      "code": "lead_it",
+      "display_name": "Lead IT — Communication, Collaboration & Ownership",
+      "dimension": "soft_skill",
+      "source_page": 2,
+      "anchors": {
+        "junior": "Ясно коммуницирует, конструктивно работает с коллегами и отвечает за свои действия.",
+        "middle": "Координирует участников, разрешает рабочие разногласия и помогает команде.",
+        "senior": "Влияет за пределами своих задач, помогает согласовывать интересы сторон и поддерживает развитие коллег.",
+        "lead_manager": "Объединяет людей и команды вокруг общего результата, разрешает сложные разногласия и выстраивает устойчивое партнёрство."
+      }
+    }
+  ],
+  "role_profiles": [
+    {
+      "role_key": "software_engineer",
+      "display_name": "Software Engineer",
+      "profile_kind": "graded_ic",
+      "description": "Создание надежных решений — от реализации до архитектуры и эксплуатации.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 3,
+      "competencies": [
+        {"id": "software_engineer.implementation", "code": "implementation", "display_name": "Реализация", "anchors": {"junior": "Решает типовые задачи по принятым практикам; пишет понятный код.", "middle": "Самостоятельно реализует функциональные блоки и выбирает подходящие инструменты.", "senior": "Решает неоднозначные задачи и задает техническое направление для продукта."}},
+        {"id": "software_engineer.architecture_design", "code": "architecture_design", "display_name": "Architecture & Design", "anchors": {"junior": "Понимает устройство своего модуля и следует заданному дизайну.", "middle": "Проектирует компоненты, контракты и границы ответственности.", "senior": "Проектирует архитектуру системы, оценивает компромиссы и планирует ее развитие."}},
+        {"id": "software_engineer.data_integrations", "code": "data_integrations", "display_name": "Данные и интеграции", "anchors": {"junior": "Работает с базовыми моделями данных и готовыми API.", "middle": "Проектирует схемы, API и устойчивые интеграции с учетом ошибок.", "senior": "Определяет стратегию данных и интеграций для распределенных систем."}},
+        {"id": "software_engineer.code_quality", "code": "code_quality", "display_name": "Качество кода", "anchors": {"junior": "Пишет тесты и исправляет замечания ревью.", "middle": "Обеспечивает тестируемость, поддерживаемость и проводит содержательное ревью.", "senior": "Задает инженерные стандарты и системно снижает технический долг."}},
+        {"id": "software_engineer.production_reliability", "code": "production_reliability", "display_name": "Production & Reliability", "anchors": {"junior": "Диагностирует типовые ошибки с помощью логов и метрик.", "middle": "Учитывает безопасность, производительность и сопровождает сервис в production.", "senior": "Проектирует надежность, наблюдаемость и безопасную эволюцию системы."}},
+        {"id": "software_engineer.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI при разработке, тестировании и подготовке документации; проверяет результат.", "middle": "Встраивает AI в инженерный процесс и оценивает влияние на скорость и качество.", "senior": "Развивает AI-практики команды, управляет качеством, безопасностью и стоимостью применения."}}
+      ]
+    },
+    {
+      "role_key": "qa_engineer",
+      "display_name": "QA Engineer",
+      "profile_kind": "graded_ic",
+      "description": "Управление риском качества — от тест-дизайна до готовности к выпуску.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 4,
+      "competencies": [
+        {"id": "qa_engineer.test_design", "code": "test_design", "display_name": "Анализ и Test Design", "anchors": {"junior": "Проверяет типовые сценарии; применяет базовые техники тест-дизайна.", "middle": "Сам определяет объем проверок, риски и техники для функционального блока.", "senior": "Формирует стратегию качества и приоритеты проверок по бизнес и техническим рискам."}},
+        {"id": "qa_engineer.functional_integration", "code": "functional_integration", "display_name": "Functional & Integration Testing", "anchors": {"junior": "Проводит функциональные проверки; оформляет воспроизводимые дефекты.", "middle": "Ведет интеграционное, регрессионное и исследовательское тестирование.", "senior": "Определяет глубину проверок распределенных взаимодействий, данных и контрактов."}},
+        {"id": "qa_engineer.automation_tooling", "code": "automation_tooling", "display_name": "Automation & Tooling", "anchors": {"junior": "Использует принятые инструменты; поддерживает существующие автотесты.", "middle": "Создает поддерживаемые проверки и встраивает их в CI/CD, когда это оправдано.", "senior": "Определяет архитектуру автоматизации и критерии ее эффективности."}},
+        {"id": "qa_engineer.quality_engineering", "code": "quality_engineering", "display_name": "Quality Engineering", "anchors": {"junior": "Локализует дефект и предоставляет достаточные технические данные.", "middle": "Анализирует первопричины; учитывает производительность, надежность и безопасность.", "senior": "Вводит критерии качества и системно предотвращает классы дефектов."}},
+        {"id": "qa_engineer.delivery_collaboration", "code": "delivery_collaboration", "display_name": "Delivery & Collaboration", "anchors": {"junior": "Прозрачно сообщает о рисках и состоянии проверок.", "middle": "Дает заключение о готовности изменения; помогает предотвращать дефекты раньше.", "senior": "Управляет релизным риском и развивает практики качества в нескольких командах."}},
+        {"id": "qa_engineer.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI для тест-дизайна, подготовки данных и анализа дефектов; проверяет результат.", "middle": "Встраивает AI в проверки и автоматизацию, оценивает покрытие и полезный эффект.", "senior": "Определяет практики AI-assisted quality engineering и требования к надежности результатов."}}
+      ]
+    },
+    {
+      "role_key": "devops_platform_engineer",
+      "display_name": "DevOps / Platform Engineer",
+      "profile_kind": "graded_ic",
+      "description": "Надежная и безопасная платформа поставки — от автоматизации до эксплуатации.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 5,
+      "competencies": [
+        {"id": "devops_platform_engineer.infrastructure", "code": "infrastructure", "display_name": "Infrastructure", "anchors": {"junior": "Выполняет типовые изменения инфраструктуры по принятым шаблонам.", "middle": "Самостоятельно проектирует и сопровождает инфраструктуру сервиса.", "senior": "Определяет целевую платформу, стандарты и путь миграции для нескольких команд."}},
+        {"id": "devops_platform_engineer.infrastructure_as_code", "code": "infrastructure_as_code", "display_name": "Infrastructure as Code", "anchors": {"junior": "Читает и изменяет существующий код инфраструктуры.", "middle": "Создает переиспользуемые модули, управляет состоянием и окружениями.", "senior": "Задает архитектуру IaC, политики, контроль изменений и масштабирование."}},
+        {"id": "devops_platform_engineer.ci_cd", "code": "ci_cd", "display_name": "CI/CD", "anchors": {"junior": "Поддерживает существующие pipelines и устраняет типовые сбои.", "middle": "Проектирует безопасную поставку, тестирование и стратегии развертывания.", "senior": "Развивает delivery platform и сокращает время поставки без роста риска."}},
+        {"id": "devops_platform_engineer.observability_reliability", "code": "observability_reliability", "display_name": "Observability & Reliability", "anchors": {"junior": "Работает с логами, метриками и базовыми оповещениями.", "middle": "Определяет SLI/SLO, диагностику и практики реагирования на инциденты.", "senior": "Управляет надежностью, емкостью и устойчивостью критичных сервисов."}},
+        {"id": "devops_platform_engineer.security_cost", "code": "security_cost", "display_name": "Security & Cost", "anchors": {"junior": "Соблюдает правила доступа и хранения секретов.", "middle": "Встраивает security controls и оптимизирует потребление ресурсов.", "senior": "Балансирует риск, стоимость и надежность; задает guardrails платформы."}},
+        {"id": "devops_platform_engineer.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI для типовой диагностики, документации и работы с конфигурациями.", "middle": "Встраивает AI в operations и automation с контролем доступа, данных и результата.", "senior": "Определяет безопасные AI-практики платформы и оценивает их влияние на надежность и стоимость."}}
+      ]
+    },
+    {
+      "role_key": "data_engineer",
+      "display_name": "Data Engineer",
+      "profile_kind": "graded_ic",
+      "description": "Надежные данные как продукт — от pipelines до масштабируемой платформы.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 6,
+      "competencies": [
+        {"id": "data_engineer.data_pipelines", "code": "data_pipelines", "display_name": "Data Pipelines", "anchors": {"junior": "Разрабатывает типовые загрузки по готовому дизайну.", "middle": "Проектирует устойчивые batch и streaming pipelines с обработкой ошибок.", "senior": "Определяет архитектуру потоков, стандарты и стратегию развития data platform."}},
+        {"id": "data_engineer.data_modeling", "code": "data_modeling", "display_name": "Моделирование данных", "anchors": {"junior": "Создает простые таблицы и преобразования по спецификации.", "middle": "Проектирует модели под аналитику и операционные сценарии.", "senior": "Определяет доменную модель, контракты и правила эволюции данных."}},
+        {"id": "data_engineer.storage_processing", "code": "storage_processing", "display_name": "Storage & Processing", "anchors": {"junior": "Использует выбранные хранилища и вычислительные инструменты.", "middle": "Выбирает технологии и оптимизирует производительность и стоимость.", "senior": "Проектирует масштабирование, разделение нагрузок и технологический ландшафт."}},
+        {"id": "data_engineer.data_quality", "code": "data_quality", "display_name": "Data Quality", "anchors": {"junior": "Добавляет базовые проверки полноты и корректности.", "middle": "Вводит тесты, lineage, мониторинг и SLA для наборов данных.", "senior": "Задает управление качеством, контрактами и доверенностью данных."}},
+        {"id": "data_engineer.operations_platform", "code": "operations_platform", "display_name": "Operations & Platform", "anchors": {"junior": "Диагностирует типовые сбои и поддерживает документацию.", "middle": "Автоматизирует развертывание, наблюдаемость и восстановление.", "senior": "Обеспечивает надежность, безопасность и self-service возможности платформы."}},
+        {"id": "data_engineer.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI для запросов, преобразований и документации; проверяет корректность данных.", "middle": "Встраивает AI в разработку pipelines и контроль качества, оценивает эффект.", "senior": "Определяет AI-практики data platform с учетом качества, lineage, безопасности и стоимости."}}
+      ]
+    },
+    {
+      "role_key": "ml_llm_engineer",
+      "display_name": "ML / LLM Engineer",
+      "profile_kind": "graded_ic",
+      "description": "Production-ready AI решения — от эксперимента до измеримого качества и стоимости.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 7,
+      "competencies": [
+        {"id": "ml_llm_engineer.problem_framing", "code": "problem_framing", "display_name": "Problem Framing", "anchors": {"junior": "Понимает постановку задачи, целевую метрику и ограничения.", "middle": "Переводит бизнес-задачу в ML/LLM сценарий и план проверки.", "senior": "Определяет AI strategy для продукта и границы применимости технологий."}},
+        {"id": "ml_llm_engineer.data_experiments", "code": "data_experiments", "display_name": "Данные и эксперименты", "anchors": {"junior": "Готовит данные и воспроизводит базовые эксперименты.", "middle": "Проектирует выборку, признаки, эксперименты и анализ ошибок.", "senior": "Задает стратегию данных, экспериментальную методологию и управление смещениями."}},
+        {"id": "ml_llm_engineer.models_llm_systems", "code": "models_llm_systems", "display_name": "Models & LLM Systems", "anchors": {"junior": "Обучает или интегрирует модели по готовому дизайну.", "middle": "Проектирует pipeline, RAG, prompting или fine-tuning под задачу.", "senior": "Проектирует архитектуру AI системы и выбор моделей с учетом компромиссов."}},
+        {"id": "ml_llm_engineer.evaluation_reliability", "code": "evaluation_reliability", "display_name": "Evaluation & Reliability", "anchors": {"junior": "Использует заданные метрики и проверяет типовые ошибки.", "middle": "Создает offline/online evaluation, guardrails и мониторинг качества.", "senior": "Определяет критерии надежности, human oversight и управление деградацией."}},
+        {"id": "ml_llm_engineer.mlops_security_cost", "code": "mlops_security_cost", "display_name": "MLOps / Security / Cost", "anchors": {"junior": "Поддерживает воспроизводимость и базовое развертывание.", "middle": "Автоматизирует поставку, версии, наблюдаемость и контролирует стоимость.", "senior": "Задает платформенные стандарты, безопасность и экономику AI решений."}},
+        {"id": "ml_llm_engineer.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI для экспериментов, кода и документации, сохраняя воспроизводимость результата.", "middle": "Автоматизирует исследование, evaluation и эксплуатационные операции с измеримым эффектом.", "senior": "Формирует AI-native инженерные практики и масштабирует повторно используемые решения."}}
+      ]
+    },
+    {
+      "role_key": "solution_architect",
+      "display_name": "Solution Architect",
+      "profile_kind": "architecture",
+      "description": "Целостность решения — от системного дизайна до управляемой эволюции ландшафта.",
+      "level_keys": ["architect", "senior_architect", "principal_architect"],
+      "source_page": 8,
+      "competencies": [
+        {"id": "solution_architect.problem", "code": "architecture_problem", "display_name": "Архитектурная задача", "anchors": {"architect": "Проясняет контекст, ограничения и движущие факторы решения.", "senior_architect": "Структурирует сложную область и согласует целевое состояние.", "principal_architect": "Определяет архитектурное направление для портфеля и долгосрочные ставки."}},
+        {"id": "solution_architect.system_design", "code": "system_design", "display_name": "System Design", "anchors": {"architect": "Проектирует целостное решение для продукта или крупного контура.", "senior_architect": "Проектирует распределенные решения и управляет ключевыми компромиссами.", "principal_architect": "Задает принципы и референсную архитектуру для нескольких продуктов."}},
+        {"id": "solution_architect.integrations_data", "code": "integrations_data", "display_name": "Integrations & Data", "anchors": {"architect": "Определяет границы систем, контракты и потоки данных.", "senior_architect": "Проектирует интеграционный ландшафт и согласованность данных.", "principal_architect": "Формирует enterprise-подход к данным, API, событиям и совместимости."}},
+        {"id": "solution_architect.quality_attributes", "code": "quality_attributes", "display_name": "Quality Attributes", "anchors": {"architect": "Балансирует безопасность, производительность и надежность.", "senior_architect": "Определяет измеримые quality attributes и проверку архитектурных рисков.", "principal_architect": "Задает guardrails и управляет критическими нефункциональными рисками."}},
+        {"id": "solution_architect.evolution_governance", "code": "evolution_governance", "display_name": "Evolution & Governance", "anchors": {"architect": "Фиксирует решения и планирует управляемую эволюцию.", "senior_architect": "Ведет архитектурные ревью, roadmap и снижение системного долга.", "principal_architect": "Создает архитектурную практику и связывает технологии со стратегией бизнеса."}},
+        {"id": "solution_architect.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"architect": "Использует AI для анализа вариантов и документации; оценивает применимость AI-компонентов.", "senior_architect": "Проектирует AI-компоненты с учетом качества, безопасности, стоимости и управляемости.", "principal_architect": "Задает архитектурные принципы и guardrails для AI-решений на уровне портфеля."}}
+      ]
+    },
+    {
+      "role_key": "business_analyst",
+      "display_name": "Business Analyst",
+      "profile_kind": "graded_ic",
+      "description": "Перевод бизнес-задачи в понятные процессы, требования и ценность решения.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 9,
+      "competencies": [
+        {"id": "business_analyst.problem_research", "code": "problem_research", "display_name": "Исследование задачи", "anchors": {"junior": "Собирает факты и уточняет границы задачи по заданному плану.", "middle": "Самостоятельно выявляет проблему, цели, ограничения и критерии успеха.", "senior": "Структурирует неоднозначную проблемную область и формирует варианты решения."}},
+        {"id": "business_analyst.business_processes", "code": "business_processes", "display_name": "Бизнес-процессы", "anchors": {"junior": "Описывает процессы и роли в принятой нотации.", "middle": "Моделирует текущее и целевое состояние, находит разрывы и потери.", "senior": "Перепроектирует сквозные процессы и согласует изменения между функциями."}},
+        {"id": "business_analyst.requirements_management", "code": "requirements_management", "display_name": "Requirements Management", "anchors": {"junior": "Фиксирует требования и поддерживает их актуальность.", "middle": "Управляет требованиями, приоритетами, связями и изменениями.", "senior": "Задает подход к требованиям и обеспечивает целостность решения на всем цикле."}},
+        {"id": "business_analyst.solution_value", "code": "solution_value", "display_name": "Ценность решения", "anchors": {"junior": "Связывает запрос с ожидаемым бизнес-результатом.", "middle": "Оценивает эффект, допущения и риски; помогает выбрать вариант.", "senior": "Формирует бизнес-архитектуру решения и балансирует ценность, стоимость и изменения."}},
+        {"id": "business_analyst.stakeholder_management", "code": "stakeholder_management", "display_name": "Stakeholder Management", "anchors": {"junior": "Готовит встречи и фиксирует договоренности.", "middle": "Выстраивает коммуникацию и разрешает противоречия заинтересованных сторон.", "senior": "Ведет сложные согласования и поддерживает единое понимание на уровне руководителей."}},
+        {"id": "business_analyst.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI для исследования, описания процессов и подготовки требований; проверяет выводы.", "middle": "Встраивает AI в discovery и requirements workflow, оценивает эффект и риски данных.", "senior": "Проектирует новые способы анализа с AI и масштабирует практики без потери бизнес-смысла."}}
+      ]
+    },
+    {
+      "role_key": "system_analyst",
+      "display_name": "System Analyst",
+      "profile_kind": "graded_ic",
+      "description": "Проектирование системных требований, данных и интеграций без потери бизнес-смысла.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 10,
+      "competencies": [
+        {"id": "system_analyst.system_requirements", "code": "system_requirements", "display_name": "Системные требования", "anchors": {"junior": "Детализирует типовые сценарии и критерии приемки.", "middle": "Формирует полные и непротиворечивые требования к функциональному блоку.", "senior": "Определяет системный контекст, ограничения и требования для сложного решения."}},
+        {"id": "system_analyst.data_modeling", "code": "data_modeling", "display_name": "Моделирование данных", "anchors": {"junior": "Читает модели и описывает простые сущности и связи.", "middle": "Проектирует логическую модель, правила данных и жизненный цикл сущностей.", "senior": "Определяет модель данных и принципы согласованности между системами."}},
+        {"id": "system_analyst.api_integrations", "code": "api_integrations", "display_name": "API & Integrations", "anchors": {"junior": "Документирует готовые контракты и основные потоки.", "middle": "Проектирует API, события, ошибки и сценарии интеграционного взаимодействия.", "senior": "Проектирует интеграционный ландшафт и устойчивость распределенных взаимодействий."}},
+        {"id": "system_analyst.nonfunctional_requirements", "code": "nonfunctional_requirements", "display_name": "Нефункциональные требования", "anchors": {"junior": "Учитывает базовые требования безопасности и производительности.", "middle": "Формулирует измеримые требования к надежности, нагрузке и защите данных.", "senior": "Балансирует quality attributes и определяет архитектурно значимые требования."}},
+        {"id": "system_analyst.solution_support", "code": "solution_support", "display_name": "Solution Support", "anchors": {"junior": "Отвечает на вопросы команды и уточняет документацию.", "middle": "Сопровождает реализацию и приемку, управляет изменениями требований.", "senior": "Разрешает системные противоречия и обеспечивает целостность решения до production."}},
+        {"id": "system_analyst.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI для документации, анализа API и системных сценариев; проверяет результат.", "middle": "Встраивает AI в системный анализ и контроль согласованности требований и моделей.", "senior": "Определяет практики AI-assisted solution design и управляет качеством и рисками."}}
+      ]
+    },
+    {
+      "role_key": "full_stack_analyst",
+      "display_name": "Full-stack Analyst",
+      "profile_kind": "graded_ic",
+      "description": "Единый контур бизнес и системного анализа — от проблемы до архитектуры решения.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 11,
+      "competencies": [
+        {"id": "full_stack_analyst.discovery", "code": "discovery_problem_framing", "display_name": "Discovery & Problem Framing", "anchors": {"junior": "Уточняет запрос, участников и ожидаемый результат.", "middle": "Самостоятельно исследует проблему и формирует границы решения.", "senior": "Структурирует сложную область и определяет целевую модель изменений."}},
+        {"id": "full_stack_analyst.business_processes", "code": "business_processes", "display_name": "Бизнес-процессы", "anchors": {"junior": "Описывает процессы и пользовательские сценарии.", "middle": "Проектирует целевые процессы и связывает их с требованиями.", "senior": "Определяет бизнес-архитектуру и сквозные изменения между функциями."}},
+        {"id": "full_stack_analyst.requirements_data", "code": "requirements_data", "display_name": "Требования и данные", "anchors": {"junior": "Фиксирует требования и простые модели данных.", "middle": "Управляет требованиями и проектирует логическую модель данных.", "senior": "Обеспечивает целостность требований, данных и правил на уровне решения."}},
+        {"id": "full_stack_analyst.systems_integrations", "code": "systems_integrations", "display_name": "Systems & Integrations", "anchors": {"junior": "Описывает системные сценарии и готовые контракты.", "middle": "Проектирует API, интеграционные потоки и нефункциональные требования.", "senior": "Определяет системный контекст, границы и архитектурные компромиссы."}},
+        {"id": "full_stack_analyst.business_solution_architecture", "code": "business_solution_architecture", "display_name": "Архитектура бизнес-решения", "anchors": {"junior": "Понимает связь процесса, системы и результата.", "middle": "Собирает согласованный вариант решения и оценивает последствия изменений.", "senior": "Действует как архитектор бизнес-решений: соединяет процессы, данные, системы и ценность."}},
+        {"id": "full_stack_analyst.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI для исследования, требований, моделей и документации; проверяет результат.", "middle": "Встраивает AI в полный цикл анализа и оценивает влияние на скорость и качество решения.", "senior": "Проектирует AI-assisted анализ от бизнес-задачи до архитектуры и масштабирует практики."}}
+      ]
+    },
+    {
+      "role_key": "project_manager",
+      "display_name": "Project Manager",
+      "profile_kind": "graded_ic",
+      "description": "Предсказуемая поставка результата — от плана до управления рисками и ожиданиями.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 12,
+      "competencies": [
+        {"id": "project_manager.planning", "code": "planning", "display_name": "Планирование", "anchors": {"junior": "Ведет план работ и контролирует понятные зависимости.", "middle": "Формирует реалистичный план, ресурсы, контрольные точки и прогноз.", "senior": "Управляет программой или сложным портфелем взаимозависимых поставок."}},
+        {"id": "project_manager.scope_time_budget", "code": "scope_time_budget", "display_name": "Scope / сроки / бюджет", "anchors": {"junior": "Фиксирует изменения и поддерживает актуальность статуса.", "middle": "Управляет объемом, сроками и бюджетом; предлагает корректирующие действия.", "senior": "Балансирует коммерческие обязательства, ограничения и ценность для клиента."}},
+        {"id": "project_manager.delivery_management", "code": "delivery_management", "display_name": "Delivery Management", "anchors": {"junior": "Организует ритуалы и отслеживает выполнение задач.", "middle": "Выстраивает процесс поставки и устраняет системные препятствия.", "senior": "Повышает предсказуемость нескольких команд и меняет модель delivery."}},
+        {"id": "project_manager.risk_management", "code": "risk_management", "display_name": "Risk Management", "anchors": {"junior": "Регистрирует риски и своевременно эскалирует проблемы.", "middle": "Оценивает вероятность и влияние, ведет меры реагирования.", "senior": "Управляет критическими рисками, кризисами и решениями на уровне руководства."}},
+        {"id": "project_manager.client_team", "code": "client_team", "display_name": "Client & Team", "anchors": {"junior": "Готовит коммуникации и фиксирует договоренности.", "middle": "Управляет ожиданиями клиента и рабочим контуром команды.", "senior": "Выстраивает доверие, сложные переговоры и устойчивую систему ответственности."}},
+        {"id": "project_manager.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI для подготовки планов, статусов и материалов; проверяет факты и выводы.", "middle": "Встраивает AI в планирование, анализ рисков и коммуникации, оценивает эффект.", "senior": "Перестраивает delivery-процессы с AI и управляет качеством, рисками и ответственностью."}}
+      ]
+    },
+    {
+      "role_key": "product_manager",
+      "display_name": "Product Manager",
+      "profile_kind": "graded_ic",
+      "description": "Рост ценности продукта — от исследования проблемы до измеримого результата.",
+      "level_keys": ["junior", "middle", "senior"],
+      "source_page": 13,
+      "competencies": [
+        {"id": "product_manager.discovery", "code": "discovery", "display_name": "Discovery", "anchors": {"junior": "Собирает обратную связь и проверяет простые гипотезы.", "middle": "Выявляет проблемы пользователей и проектирует проверку гипотез.", "senior": "Формирует систему discovery для неоднозначного рынка и продуктового портфеля."}},
+        {"id": "product_manager.strategy_prioritization", "code": "strategy_prioritization", "display_name": "Strategy & Prioritization", "anchors": {"junior": "Понимает цели продукта и поддерживает backlog.", "middle": "Формирует roadmap и приоритеты на основе ценности и ограничений.", "senior": "Определяет продуктовую стратегию, выбор рынка и распределение инвестиций."}},
+        {"id": "product_manager.metrics_experiments", "code": "metrics_experiments", "display_name": "Metrics & Experiments", "anchors": {"junior": "Работает с базовыми метриками и результатами тестов.", "middle": "Строит дерево метрик, дизайн экспериментов и принимает решения по данным.", "senior": "Задает систему продуктовых показателей и оценивает долгосрочный эффект."}},
+        {"id": "product_manager.product_delivery", "code": "product_delivery", "display_name": "Product Delivery", "anchors": {"junior": "Готовит требования и сопровождает небольшие изменения.", "middle": "Ведет кросс-функциональную поставку от идеи до измерения результата.", "senior": "Управляет балансом скорости, качества, платформенных инвестиций и долга."}},
+        {"id": "product_manager.stakeholder_management", "code": "stakeholder_management", "display_name": "Stakeholder Management", "anchors": {"junior": "Синхронизирует участников и фиксирует решения.", "middle": "Согласует приоритеты бизнеса, пользователей и команды.", "senior": "Ведет сложные продуктовые решения и обеспечивает поддержку руководителей."}},
+        {"id": "product_manager.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"junior": "Использует AI для исследования, синтеза обратной связи и подготовки гипотез.", "middle": "Встраивает AI в discovery, аналитику и эксперименты, проверяет качество и эффект.", "senior": "Формирует AI-enabled продуктовые практики с учетом ценности, риска и экономики."}}
+      ]
+    },
+    {
+      "role_key": "tech_lead",
+      "display_name": "Tech Lead",
+      "profile_kind": "technical_leadership",
+      "description": "Техническое лидерство команды — решения, качество и устойчивый delivery.",
+      "level_keys": ["lead"],
+      "source_page": 14,
+      "competencies": [
+        {"id": "tech_lead.technical_direction", "code": "technical_direction", "display_name": "Technical Direction", "anchors": {"lead": {"behavior_text": "Формирует техническое направление и связывает его с целями продукта.", "decision_scope": "Приоритеты, стандарты, технологические компромиссы.", "impact_scope": "Команда или крупный технический контур."}}},
+        {"id": "tech_lead.architecture_quality", "code": "architecture_quality", "display_name": "Architecture & Quality", "anchors": {"lead": {"behavior_text": "Обеспечивает целостность дизайна, качество кода и управляемый долг.", "decision_scope": "Архитектурные решения, review, quality gates.", "impact_scope": "Изменения с заметным влиянием на систему."}}},
+        {"id": "tech_lead.delivery", "code": "delivery", "display_name": "Delivery", "anchors": {"lead": {"behavior_text": "Помогает команде декомпозировать работу и снижает технические риски поставки.", "decision_scope": "План реализации, зависимости, работа с инцидентами.", "impact_scope": "Предсказуемый выпуск без скрытого роста риска."}}},
+        {"id": "tech_lead.mentoring", "code": "mentoring", "display_name": "Mentoring", "anchors": {"lead": {"behavior_text": "Развивает инженерное мышление и самостоятельность специалистов.", "decision_scope": "Обратная связь, парная работа, распределение сложных задач.", "impact_scope": "Рост capability всей инженерной команды."}}},
+        {"id": "tech_lead.client_communication", "code": "client_communication", "display_name": "Client Communication", "anchors": {"lead": {"behavior_text": "Объясняет технические решения, риски и стоимость понятным языком.", "decision_scope": "Варианты, аргументация и управление ожиданиями.", "impact_scope": "Доверие клиента к техническому направлению."}}},
+        {"id": "tech_lead.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"lead": {"behavior_text": "Развивает инженерные практики применения AI и способность команды использовать их ответственно.", "decision_scope": "Инструменты, guardrails, review, evaluation и измерение эффекта.", "impact_scope": "Безопасное повышение скорости и качества инженерной команды."}}}
+      ]
+    },
+    {
+      "role_key": "team_lead",
+      "display_name": "Team Lead",
+      "profile_kind": "people_leadership",
+      "description": "Результат команды через ясные цели, сильных людей и рабочую среду.",
+      "level_keys": ["lead"],
+      "source_page": 15,
+      "competencies": [
+        {"id": "team_lead.goals_results", "code": "goals_results", "display_name": "Цели и результат", "anchors": {"lead": {"behavior_text": "Переводит цели проекта или продукта в понятные ожидания команды.", "decision_scope": "Приоритеты, распределение ответственности, контроль результата.", "impact_scope": "Одна кросс-функциональная или профильная команда."}}},
+        {"id": "team_lead.people_management", "code": "people_management", "display_name": "People Management", "anchors": {"lead": {"behavior_text": "Регулярно дает обратную связь, развивает и удерживает специалистов.", "decision_scope": "Цели развития, performance, мотивация и сложные разговоры.", "impact_scope": "Устойчивость и рост команды."}}},
+        {"id": "team_lead.team_effectiveness", "code": "team_effectiveness", "display_name": "Team Effectiveness", "anchors": {"lead": {"behavior_text": "Выстраивает правила работы, прозрачность и здоровое взаимодействие.", "decision_scope": "Процессы, роли, конфликты и устранение системных препятствий.", "impact_scope": "Предсказуемая совместная работа."}}},
+        {"id": "team_lead.staffing_capacity", "code": "staffing_capacity", "display_name": "Staffing & Capacity", "anchors": {"lead": {"behavior_text": "Балансирует навыки, загрузку и потребность в усилении.", "decision_scope": "Состав команды, найм, адаптация и планирование capacity.", "impact_scope": "Достаточная capability под обязательства."}}},
+        {"id": "team_lead.client_partnership", "code": "client_partnership", "display_name": "Client Partnership", "anchors": {"lead": {"behavior_text": "Поддерживает доверие и своевременно обсуждает риски команды.", "decision_scope": "Ожидания, эскалации и договоренности о способе работы.", "impact_scope": "Устойчивая работа с заказчиком и смежными командами."}}},
+        {"id": "team_lead.ai_impact", "code": "ai_impact", "display_name": "AI Impact", "anchors": {"lead": {"behavior_text": "Помогает команде применять AI ответственно и превращать успешные сценарии в рабочую практику.", "decision_scope": "Развитие навыков, правила применения, обмен практиками и контроль ответственности.", "impact_scope": "Рост эффективности команды без потери качества и самостоятельности специалистов."}}}
+      ]
+    }
+  ]
+}

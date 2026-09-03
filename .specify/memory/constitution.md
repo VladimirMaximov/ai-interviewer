@@ -1,74 +1,50 @@
-<!--
-Sync Impact Report
-- Version change: 1.0.0 → 1.1.0
-- Modified principles: none
-- Added sections: FastAPI backend and PostgreSQL persistence baseline
-- Removed sections: none
-- Follow-up TODOs: none
--->
-
-# AI Interviewer Constitution
+# [PROJECT_NAME] Constitution
+<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
 ## Core Principles
 
-### I. Evidence-First Candidate Evaluation
+### [PRINCIPLE_1_NAME]
+<!-- Example: I. Library-First -->
+[PRINCIPLE_1_DESCRIPTION]
+<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
 
-Every candidate-related score, recommendation, or explanation MUST cite concrete transcript
-quotes or timestamps. Missing evidence MUST be represented explicitly. AI recommendations,
-recruiter decisions, and hiring-manager decisions MUST remain distinct. This keeps decisions
-auditable and prevents unsupported inference.
+### [PRINCIPLE_2_NAME]
+<!-- Example: II. CLI Interface -->
+[PRINCIPLE_2_DESCRIPTION]
+<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
 
-### II. Human Oversight and Fair Evaluation
+### [PRINCIPLE_3_NAME]
+<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
+[PRINCIPLE_3_DESCRIPTION]
+<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
 
-The system MUST NOT automatically reject candidates or score appearance, accent, emotion, or
-voice confidence. Simulated interviews MUST be labelled `synthetic` and MUST NOT be presented as
-customer validation. Product and evaluation features MUST preserve meaningful human review.
+### [PRINCIPLE_4_NAME]
+<!-- Example: IV. Integration Testing -->
+[PRINCIPLE_4_DESCRIPTION]
+<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
 
-### III. Privacy and Data Minimization
+### [PRINCIPLE_5_NAME]
+<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
+[PRINCIPLE_5_DESCRIPTION]
+<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
 
-Candidate PII, recordings, transcripts, and secrets MUST NOT be committed to the repository.
-Features handling interview data MUST minimize collection and persistence, clearly separate
-operational data from generated reports, and call out their privacy impact in review.
+## [SECTION_2_NAME]
+<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
 
-### IV. Deterministic, Tested Core Logic
+[SECTION_2_CONTENT]
+<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
 
-Pain, RICE, scoring, ranking, parsing, schema, and checkpoint logic MUST be deterministic; an
-LLM MUST NOT calculate Pain or RICE scores. Every such change MUST add regression coverage for
-success, malformed input, retry, and resume paths as applicable.
+## [SECTION_3_NAME]
+<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
 
-### V. Evidence Integrity and Reproducibility
-
-Research artifacts MUST distinguish verified facts, vendor claims, external observations, and
-assumptions, preserve current official-source URLs, and describe evidence gaps. Provider or model
-changes MUST pass the frozen evaluation before adoption.
-
-## Domain & Data Safeguards
-
-Python 3.12 or newer is required. The backend MUST use FastAPI. Where durable relational
-persistence is required, PostgreSQL is the approved default; schemas and migrations MUST preserve
-the privacy and evidence rules above. The frontend technology remains intentionally undecided and
-MUST be chosen in the feature plan based on the call experience, browser support, accessibility,
-and operational simplicity. Public interfaces use type hints and modules keep a single
-responsibility. Machine-readable fields use `snake_case`; research files use lowercase kebab-case.
-Competitor evidence belongs in `research/`, product decisions and machine-readable outputs in
-`deliverables/ai-technical-interview/`, and stakeholder notes in `interview/`.
-
-## Development Workflow & Quality Gates
-
-Each material feature starts with a Spec Kit specification, then a plan and dependency-ordered
-tasks. Before review, run `python -m unittest discover -s tests -v` and
-`python -m compileall -q product_engineering`. Pull requests MUST identify the affected interview
-stage, evidence sources, validation commands, schema or model changes, privacy impact, and known
-evaluation gaps. Commits use short imperative prefixes such as `feat:`, `fix:`, `test:`, or
-`docs:`.
+[SECTION_3_CONTENT]
+<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
 
 ## Governance
+<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-This constitution governs project delivery and complements `AGENTS.md`; where requirements
-conflict, the stricter privacy, fairness, evidence, or testing rule applies. Amendments MUST be
-documented in this file with a Sync Impact Report and a semantic version increment: MAJOR for
-backward-incompatible principle changes, MINOR for new or materially expanded guidance, and PATCH
-for clarifications. Every feature review MUST check compliance with the core principles and record
-any approved exception together with its rationale and remediation plan.
+[GOVERNANCE_RULES]
+<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-03 | **Last Amended**: 2026-09-03
+**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
+<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->

@@ -16,4 +16,5 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+*.sqlite3
 runs/
