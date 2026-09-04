@@ -17,6 +17,9 @@ router = APIRouter(prefix="/candidate", tags=["candidate"])
 class InvitationView(BaseModel):
     session_id: UUID
     consented: bool
+    vacancy_id: UUID | None = None
+    vacancy_title: str | None = None
+    resume_uploaded: bool = False
 
 
 class UploadGrantRequest(BaseModel):
@@ -43,9 +46,18 @@ class TranscriptView(BaseModel):
 class CandidateWorkflow(Protocol):
     def resolve(self, secret: str) -> InvitationView | None: ...
     def consent(self, secret: str) -> InvitationView | None: ...
-    def create_upload_grant(self, secret: str, request: UploadGrantRequest) -> UploadGrant | None: ...
-    def confirm_upload(self, secret: str, request: ConfirmUploadRequest) -> TranscriptView | None: ...
-    def transcript(self, secret: str, response_id: UUID) -> TranscriptView | None: ...
+
+    def create_upload_grant(
+        self, secret: str, request: UploadGrantRequest
+    ) -> UploadGrant | None: ...
+
+    def confirm_upload(
+        self, secret: str, request: ConfirmUploadRequest
+    ) -> TranscriptView | None: ...
+
+    def transcript(
+        self, secret: str, response_id: UUID
+    ) -> TranscriptView | None: ...
 
 
 def get_workflow(request: Request) -> CandidateWorkflow:
@@ -53,28 +65,50 @@ def get_workflow(request: Request) -> CandidateWorkflow:
 
 
 @router.get("/{secret}", response_model=InvitationView)
-def resolve_invitation(secret: str, workflow: CandidateWorkflow = Depends(get_workflow)) -> InvitationView:
+def resolve_invitation(
+    secret: str, workflow: CandidateWorkflow = Depends(get_workflow)
+) -> InvitationView:
     return workflow.resolve(secret) or (_ for _ in ()).throw(invalid_invitation())
 
 
 @router.post("/{secret}/consent", response_model=InvitationView)
-def record_consent(secret: str, workflow: CandidateWorkflow = Depends(get_workflow)) -> InvitationView:
+def record_consent(
+    secret: str, workflow: CandidateWorkflow = Depends(get_workflow)
+) -> InvitationView:
     return workflow.consent(secret) or (_ for _ in ()).throw(invalid_invitation())
 
 
 @router.post("/{secret}/upload-grants", response_model=UploadGrant)
-def request_upload_grant(secret: str, request: UploadGrantRequest,
-                         workflow: CandidateWorkflow = Depends(get_workflow)) -> UploadGrant:
-    return workflow.create_upload_grant(secret, request) or (_ for _ in ()).throw(invalid_invitation())
+def request_upload_grant(
+    secret: str,
+    request: UploadGrantRequest,
+    workflow: CandidateWorkflow = Depends(get_workflow),
+) -> UploadGrant:
+    return workflow.create_upload_grant(secret, request) or (_ for _ in ()).throw(
+        invalid_invitation()
+    )
 
 
 @router.post("/{secret}/responses/confirm", response_model=TranscriptView)
-def confirm_upload(secret: str, request: ConfirmUploadRequest,
-                   workflow: CandidateWorkflow = Depends(get_workflow)) -> TranscriptView:
-    return workflow.confirm_upload(secret, request) or (_ for _ in ()).throw(invalid_invitation())
+def confirm_upload(
+    secret: str,
+    request: ConfirmUploadRequest,
+    workflow: CandidateWorkflow = Depends(get_workflow),
+) -> TranscriptView:
+    return workflow.confirm_upload(secret, request) or (_ for _ in ()).throw(
+        invalid_invitation()
+    )
 
 
-@router.get("/{secret}/responses/{response_id}/transcript", response_model=TranscriptView)
-def transcript_status(secret: str, response_id: UUID,
-                      workflow: CandidateWorkflow = Depends(get_workflow)) -> TranscriptView:
-    return workflow.transcript(secret, response_id) or (_ for _ in ()).throw(invalid_invitation())
+@router.get(
+    "/{secret}/responses/{response_id}/transcript",
+    response_model=TranscriptView,
+)
+def transcript_status(
+    secret: str,
+    response_id: UUID,
+    workflow: CandidateWorkflow = Depends(get_workflow),
+) -> TranscriptView:
+    return workflow.transcript(secret, response_id) or (_ for _ in ()).throw(
+        invalid_invitation()
+    )

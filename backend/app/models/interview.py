@@ -30,29 +30,55 @@ class InterviewInvitation(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     token_digest: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    vacancy_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("vacancies.id"), index=True, nullable=True
+    )
+    candidate_alias: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    status: Mapped[InvitationStatus] = mapped_column(Enum(InvitationStatus, values_callable=lambda items: [item.value for item in items]), default=InvitationStatus.ACTIVE)
+    status: Mapped[InvitationStatus] = mapped_column(
+        Enum(
+            InvitationStatus,
+            values_callable=lambda items: [item.value for item in items],
+        ),
+        default=InvitationStatus.ACTIVE,
+    )
 
 
 class InterviewSession(Base):
     __tablename__ = "interview_sessions"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    invitation_id: Mapped[UUID] = mapped_column(ForeignKey("interview_invitations.id"), unique=True)
-    consented_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    invitation_id: Mapped[UUID] = mapped_column(
+        ForeignKey("interview_invitations.id"), unique=True
+    )
+    consented_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    submitted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class CandidateResponse(Base):
     __tablename__ = "candidate_responses"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    session_id: Mapped[UUID] = mapped_column(ForeignKey("interview_sessions.id"), index=True)
+    session_id: Mapped[UUID] = mapped_column(
+        ForeignKey("interview_sessions.id"), index=True
+    )
     question_id: Mapped[UUID] = mapped_column(index=True)
     storage_key: Mapped[str] = mapped_column(String(512), unique=True)
     content_type: Mapped[str] = mapped_column(String(128))
     checksum: Mapped[str] = mapped_column(String(128))
     transcription_status: Mapped[TranscriptionStatus] = mapped_column(
-        Enum(TranscriptionStatus, values_callable=lambda items: [item.value for item in items]), default=TranscriptionStatus.PENDING
+        Enum(
+            TranscriptionStatus,
+            values_callable=lambda items: [item.value for item in items],
+        ),
+        default=TranscriptionStatus.PENDING,
     )
     transcript_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
