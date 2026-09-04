@@ -18,6 +18,7 @@ from app.domain.multi_agent import (
     AgentPurpose,
     AlternativeVacancyMatchOutput,
     AnswerAssessmentOutput,
+    CandidateFeedbackOutput,
     IntegrityCheckOutput,
     QuestionPlanOutput,
     ResumeRelevanceOutput,
@@ -49,6 +50,12 @@ class ApiAgent:
 
     def run(self, context):
         if self.purpose is AgentPurpose.RESUME_RELEVANCE:
+            evidence_id = context["resume_evidence_catalog"][0]["evidence_id"]
+            requirement = next(
+                item
+                for item in context["requirement_catalog"]
+                if "Python" in item["text"]
+            )
             return ResumeRelevanceOutput(
                 positions=[
                     {
@@ -60,7 +67,7 @@ class ApiAgent:
                         "responsibilities": [],
                         "skills": ["Python"],
                         "achievements": [],
-                        "source_excerpt": "Python backend work",
+                        "evidence_ids": [evidence_id],
                     }
                 ],
                 claims=[
@@ -68,16 +75,16 @@ class ApiAgent:
                         "claim_id": "python-claim",
                         "claim_type": "skill",
                         "subject": "Python",
-                        "source_excerpt": "Python",
+                        "evidence_ids": [evidence_id],
                         "verification_status": "unverified",
                     }
                 ],
                 experience_matches=[
                     {
                         "experience_label": "Backend",
-                        "source_excerpt": "Python",
-                        "requirement": "Python",
-                        "requirement_origin": "vacancy",
+                        "evidence_ids": [evidence_id],
+                        "requirement_id": requirement["requirement_id"],
+                        "requirement_origin": requirement["origin"],
                         "relevance": 1,
                         "confidence": 0.9,
                         "explanation": "Совпадение Python.",
@@ -90,6 +97,7 @@ class ApiAgent:
         if self.purpose is AgentPurpose.QUESTION_PLAN:
             return QuestionPlanOutput(questions=context["baseline_questions"])
         if self.purpose is AgentPurpose.ANSWER_ASSESSMENT:
+            evidence_id = context["answer_evidence_catalog"][0]["evidence_id"]
             return AnswerAssessmentOutput(
                 response_id=context["response_id"],
                 question_id=context["question_id"],
@@ -102,7 +110,7 @@ class ApiAgent:
                         "confidence": 0.9,
                         "explanation": "Есть конкретный пример.",
                         "evidence": [
-                            {"kind": "supporting", "excerpt": context["answer_text"]}
+                            {"kind": "supporting", "evidence_id": evidence_id}
                         ],
                     }
                     for criterion in context["question"]["criteria"]
@@ -126,6 +134,51 @@ class ApiAgent:
             )
         if self.purpose is AgentPurpose.INTEGRITY_CHECK:
             return IntegrityCheckOutput(observations=[], is_restriction=False)
+        if self.purpose is AgentPurpose.CANDIDATE_FEEDBACK:
+            reference = next(
+                item["evidence_reference"]
+                for item in context["evidence_catalog"]
+                if item["source"] == "answer_assessment"
+            )
+            allowed = context["allowed_alternative_vacancies"][0]
+            return CandidateFeedbackOutput(
+                source_profile_artifact_id=context["source_profile_artifact_id"],
+                headline="Python backend опыт подтверждён",
+                summary="Вы привели применимый технический пример.",
+                strengths=[
+                    {
+                        "title": "Python",
+                        "detail": "Вы описали личную реализацию сервиса.",
+                        "evidence_references": [reference],
+                    }
+                ],
+                growth_areas=[
+                    {
+                        "title": "Метрики",
+                        "detail": "Результат не был выражен в цифрах.",
+                        "action": "Добавьте показатели до и после изменения.",
+                        "evidence_references": [reference],
+                    }
+                ],
+                experience_alignment=[
+                    {
+                        "title": "Python",
+                        "detail": "Навык подтверждён ответом.",
+                        "status": "confirmed",
+                        "evidence_references": [reference],
+                    }
+                ],
+                alternative_vacancy={
+                    "vacancy_id": allowed["vacancy_id"],
+                    "title": allowed["title"],
+                    "matched_areas": allowed["matched_areas"],
+                    "message": "Можно рассмотреть эту активную вакансию.",
+                    "is_automatic_transfer": False,
+                },
+                next_steps=["Подготовьте пример с измеримым результатом."],
+                limitations=["Оценивались только ответы этого интервью."],
+                is_hiring_decision=False,
+            )
         raise AssertionError("unexpected agent purpose")
 
 
@@ -273,6 +326,46 @@ class MultiAgentApiTests(unittest.TestCase):
         payload = final.json()
         self.assertFalse(payload["profile"]["payload"]["is_hiring_decision"])
         self.assertEqual(len(payload["alternative_matches"]), 1)
+
+        pending_feedback = self.client.get(
+            f"/candidate/{self.candidate_secret}/feedback"
+        )
+        self.assertEqual(pending_feedback.status_code, 200)
+        self.assertEqual(pending_feedback.json()["status"], "pending_review")
+        draft = self.client.post(
+            f"{self.base}/candidate-feedback",
+            headers={"Idempotency-Key": "candidate-feedback-api-001"},
+        )
+        self.assertEqual(draft.status_code, 201, draft.text)
+        self.assertEqual(draft.json()["status"], "draft")
+        still_pending = self.client.get(
+            f"/candidate/{self.candidate_secret}/feedback"
+        )
+        self.assertIsNone(still_pending.json()["feedback"])
+
+        published = self.client.post(
+            f"{self.base}/candidate-feedback/{draft.json()['id']}/publish"
+        )
+        self.assertEqual(published.status_code, 200, published.text)
+        candidate_feedback = self.client.get(
+            f"/candidate/{self.candidate_secret}/feedback"
+        )
+        self.assertEqual(candidate_feedback.status_code, 200)
+        self.assertEqual(candidate_feedback.json()["status"], "published")
+        self.assertEqual(
+            candidate_feedback.json()["feedback"]["score"]["value"], 10
+        )
+        self.assertEqual(
+            candidate_feedback.json()["feedback"]["alternative_vacancy"]["title"],
+            self.alternative.title,
+        )
+        for staff_only in (
+            "evidence_references",
+            "candidate_pool",
+            "integrity",
+            "blacklist",
+        ):
+            self.assertNotIn(staff_only, candidate_feedback.text.casefold())
 
         ranking = self.client.get(f"/recruiter/vacancies/{self.vacancy.id}/ranking")
         self.assertEqual(ranking.status_code, 200, ranking.text)

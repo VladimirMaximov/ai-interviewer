@@ -1,0 +1,195 @@
+{
+  "schema_version": "candidate_feedback_mock_v1",
+  "data_classification": "synthetic",
+  "candidate": {
+    "alias": "synthetic-candidate-feedback-001",
+    "target_vacancy": "Middle+ Python Developer"
+  },
+  "assessment": {
+    "stage": "video_interview",
+    "score": {
+      "value": 6.67,
+      "maximum": 10,
+      "candidate_visible": true,
+      "explanation": "Сводный результат только этого интервью; не является автоматическим кадровым решением."
+    },
+    "target_fit": "partially_supported",
+    "is_hiring_decision": false
+  },
+  "candidate_feedback": {
+    "headline": "Рабочая Python backend-база подтверждена; для Middle+ нужны дополнительные подтверждающие примеры",
+    "summary": "Вы показали знание основных инструментов Python backend-разработки и интерес к интеграционным задачам. Для уверенного подтверждения уровня Middle+ в ответах не хватило масштаба, деталей реализации, личной зоны ответственности и измеримых результатов.",
+    "strengths": [
+      {
+        "title": "Kafka и надёжная отправка",
+        "feedback": "Вы связали отправку событий с паттерном Outbox и упомянули восстановление чтения с сохранённого offset.",
+        "evidence_ids": [
+          "evidence-kafka-outbox",
+          "evidence-kafka-offset"
+        ]
+      },
+      {
+        "title": "Диагностика PostgreSQL",
+        "feedback": "Вы назвали индексы, ORM-оптимизации и EXPLAIN, включая сравнение плана и фактического выполнения.",
+        "evidence_ids": [
+          "evidence-postgres-explain"
+        ]
+      },
+      {
+        "title": "Базовый CI/CD flow",
+        "feedback": "Вы описали GitLab jobs для сборки, тестирования, деплоя на стенды и возврата к предыдущему Docker-образу.",
+        "evidence_ids": [
+          "evidence-gitlab-pipeline"
+        ]
+      },
+      {
+        "title": "Ответственное использование ИИ",
+        "feedback": "Вы используете ИИ для тестов и анализа проекта и отдельно отметили необходимость согласования передачи кода с клиентом.",
+        "evidence_ids": [
+          "evidence-ai-client-approval"
+        ]
+      }
+    ],
+    "growth_areas": [
+      {
+        "title": "Надёжность Kafka",
+        "observed_gap": "Не раскрыты библиотека, commit offset после успешной обработки, retry, DLQ и идемпотентность consumer.",
+        "action": "Подготовить один отказный сценарий и объяснить всю цепочку от Outbox до дедупликации сообщения у consumer.",
+        "evidence_ids": [
+          "evidence-kafka-outbox",
+          "evidence-kafka-offset"
+        ]
+      },
+      {
+        "title": "Большие загрузки в PostgreSQL",
+        "observed_gap": "Не названы объёмы, batch size, способ загрузки, границы транзакций и эффект оптимизации.",
+        "action": "Описать реальный кейс с COPY или batch insert и показать EXPLAIN ANALYZE до и после изменения.",
+        "evidence_ids": [
+          "evidence-postgres-explain"
+        ]
+      },
+      {
+        "title": "Личный вклад в CI/CD",
+        "observed_gap": "Неясно, какие части pipeline были реализованы лично и как выполнялись deploy, health checks, миграции и rollback.",
+        "action": "Разложить кейс на собственные изменения, механизм доставки и проверяемый результат.",
+        "evidence_ids": [
+          "evidence-gitlab-pipeline"
+        ]
+      },
+      {
+        "title": "Асинхронный Python",
+        "observed_gap": "Блокирующий вызов был описан неточно: он блокирует поток event loop и задерживает другие задачи.",
+        "action": "Подготовить production-пример с async-драйвером и объяснить применение asyncio.to_thread, executor или отдельного процесса.",
+        "evidence_ids": [
+          "evidence-async-blocking"
+        ]
+      },
+      {
+        "title": "Доказательность примеров",
+        "observed_gap": "В большинстве ответов отсутствовали масштаб, личная ответственность и измеримый результат.",
+        "action": "Отвечать по схеме контекст, задача, личное решение, причина выбора, результат в цифрах.",
+        "evidence_ids": []
+      }
+    ],
+    "experience_alignment": {
+      "confirmed": [
+        "Python backend-разработка с Django и FastAPI",
+        "PostgreSQL и базовая оптимизация запросов",
+        "Участие в Kafka-интеграциях",
+        "Участие в GitLab CI/CD"
+      ],
+      "partially_confirmed": [
+        "Надёжная обработка сообщений",
+        "Самостоятельная настройка delivery-процесса"
+      ],
+      "not_confirmed": [
+        "Обработка больших объёмов данных",
+        "Production-опыт с асинхронной архитектурой",
+        "Самостоятельность уровня Middle+"
+      ],
+      "not_assessed": [
+        "ETL",
+        "Полное соответствие пунктам резюме: текст резюме не был предоставлен"
+      ]
+    },
+    "alternative_vacancy": {
+      "vacancy_id": "synthetic-alt-python-middle-integrations",
+      "title": "Python Developer (Middle) — интеграционные сервисы",
+      "matched_areas": [
+        "Python",
+        "Django/FastAPI",
+        "PostgreSQL",
+        "Kafka",
+        "внешние API и интеграции"
+      ],
+      "message": "Ваш опыт и интерес к интеграциям могут лучше соответствовать этой позиции. Если вакансия останется активной и будет вам интересна, рекрутёр сможет отправить описание и отдельно согласовать следующий шаг.",
+      "is_automatic_transfer": false
+    },
+    "next_steps": [
+      "Подготовить кейсы по Kafka, PostgreSQL и CI/CD с личной ролью, масштабом и результатом.",
+      "Уточнить практику at-least-once delivery, idempotent consumer, retry и DLQ.",
+      "Добавить в резюме измеримые результаты и масштабы проектов.",
+      "При интересе рассмотреть вакансию Python Developer (Middle) — интеграционные сервисы."
+    ],
+    "limitations": [
+      "Выводы сделаны только по предоставленной расшифровке.",
+      "Отсутствие примера означает нехватку evidence, а не отсутствие навыка.",
+      "Резюме не предоставлено, поэтому его пункты не классифицировались как релевантные или нерелевантные."
+    ]
+  },
+  "evidence": [
+    {
+      "id": "evidence-kafka-outbox",
+      "question": "Kafka reliability",
+      "excerpt": "если мы говорим про отправку, то есть паттерн Outbox, то мы гарантируем, что сообщение отправится"
+    },
+    {
+      "id": "evidence-kafka-offset",
+      "question": "Kafka reliability",
+      "excerpt": "он все равно вычтет с того места, где закоммитился offset"
+    },
+    {
+      "id": "evidence-postgres-explain",
+      "question": "PostgreSQL data loading and query analysis",
+      "excerpt": "через explain анализ смотрели, там, как проходит запрос, сколько loops, какой фактический ответ"
+    },
+    {
+      "id": "evidence-gitlab-pipeline",
+      "question": "CI/CD",
+      "excerpt": "весь CICD процесс был в GitLab"
+    },
+    {
+      "id": "evidence-async-blocking",
+      "question": "Async Python",
+      "excerpt": "Если мы в асинхронном коде вызываем синхронный, то мы теряем свою синхронность"
+    },
+    {
+      "id": "evidence-ai-client-approval",
+      "question": "AI usage",
+      "excerpt": "мы не могли просто сами взять и запихнуть всё в ИИ. Там всё через согласование"
+    }
+  ],
+  "internal_routing": {
+    "candidate_pool": "potential",
+    "reason_codes": [
+      "backend_foundation_supported",
+      "target_seniority_not_fully_supported",
+      "compatible_alternative_available"
+    ],
+    "restriction_status": "none",
+    "automatic_blacklist_allowed": false,
+    "candidate_visible": false
+  },
+  "integrity_signals": {
+    "window_switch_count": 1,
+    "copy_event_count": 0,
+    "score_impact": "none",
+    "restriction_impact": "none",
+    "candidate_visible": false
+  },
+  "publication": {
+    "status": "draft",
+    "requires_human_review": true,
+    "alternative_vacancy_must_be_active": true
+  }
+}

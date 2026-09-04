@@ -22,7 +22,7 @@ from app.domain.hiring_context import HiringContextError
 from app.domain.manager_brief import ManagerBriefError
 from app.domain.multi_agent import MultiAgentError
 
-app = FastAPI(title="AI Interviewer API", version="0.4.0")
+app = FastAPI(title="AI Interviewer API", version="0.5.0")
 app.state.workflow_factory = workflow_factory
 app.state.manager_brief_service_factory = manager_brief_service_factory
 app.state.hiring_context_service_factory = hiring_context_service_factory

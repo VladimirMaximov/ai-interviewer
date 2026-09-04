@@ -19,4 +19,5 @@ dist/
 *.sqlite3
 *.tsbuildinfo
 backend/models/*.bin
+backend/models/speechbrain*/
 runs/

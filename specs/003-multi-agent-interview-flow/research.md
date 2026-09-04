@@ -47,9 +47,9 @@ span two databases. Replacing existing routes would break compatibility.
 ## Decision 5: Run every semantic agent stage through an LLM
 
 **Decision**: Define narrow protocols for resume relevance, question planning, answer assessment,
-alternative matching, and integrity checking, and implement all five with the OpenAI Responses API
-and strict Structured Outputs. There is no heuristic runtime fallback. Tests inject a fake Responses
-client at the adapter boundary.
+alternative matching, integrity checking, and candidate feedback, and implement all six with the
+OpenAI Responses API and strict Structured Outputs. There is no heuristic runtime fallback. Tests
+inject a fake Responses client at the adapter boundary.
 
 **Rationale**: The product requires semantic interpretation at every agent step, while local
 validation and injected clients keep the harness and safety properties independently testable. The

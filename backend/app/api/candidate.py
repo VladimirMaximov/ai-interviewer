@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.api.errors import invalid_invitation
+from app.domain.proctoring import MonitoringEventKind, MonitoringReviewStatus
 from app.models.interview import TranscriptionStatus
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
@@ -43,6 +44,58 @@ class TranscriptView(BaseModel):
     text: str | None = None
 
 
+class MonitoringEvidenceGrantRequest(BaseModel):
+    client_event_id: UUID
+    response_id: UUID
+    question_id: UUID
+    content_type: str = Field(pattern=r"^video/(webm|mp4)$")
+
+
+class MonitoringEvidenceGrant(BaseModel):
+    client_event_id: UUID
+    upload_url: str
+
+
+class MonitoringEventRequest(BaseModel):
+    client_event_id: UUID
+    response_id: UUID
+    question_id: UUID
+    kind: Literal[
+        MonitoringEventKind.FACE_MISSING,
+        MonitoringEventKind.MULTIPLE_FACES,
+        MonitoringEventKind.FACE_DETECTION_UNAVAILABLE,
+    ]
+    started_at_ms: int = Field(ge=0, le=14_400_000)
+    ended_at_ms: int = Field(gt=0, le=14_400_000)
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    detector_name: str = Field(min_length=1, max_length=120)
+    detector_version: str = Field(min_length=1, max_length=80)
+    evidence_content_type: str | None = Field(
+        default=None, pattern=r"^video/(webm|mp4)$"
+    )
+    evidence_checksum: str | None = Field(
+        default=None, min_length=16, max_length=128
+    )
+
+    @model_validator(mode="after")
+    def validate_interval_and_evidence(self) -> "MonitoringEventRequest":
+        if self.ended_at_ms <= self.started_at_ms:
+            raise ValueError("event end must be after its start")
+        if bool(self.evidence_content_type) != bool(self.evidence_checksum):
+            raise ValueError(
+                "evidence content type and checksum must be supplied together"
+            )
+        return self
+
+
+class MonitoringEventView(BaseModel):
+    id: UUID
+    kind: MonitoringEventKind
+    started_at_ms: int
+    ended_at_ms: int
+    review_status: MonitoringReviewStatus
+
+
 class CandidateWorkflow(Protocol):
     def resolve(self, secret: str) -> InvitationView | None: ...
     def consent(self, secret: str) -> InvitationView | None: ...
@@ -58,6 +111,14 @@ class CandidateWorkflow(Protocol):
     def transcript(
         self, secret: str, response_id: UUID
     ) -> TranscriptView | None: ...
+
+    def create_monitoring_evidence_grant(
+        self, secret: str, request: MonitoringEvidenceGrantRequest
+    ) -> MonitoringEvidenceGrant | None: ...
+
+    def record_monitoring_event(
+        self, secret: str, request: MonitoringEventRequest
+    ) -> MonitoringEventView | None: ...
 
 
 def get_workflow(request: Request) -> CandidateWorkflow:
@@ -112,3 +173,31 @@ def transcript_status(
     return workflow.transcript(secret, response_id) or (_ for _ in ()).throw(
         invalid_invitation()
     )
+
+
+@router.post(
+    "/{secret}/monitoring-evidence-grants",
+    response_model=MonitoringEvidenceGrant,
+)
+def request_monitoring_evidence_grant(
+    secret: str,
+    request: MonitoringEvidenceGrantRequest,
+    workflow: CandidateWorkflow = Depends(get_workflow),
+) -> MonitoringEvidenceGrant:
+    return workflow.create_monitoring_evidence_grant(secret, request) or (
+        _ for _ in ()
+    ).throw(invalid_invitation())
+
+
+@router.post(
+    "/{secret}/monitoring-events",
+    response_model=MonitoringEventView,
+)
+def record_monitoring_event(
+    secret: str,
+    request: MonitoringEventRequest,
+    workflow: CandidateWorkflow = Depends(get_workflow),
+) -> MonitoringEventView:
+    return workflow.record_monitoring_event(secret, request) or (
+        _ for _ in ()
+    ).throw(invalid_invitation())

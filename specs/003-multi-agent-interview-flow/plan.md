@@ -47,7 +47,7 @@ fixtures synthetic; every semantic agent stage uses an LLM in runtime; no provid
 requirement in tests because the Responses client is injected
 
 **Scale/Scope**: One organization, hundreds of active vacancies, up to 1,000 completed profiles per
-vacancy cohort, five agent purposes, and append-only audit history
+vacancy cohort, six agent purposes, and append-only audit history
 
 ## Constitution Check
 
@@ -96,12 +96,17 @@ vacancy + latest resume + optional approved brief + policy + own transcripts
                 |                 |                  |
                 v                 v                  v
          vacancy ranking   alternative matcher   integrity checker
-                                                    |
-                                             observation only
-                                                    |
-                                             human review API
-                                                    |
-                                           append-only restriction
+                                  |                  |
+                 profile + answers + match           v
+                                  |           observation only
+                                  v                  |
+                     candidate feedback draft  human review API
+                                  |                  |
+                          human publication   append-only restriction
+                                  |
+                          candidate endpoint
+                                  |
+                          candidate frontend
 ```
 
 Every agent call is represented by `AgentOperation` and one or more `AgentRun` attempts. A validated
@@ -118,8 +123,9 @@ replaying successful stages.
 | `answer_assessment` | one stored transcript, one question, applicable criteria | independent criterion observations with exact evidence | other candidates, hiring decisions |
 | `alternative_vacancy_match` | completed evidence profile, active vacancy catalog | explanatory candidate-vacancy observations | cohort rank, application creation |
 | `integrity_check` | resume claims and the candidate's own stored answers | consistency observations and clarification prompts | `blacklisted`, `restricted`, rejection |
+| `candidate_feedback` | finalized profile, resume analysis, own answers/assessments, evidence catalog, allowed alternatives | evidence-linked Russian candidate draft | rank, pool, integrity, restrictions, automatic publication |
 
-All five roles are implemented by an OpenAI Responses adapter using a separate system instruction
+All six roles are implemented by an OpenAI Responses adapter using a separate system instruction
 and strict Pydantic Structured Output type for each purpose. The adapter is stateless (`store=False`)
 and receives the harness-built session manifest on every call. Tests inject a fake Responses client;
 there is no heuristic runtime fallback when credentials or the provider are unavailable.
@@ -152,11 +158,14 @@ Recruiter-authenticated endpoints are additive under `/recruiter`:
 - run resume analysis and question planning;
 - assess a stored completed transcript with declared question criteria;
 - finalize profile, integrity analysis, and alternative matches;
+- generate an evidence-linked candidate feedback draft and publish it after human review;
 - retrieve the session projection and vacancy ranking;
 - append or supersede a human restriction decision.
 
-The candidate API receives no scores, rankings, integrity observations, or restrictions in this
-increment. Existing upload and transcript endpoints remain unchanged.
+The candidate API receives only a deterministic interview score, candidate-facing feedback, its own
+quoted evidence, and an optional reviewed alternative after publication. It never receives rankings,
+pool membership, integrity observations, restrictions, or internal evidence identifiers. Existing
+upload and transcript endpoints remain unchanged.
 
 ## Project Structure
 
@@ -193,7 +202,8 @@ backend/app/
 └── main.py
 
 backend/alembic/versions/
-└── 005_multi_agent_harness.py
+├── 005_multi_agent_harness.py
+└── 006_candidate_feedback_agent.py
 
 backend/tests/
 ├── unit/
@@ -215,7 +225,8 @@ is not modified or mixed into new ranking cohorts.
 3. Add OpenAI Responses agent adapters and resume/question stages.
 4. Add answer assessment plus profile aggregation and ranking.
 5. Add alternative matching, integrity observations, and human restriction history.
-6. Expose recruiter endpoints, document the flow, and run all repository gates.
+6. Add candidate feedback generation, human publication, and candidate rendering.
+7. Expose recruiter endpoints, document the flow, and run all repository gates.
 
 ## Complexity Tracking
 

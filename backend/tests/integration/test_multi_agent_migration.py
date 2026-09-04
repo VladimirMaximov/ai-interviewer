@@ -26,6 +26,7 @@ class MultiAgentMigrationTests(unittest.TestCase):
                 "ranking_snapshots",
                 "ranking_entries",
                 "restriction_decisions",
+                "candidate_feedback_releases",
             }
             self.assertTrue(expected.issubset(tables))
             self.assertTrue(
@@ -36,6 +37,16 @@ class MultiAgentMigrationTests(unittest.TestCase):
             self.assertIn(
                 "input_hash",
                 {item["name"] for item in inspector.get_columns("agent_sessions")},
+            )
+            self.assertTrue(
+                {"feedback_artifact_id", "published_by", "published_at"}.issubset(
+                    {
+                        item["name"]
+                        for item in inspector.get_columns(
+                            "candidate_feedback_releases"
+                        )
+                    }
+                )
             )
 
             command.downgrade(config, "004_resume_uploader_audit")

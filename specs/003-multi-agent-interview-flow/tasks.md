@@ -58,8 +58,9 @@ same session and cross-vacancy access fails.
 **Goal**: Match source-backed resume experience to the primary vacancy and create stable baseline plus
 bounded claim-verification questions.
 
-**Independent Test**: A three-position synthetic resume produces exact excerpts, requirement links,
-gaps, a stable baseline, and sourced personalized questions.
+**Independent Test**: A three-position synthetic resume produces valid evidence-ID and requirement-ID
+links, gaps, a stable baseline, and sourced personalized questions; source text is resolved outside
+the unchanged LLM output.
 
 ### Tests for User Story 2
 
@@ -71,6 +72,8 @@ gaps, a stable baseline, and sourced personalized questions.
 - [x] T017 [US2] Implement OpenAI Responses resume-relevance and question-planning agents with strict Structured Outputs in `backend/app/adapters/openai_interview_agents.py`
 - [x] T018 [US2] Implement purpose-specific resume and planning manifests plus artifact validation in `backend/app/services/multi_agent_harness.py`
 - [x] T019 [US2] Add idempotent resume-analysis, recruiter question-plan, and candidate-safe question endpoints in `backend/app/api/multi_agent.py` and `frontend/src/api/candidate.ts`
+- [x] T019a [US2] Replace LLM-authored quotations with deterministic resume, vacancy, manager, and
+  answer evidence catalogs; preserve raw outputs and resolve selected IDs only in downstream views
 
 **Checkpoint**: Resume text remains claim context, and all personalized questions trace to pinned claims.
 
@@ -176,6 +179,19 @@ observations and preserve all evidence.
 - [x] T044 [P] Load server-generated question IDs in `frontend/src/features/interview/InterviewPage.tsx` and cover the candidate API in `frontend/src/api/candidate.test.ts`
 - [x] T045 Run frontend tests and the production TypeScript/Vite build; fix all regressions in touched files
 - [x] T046 [P] Add a 1,000-profile isolation and sub-two-second ranking regression in `backend/tests/unit/test_multi_agent_scale.py`
+
+---
+
+## Phase 10: Candidate feedback agent and delivery
+
+- [x] T047 Add strict candidate-feedback output and public projection contracts in `backend/app/domain/multi_agent.py`
+- [x] T048 Implement the OpenAI Responses candidate-feedback agent and bounded Russian prompt in `backend/app/adapters/openai_interview_agents.py`
+- [x] T049 Add evidence catalog, candidate-safe context, output validation, score projection, and alternative-vacancy gate in `backend/app/services/multi_agent_harness.py`
+- [x] T050 Add draft/publication persistence and migration `006_candidate_feedback_agent.py`
+- [x] T051 Add recruiter generate/publish endpoints and candidate feedback endpoint in `backend/app/api/multi_agent.py`
+- [x] T052 Render published feedback in the candidate frontend and extend its API client
+- [x] T053 Add agent, evidence, publication, API, migration, and frontend regression coverage
+- [x] T054 Reconcile feature specification, schemas, quickstart, and backend documentation
 
 ## Dependencies & Execution Order
 

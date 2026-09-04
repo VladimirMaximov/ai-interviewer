@@ -29,4 +29,61 @@ describe("CandidateApi questions", () => {
     );
     expect(plan.questions[0].kind).toBe("baseline");
   });
+
+  it("loads only the published candidate feedback projection", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "published",
+        feedback: {
+          headline: "Результат интервью",
+          strengths: [],
+          growth_areas: [],
+          experience_alignment: [],
+          alternative_vacancy: null,
+          next_steps: [],
+          limitations: [],
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const delivery = await new CandidateApi().feedback("candidate token");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/candidate/candidate%20token/feedback",
+      undefined,
+    );
+    expect(delivery.status).toBe("published");
+  });
+
+  it("saves a camera-presence interval against one response", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        id: "event-1",
+        kind: "face_missing",
+        started_at_ms: 5_000,
+        ended_at_ms: 9_000,
+        review_status: "pending",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await new CandidateApi().recordMonitoringEvent("candidate token", {
+      client_event_id: "event-1",
+      response_id: "response-1",
+      question_id: "question-1",
+      kind: "face_missing",
+      started_at_ms: 5_000,
+      ended_at_ms: 9_000,
+      detector_name: "mediapipe_face_detector",
+      detector_version: "face_presence_v1",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/candidate/candidate%20token/monitoring-events",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });

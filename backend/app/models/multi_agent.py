@@ -20,6 +20,7 @@ from app.domain.multi_agent import (
     AgentOperationStatus,
     AgentRunStatus,
     AgentSessionStatus,
+    FeedbackReleaseStatus,
     RestrictionType,
 )
 from app.models.interview import Base
@@ -163,6 +164,39 @@ class AgentArtifact(Base):
     payload: Mapped[dict] = mapped_column(JSON)
     content_hash: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class CandidateFeedbackRelease(Base):
+    __tablename__ = "candidate_feedback_releases"
+    __table_args__ = (
+        UniqueConstraint(
+            "feedback_artifact_id", name="uq_candidate_feedback_release_artifact"
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    invitation_id: Mapped[UUID] = mapped_column(
+        ForeignKey("interview_invitations.id"), index=True
+    )
+    agent_session_id: Mapped[UUID] = mapped_column(
+        ForeignKey("agent_sessions.id"), index=True
+    )
+    feedback_artifact_id: Mapped[UUID] = mapped_column(
+        ForeignKey("agent_artifacts.id"), index=True
+    )
+    status: Mapped[FeedbackReleaseStatus] = mapped_column(
+        Enum(
+            FeedbackReleaseStatus,
+            values_callable=lambda items: [item.value for item in items],
+            name="feedbackreleasestatus",
+        )
+    )
+    created_by: Mapped[str] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    published_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class RankingSnapshot(Base):

@@ -104,7 +104,34 @@ profiles, and alternative vacancies appear only when strong-pool eligibility and
 distance policy pass. Unknown or non-comparable grades yield manual comparison, not a fabricated
 fit score.
 
-## 8. Validate integrity and human-only restrictions
+## 8. Generate, review, and publish candidate feedback
+
+Generate an evidence-linked draft after finalization:
+
+```bash
+curl -X POST \
+  http://127.0.0.1:8000/recruiter/vacancies/VACANCY_ID/applications/INVITATION_ID/agent-session/candidate-feedback \
+  -H 'X-Recruiter-Key: local-recruiter-key' \
+  -H 'Idempotency-Key: candidate-feedback-001'
+```
+
+Before publication, `GET /candidate/CANDIDATE_TOKEN/feedback` returns `pending_review` and no draft
+content. After a recruiter reviews the response, publish the returned release ID:
+
+```bash
+curl -X POST \
+  http://127.0.0.1:8000/recruiter/vacancies/VACANCY_ID/applications/INVITATION_ID/agent-session/candidate-feedback/RELEASE_ID/publish \
+  -H 'X-Recruiter-Key: local-recruiter-key'
+
+curl http://127.0.0.1:8000/candidate/CANDIDATE_TOKEN/feedback
+```
+
+Expected: the candidate receives the 0–10 interview score, useful strengths, concrete growth areas,
+experience alignment, next steps, and at most one active allowed alternative. Rank, pool,
+integrity/restriction records, model confidence, and internal evidence IDs are absent. Closing the
+recommended vacancy before publication returns a conflict and requires a fresh review.
+
+## 9. Validate integrity and human-only restrictions
 
 Use synthetic resume text claiming a technology and an answer explicitly denying experience with the
 same technology. Finalization should produce `contradiction_detected` or
@@ -127,7 +154,7 @@ curl -X POST \
 Expected: the decision records the human actor and does not modify scores or agent artifacts. A later
 `cleared` decision supersedes it without deleting history.
 
-## 9. Final verification
+## 10. Final verification
 
 ```bash
 PYTHONPATH=backend python -m unittest backend.tests.unit.test_multi_agent_harness -v

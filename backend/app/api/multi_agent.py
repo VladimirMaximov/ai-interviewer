@@ -16,6 +16,8 @@ from app.domain.multi_agent import (
     ArtifactView,
     CreateRestrictionRequest,
     CandidateQuestionPlanView,
+    CandidateFeedbackDeliveryView,
+    CandidateFeedbackReleaseView,
     FinalizationView,
     MultiAgentConflictError,
     MultiAgentError,
@@ -58,6 +60,10 @@ class MultiAgentWorkflow(Protocol):
         self, *, secret: str
     ) -> CandidateQuestionPlanView | None: ...
 
+    def candidate_feedback(
+        self, *, secret: str
+    ) -> CandidateFeedbackDeliveryView | None: ...
+
     def run_resume_analysis(
         self,
         *,
@@ -91,6 +97,24 @@ class MultiAgentWorkflow(Protocol):
         idempotency_key: str,
     ) -> FinalizationView: ...
 
+    def generate_candidate_feedback(
+        self,
+        *,
+        vacancy_id: UUID,
+        invitation_id: UUID,
+        actor_id: str,
+        idempotency_key: str,
+    ) -> CandidateFeedbackReleaseView: ...
+
+    def publish_candidate_feedback(
+        self,
+        *,
+        vacancy_id: UUID,
+        invitation_id: UUID,
+        release_id: UUID,
+        actor_id: str,
+    ) -> CandidateFeedbackReleaseView: ...
+
     def build_ranking(self, *, vacancy_id: UUID) -> RankingView: ...
 
     def create_restriction(
@@ -123,6 +147,20 @@ def get_candidate_questions(
     service: MultiAgentWorkflow = Depends(get_multi_agent_harness),
 ) -> CandidateQuestionPlanView:
     result = service.candidate_question_plan(secret=secret)
+    if result is None:
+        raise invalid_invitation()
+    return result
+
+
+@candidate_router.get(
+    "/{secret}/feedback",
+    response_model=CandidateFeedbackDeliveryView,
+)
+def get_candidate_feedback(
+    secret: str,
+    service: MultiAgentWorkflow = Depends(get_multi_agent_harness),
+) -> CandidateFeedbackDeliveryView:
+    result = service.candidate_feedback(secret=secret)
     if result is None:
         raise invalid_invitation()
     return result
@@ -237,6 +275,46 @@ def finalize_agent_session(
         vacancy_id=vacancy_id,
         invitation_id=invitation_id,
         idempotency_key=idempotency_key,
+    )
+
+
+@router.post(
+    "/vacancies/{vacancy_id}/applications/{invitation_id}/agent-session/candidate-feedback",
+    response_model=CandidateFeedbackReleaseView,
+    status_code=status.HTTP_201_CREATED,
+)
+def generate_candidate_feedback(
+    vacancy_id: UUID,
+    invitation_id: UUID,
+    idempotency_key: IdempotencyKey,
+    actor_id: str = Depends(require_recruiter),
+    service: MultiAgentWorkflow = Depends(get_multi_agent_harness),
+) -> CandidateFeedbackReleaseView:
+    return service.generate_candidate_feedback(
+        vacancy_id=vacancy_id,
+        invitation_id=invitation_id,
+        actor_id=actor_id,
+        idempotency_key=idempotency_key,
+    )
+
+
+@router.post(
+    "/vacancies/{vacancy_id}/applications/{invitation_id}/agent-session/"
+    "candidate-feedback/{release_id}/publish",
+    response_model=CandidateFeedbackReleaseView,
+)
+def publish_candidate_feedback(
+    vacancy_id: UUID,
+    invitation_id: UUID,
+    release_id: UUID,
+    actor_id: str = Depends(require_recruiter),
+    service: MultiAgentWorkflow = Depends(get_multi_agent_harness),
+) -> CandidateFeedbackReleaseView:
+    return service.publish_candidate_feedback(
+        vacancy_id=vacancy_id,
+        invitation_id=invitation_id,
+        release_id=release_id,
+        actor_id=actor_id,
     )
 
 

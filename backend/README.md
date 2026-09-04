@@ -185,11 +185,11 @@ separate interview-analysis agent without reinterpreting an unapproved conversat
 
 The recruiter can now create one durable agent session for an application. It pins the vacancy,
 latest resume, optional approved manager brief, scoring scale, aggregation policy, and content
-hashes. The five semantic stages all use the OpenAI Responses API with purpose-specific system
+hashes. The six semantic stages all use the OpenAI Responses API with purpose-specific system
 instructions and strict Pydantic Structured Outputs:
 
-1. `resume_relevance` separates explicit work positions, then maps their exact resume excerpts to
-   vacancy and approved manager requirements.
+1. `resume_relevance` separates explicit work positions, then maps immutable resume evidence IDs to
+   vacancy and approved-manager requirement IDs.
 2. `question_plan` preserves a fixed four-question baseline and may add bounded claim-verification
    questions.
 3. `answer_assessment` evaluates one already stored completed transcript by independent technical,
@@ -197,11 +197,16 @@ instructions and strict Pydantic Structured Outputs:
 4. `alternative_vacancy_match` compares an eligible evidence profile with each active alternative.
 5. `integrity_check` surfaces two-sided inconsistencies for human review and cannot create a
    restriction or blacklist.
+6. `candidate_feedback` turns the finalized profile, stored answers, answer assessments, resume
+   relevance, and already eligible alternatives into an evidence-linked Russian draft for the
+   candidate.
 
 There is deliberately no heuristic runtime fallback for these stages. Missing credentials or a
-provider failure creates a retryable audited attempt. Local code validates exact evidence spans and
-identity links, then deterministically calculates profile values, coverage, strong-pool eligibility,
-and compatible vacancy rank. It does not make a hiring decision.
+provider failure creates a retryable audited attempt. Local code builds stable source-owned evidence
+catalogs, validates the IDs selected by each model, and resolves their verbatim text only in a
+separate view. Raw JSON outputs—including schema-invalid attempts—are not repaired or normalized.
+Profile values, coverage, strong-pool eligibility, and compatible vacancy rank are calculated
+deterministically and separately. The system does not make a hiring decision.
 
 Configure the shared LLM provider and versioned deterministic policies:
 
@@ -209,6 +214,7 @@ Configure the shared LLM provider and versioned deterministic policies:
 OPENAI_API_KEY=...
 OPENAI_BASE_URL=https://api.openai.com/v1
 MULTI_AGENT_MODEL=gpt-5.4-mini
+MULTI_AGENT_API_MODE=responses
 MULTI_AGENT_MAX_ATTEMPTS=3
 MULTI_AGENT_TIMEOUT_SECONDS=90
 STRONG_POOL_MIN_READINESS=0.25
@@ -218,7 +224,11 @@ ALTERNATIVE_MAX_GRADE_DISTANCE=1
 MULTI_AGENT_PERSONALIZATION_CAP=3
 ```
 
-After migration `005_multi_agent_harness`, call the recruiter endpoints in this order:
+For an OpenAI-compatible provider that exposes Chat Completions, such as VseGPT, use its
+provider-prefixed model ID together with `MULTI_AGENT_API_MODE=chat_completions`.
+
+After migrations `005_multi_agent_harness` and `006_candidate_feedback_agent`, call the recruiter
+endpoints in this order:
 
 ```text
 POST .../applications/{invitation_id}/agent-session
@@ -227,6 +237,9 @@ POST .../agent-session/question-plan
 GET  /candidate/{candidate_token}/questions
 POST .../agent-session/answer-assessments
 POST .../agent-session/finalize
+POST .../agent-session/candidate-feedback
+POST .../agent-session/candidate-feedback/{release_id}/publish
+GET  /candidate/{candidate_token}/feedback
 GET  /recruiter/vacancies/{vacancy_id}/ranking
 ```
 
@@ -238,6 +251,14 @@ Every baseline answer is returned as separate technical, soft-skill, corporate-c
 vacancy-fit observations. A block unsupported by that answer remains `null`; evidence from one block
 is never copied into another.
 
+Candidate feedback is never published directly by the model. The generation endpoint creates an
+immutable `draft`; an authenticated recruiter reviews it and calls the publication endpoint. Until
+then, the candidate receives `pending_review`. The published projection contains the deterministic
+0–10 interview score, strengths, actionable growth areas, experience alignment, next steps, and at
+most one currently active alternative vacancy. It omits rank, pool membership, integrity and
+restriction data, model confidence, and internal evidence identifiers. The frontend reads this
+projection from the same bearer invitation link when the candidate returns.
+
 Restrictions are a separate human-only audit stream:
 
 ```text
@@ -248,3 +269,56 @@ GET  /recruiter/applications/{invitation_id}/restrictions
 An authorized recruiter supplies stored evidence references and may append `restricted`,
 `blacklisted`, `verified_misrepresentation`, or a superseding `cleared` record. The operation never
 rewrites LLM observations, scores, transcripts, or prior decisions.
+
+## Camera presence and speaker monitoring
+
+During each answer, the candidate frontend requests camera and microphone access. The official
+[MediaPipe Face Detector](https://ai.google.dev/edge/mediapipe/solutions/vision/face_detector/web_js)
+runs in the browser about three times per second. A condition must remain visible for 750
+ms before an event opens, which avoids recording one missed frame as an incident. A
+`face_missing` or `multiple_faces` interval starts five seconds before the first anomalous frame
+and ends when exactly one face is visible again. The timestamp includes the five-second pre-roll;
+video evidence begins when the condition is confirmed and is capped at 15 seconds. The API rejects
+evidence over 2 MB, and the application does not upload continuous interview video.
+
+If the browser cannot initialize the detector or cannot process a frame, the whole answer receives
+a `face_detection_unavailable` interval. This is missing evidence rather than an integrity finding,
+and prevents that answer from silently becoming part of the provisional voice reference.
+
+Camera events are stored before the audio upload is confirmed. The voice worker can therefore
+exclude those intervals while building a provisional reference from the first two confirmed
+answers. It stores only the reference response IDs and readiness state, not a separate biometric
+embedding. The third and later answers produce reviewer-only `overlapping_speech`,
+`additional_speaker`, and `speaker_mismatch` intervals. The first two answers can already produce
+overlap/additional-speaker intervals, but cannot produce an identity mismatch before the profile is
+ready. Every signal defaults to `pending` human review and has no automatic rejection path.
+
+The normal backend install keeps heavyweight speaker models disabled. To run local speaker
+analysis, accept the access conditions for the selected Hugging Face models, install the optional
+dependencies, migrate the database, and enable the provider:
+
+- [pyannote.audio](https://github.com/pyannote/pyannote-audio) supplies diarization and
+  overlapping-speech intervals.
+- [SpeechBrain ECAPA-TDNN](https://speechbrain.readthedocs.io/en/stable/API/speechbrain.lobes.models.ECAPA_TDNN.html)
+  supplies speaker embeddings used only during processing.
+
+```bash
+pip install -e './backend[proctoring]'
+PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
+export PROCTORING_PROVIDER=pyannote
+export HUGGINGFACE_TOKEN=replace-with-a-read-token
+```
+
+The default similarity values are development assumptions, not validated facts. Calibrate them on
+consented, representative Russian recordings and supported microphones before production use:
+
+```text
+PROCTORING_MINIMUM_REFERENCE_SECONDS=20
+PROCTORING_REFERENCE_SIMILARITY=0.65
+PROCTORING_SPEAKER_SIMILARITY=0.55
+```
+
+The browser defaults to official hosted MediaPipe WASM and face-detector model assets. Production
+deployments should self-host pinned copies and set `VITE_MEDIAPIPE_WASM_URL` and
+`VITE_FACE_DETECTOR_MODEL_URL` in `frontend/.env.local` so monitoring does not depend on a public
+CDN at interview time.

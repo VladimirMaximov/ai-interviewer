@@ -1,5 +1,7 @@
 """Database and provider factories used by request-scoped workflows."""
 
+from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -16,6 +18,33 @@ from app.services.hiring_context import HiringContextService
 from app.services.manager_brief import ManagerBriefService
 from app.services.multi_agent_harness import MultiAgentHarness
 from app.services.transcription_scheduler import TranscriptionScheduler
+from app.services.voice_proctoring import VoiceProctoringScheduler
+
+
+_voice_executor = ThreadPoolExecutor(
+    max_workers=1, thread_name_prefix="voice-proctoring"
+)
+
+
+@lru_cache(maxsize=1)
+def _voice_analyzer():
+    """Reuse heavyweight model instances and serialize access in one process."""
+
+    from app.adapters.pyannote_voice import PyannoteVoiceAnalyzer
+
+    return PyannoteVoiceAnalyzer(
+        huggingface_token=settings.huggingface_token,
+        diarization_model=settings.proctoring_diarization_model,
+        embedding_model=settings.proctoring_embedding_model,
+        embedding_cache=settings.proctoring_embedding_cache,
+        minimum_reference_speech_seconds=(
+            settings.proctoring_minimum_reference_seconds
+        ),
+        reference_similarity_threshold=(
+            settings.proctoring_reference_similarity
+        ),
+        speaker_similarity_threshold=settings.proctoring_speaker_similarity,
+    )
 
 
 def workflow_factory() -> SqlCandidateWorkflow:
@@ -37,10 +66,19 @@ def workflow_factory() -> SqlCandidateWorkflow:
         ),
         settings.ffmpeg_binary,
     )
+    voice_scheduler = None
+    if settings.proctoring_provider == "pyannote":
+        voice_scheduler = VoiceProctoringScheduler(
+            sessions,
+            storage,
+            _voice_analyzer(),
+            executor=_voice_executor,
+        )
     return SqlCandidateWorkflow(
         session,
         storage,
         TranscriptionScheduler(sessions, storage, processor),
+        voice_scheduler,
     )
 
 
@@ -68,7 +106,7 @@ def hiring_context_service_factory() -> HiringContextService:
 
 
 def multi_agent_harness_factory() -> MultiAgentHarness:
-    """Build an isolated harness whose five semantic stages all use the LLM."""
+    """Build an isolated harness whose six semantic stages all use the LLM."""
 
     engine = create_engine(settings.database_url, pool_pre_ping=True)
     session = sessionmaker(engine, expire_on_commit=False)()
@@ -77,6 +115,7 @@ def multi_agent_harness_factory() -> MultiAgentHarness:
         model=settings.multi_agent_model,
         base_url=settings.openai_base_url,
         timeout_seconds=settings.multi_agent_timeout_seconds,
+        api_mode=settings.multi_agent_api_mode,
     )
     return MultiAgentHarness(
         session,

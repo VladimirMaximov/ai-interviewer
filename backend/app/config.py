@@ -1,5 +1,7 @@
 """Runtime configuration; secrets are supplied only through environment variables."""
 
+from typing import Literal
+
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,6 +11,16 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     transcription_provider: str = "whisper_cpp"
+    proctoring_provider: Literal["disabled", "pyannote"] = "disabled"
+    huggingface_token: str | None = None
+    proctoring_diarization_model: str = (
+        "pyannote/speaker-diarization-community-1"
+    )
+    proctoring_embedding_model: str = "speechbrain/spkrec-ecapa-voxceleb"
+    proctoring_embedding_cache: str = "backend/models/speechbrain-spkrec-ecapa"
+    proctoring_minimum_reference_seconds: float = Field(default=20, ge=5, le=300)
+    proctoring_reference_similarity: float = Field(default=0.65, ge=-1, le=1)
+    proctoring_speaker_similarity: float = Field(default=0.55, ge=-1, le=1)
     gigaam_model: str = "v3_e2e_rnnt"
     routerai_api_key: str | None = None
     routerai_base_url: str = "https://routerai.ru/api/v1"
@@ -17,6 +29,7 @@ class Settings(BaseSettings):
     manager_brief_model: str = "gpt-5-mini"
     manager_brief_max_attempts: int = Field(default=3, ge=1, le=5)
     multi_agent_model: str = "gpt-5.4-mini"
+    multi_agent_api_mode: Literal["responses", "chat_completions"] = "responses"
     multi_agent_max_attempts: int = Field(default=3, ge=1, le=5)
     multi_agent_timeout_seconds: float = Field(default=90.0, ge=1, le=300)
     strong_pool_min_readiness: float = Field(default=0.25, ge=-1, le=1)

@@ -85,20 +85,20 @@ creation selects the current successful set explicitly.
 ## Resume relevance payload
 
 `ResumePosition` keeps every explicit job/project separate with position ID, employer, role, period,
-project, responsibilities, skills, achievements, and one exact source excerpt. Missing subfields stay
-null or empty; they are never inferred.
+project, responsibilities, skills, achievements, and one or more IDs from the immutable resume
+evidence catalog. Missing subfields stay null or empty; they are never inferred.
 
 `ResumeClaim`:
 
 - claim ID and type;
-- normalized subject and exact source excerpt;
+- normalized subject and one or more resume evidence IDs;
 - verification status: `unverified`, `supported`, `contradicted`, or `insufficient_information`;
 - source resume ID/hash.
 
 `ExperienceMatch`:
 
-- experience label and exact resume excerpt;
-- requirement text and origin (`vacancy` or `manager_brief`);
+- experience label and resume evidence IDs;
+- requirement ID and origin (`vacancy` or `manager_brief`);
 - relevance in `[0, 1]`;
 - confidence in `[0, 1]`;
 - explanation;
@@ -130,7 +130,11 @@ between sessions of the same vacancy compatibility key.
 - label and exact allowed value;
 - confidence;
 - explanation;
-- evidence list with origin `answer`, exact excerpt, and evidence kind.
+- evidence list with an exact ID from the answer evidence catalog and evidence kind.
+
+Evidence catalogs are deterministic, source-owned projections with stable IDs and verbatim text.
+Agents return only IDs. Raw agent outputs are persisted unchanged; candidate/recruiter views resolve
+the selected IDs back to source text separately.
 
 Allowed label/value pairs:
 
@@ -206,9 +210,34 @@ The current effective restriction is the latest non-expired decision in a valid 
 `cleared` removes the effective restriction without deleting history. Agent operations cannot insert
 this entity.
 
+## CandidateFeedbackOutput and CandidateFeedbackRelease
+
+`CandidateFeedbackOutput` is an immutable `candidate_feedback_v1` agent artifact. It stores the
+source profile artifact ID, candidate-facing headline and summary, evidence-linked strengths,
+growth areas with practical actions, resume/interview alignment, an optional allowed alternative,
+next steps, limitations, and `is_hiring_decision=false`. Internal rank, pool, integrity, restriction,
+and anti-fraud fields are not part of its contract.
+
+`CandidateFeedbackRelease` separates generation from delivery:
+
+| Field | Meaning |
+|---|---|
+| `id` | Release ID |
+| `invitation_id` / `agent_session_id` | Exact candidate/vacancy scope |
+| `feedback_artifact_id` | Immutable validated LLM artifact |
+| `status` | `draft` or `published` |
+| `created_by` / `created_at` | Recruiter who requested the draft and creation time |
+| `published_by` / `published_at` | Required human publisher and publication time |
+
+The candidate endpoint resolves only the latest `published` release. It converts internal evidence
+references to the candidate's own excerpts and derives the displayed 0–10 score deterministically
+from the pinned signed readiness value. A draft never appears in the candidate projection. An
+alternative vacancy is rechecked for active status immediately before publication.
+
 ## Privacy and deletion
 
-- Candidate-facing serializers never read ranking, integrity, or restriction tables.
+- Candidate-facing serializers never read ranking or integrity artifacts and never expose
+  restriction data. Restriction state may only suppress an unpublished alternative.
 - Agent session projections identify the application by opaque IDs and recruiter-owned alias only.
 - Deleting source candidate data must delete or tombstone session artifacts according to the
   product retention policy; immutable audit hashes must not retain recoverable PII.

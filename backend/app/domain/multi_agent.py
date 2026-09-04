@@ -10,11 +10,14 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-AGENT_OUTPUT_VERSION = "session_agent_output_v1"
+AGENT_OUTPUT_VERSION = "session_agent_output_v2"
+EVIDENCE_CATALOG_VERSION = "evidence_catalog_v1"
 SCALE_VERSION = "signed_criterion_v1"
 CRITERIA_VERSION = "interview_criteria_v1"
 AGGREGATION_VERSION = "candidate_profile_v1"
 POLICY_VERSION = "strong_pool_v1"
+FEEDBACK_VERSION = "candidate_feedback_v1"
+CANDIDATE_SCORE_VERSION = "signed_readiness_to_10_v1"
 
 
 class AgentPurpose(StrEnum):
@@ -23,6 +26,7 @@ class AgentPurpose(StrEnum):
     ANSWER_ASSESSMENT = "answer_assessment"
     ALTERNATIVE_VACANCY_MATCH = "alternative_vacancy_match"
     INTEGRITY_CHECK = "integrity_check"
+    CANDIDATE_FEEDBACK = "candidate_feedback"
 
 
 class AgentSessionStatus(StrEnum):
@@ -51,6 +55,7 @@ class ArtifactKind(StrEnum):
     CANDIDATE_PROFILE = "candidate_profile"
     ALTERNATIVE_VACANCY_MATCH = "alternative_vacancy_match"
     INTEGRITY_CHECK = "integrity_check"
+    CANDIDATE_FEEDBACK = "candidate_feedback"
 
 
 class Dimension(StrEnum):
@@ -140,6 +145,18 @@ class RestrictionType(StrEnum):
     CLEARED = "cleared"
 
 
+class FeedbackReleaseStatus(StrEnum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+
+
+class ExperienceAlignmentStatus(StrEnum):
+    CONFIRMED = "confirmed"
+    PARTIALLY_CONFIRMED = "partially_confirmed"
+    NOT_CONFIRMED = "not_confirmed"
+    NOT_ASSESSED = "not_assessed"
+
+
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -148,7 +165,7 @@ class ResumeClaim(StrictModel):
     claim_id: str = Field(min_length=1, max_length=120)
     claim_type: ResumeClaimType
     subject: str = Field(min_length=1, max_length=500)
-    source_excerpt: str = Field(min_length=1, max_length=2_000)
+    evidence_ids: list[str] = Field(min_length=1, max_length=12)
     verification_status: ClaimVerificationStatus
 
 
@@ -161,13 +178,13 @@ class ResumePosition(StrictModel):
     responsibilities: list[str]
     skills: list[str]
     achievements: list[str]
-    source_excerpt: str = Field(min_length=1, max_length=4_000)
+    evidence_ids: list[str] = Field(min_length=1, max_length=24)
 
 
 class ExperienceMatch(StrictModel):
     experience_label: str = Field(min_length=1, max_length=500)
-    source_excerpt: str = Field(min_length=1, max_length=2_000)
-    requirement: str = Field(min_length=1, max_length=1_000)
+    evidence_ids: list[str] = Field(min_length=1, max_length=12)
+    requirement_id: str = Field(min_length=1, max_length=120)
     requirement_origin: RequirementOrigin
     relevance: float = Field(ge=0, le=1)
     confidence: float = Field(ge=0, le=1)
@@ -177,7 +194,7 @@ class ExperienceMatch(StrictModel):
 
 
 class ResumeRelevanceOutput(StrictModel):
-    schema_version: Literal["session_agent_output_v1"] = AGENT_OUTPUT_VERSION
+    schema_version: Literal["session_agent_output_v2"] = AGENT_OUTPUT_VERSION
     purpose: Literal["resume_relevance"] = AgentPurpose.RESUME_RELEVANCE
     positions: list[ResumePosition]
     claims: list[ResumeClaim]
@@ -205,22 +222,22 @@ class QuestionSelection(StrictModel):
 
 
 class QuestionPlanOutput(StrictModel):
-    schema_version: Literal["session_agent_output_v1"] = AGENT_OUTPUT_VERSION
+    schema_version: Literal["session_agent_output_v2"] = AGENT_OUTPUT_VERSION
     purpose: Literal["question_plan"] = AgentPurpose.QUESTION_PLAN
     questions: list[QuestionSelection] = Field(min_length=1, max_length=12)
 
 
 class AnswerEvidence(StrictModel):
     kind: EvidenceKind
-    excerpt: str | None = Field(default=None, max_length=2_000)
+    evidence_id: str | None = Field(default=None, max_length=120)
 
     @model_validator(mode="after")
     def validate_gap_shape(self) -> Self:
         if self.kind is EvidenceKind.INFORMATION_GAP:
-            if self.excerpt is not None:
-                raise ValueError("information_gap evidence cannot contain an excerpt")
-        elif not self.excerpt or not self.excerpt.strip():
-            raise ValueError("numeric evidence requires a non-empty excerpt")
+            if self.evidence_id is not None:
+                raise ValueError("information_gap evidence cannot contain an evidence id")
+        elif not self.evidence_id or not self.evidence_id.strip():
+            raise ValueError("numeric evidence requires a non-empty evidence id")
         return self
 
 
@@ -259,7 +276,7 @@ class CriterionObservation(StrictModel):
 
 
 class AnswerAssessmentOutput(StrictModel):
-    schema_version: Literal["session_agent_output_v1"] = AGENT_OUTPUT_VERSION
+    schema_version: Literal["session_agent_output_v2"] = AGENT_OUTPUT_VERSION
     purpose: Literal["answer_assessment"] = AgentPurpose.ANSWER_ASSESSMENT
     response_id: UUID
     question_id: UUID
@@ -267,7 +284,7 @@ class AnswerAssessmentOutput(StrictModel):
 
 
 class AlternativeVacancyMatchOutput(StrictModel):
-    schema_version: Literal["session_agent_output_v1"] = AGENT_OUTPUT_VERSION
+    schema_version: Literal["session_agent_output_v2"] = AGENT_OUTPUT_VERSION
     purpose: Literal["alternative_vacancy_match"] = (
         AgentPurpose.ALTERNATIVE_VACANCY_MATCH
     )
@@ -294,8 +311,8 @@ class AlternativeVacancyMatchOutput(StrictModel):
 
 class IntegrityObservation(StrictModel):
     status: IntegrityStatus
-    resume_excerpt: str | None = Field(default=None, max_length=2_000)
-    answer_excerpt: str | None = Field(default=None, max_length=2_000)
+    resume_evidence_id: str | None = Field(default=None, max_length=120)
+    answer_evidence_id: str | None = Field(default=None, max_length=120)
     response_id: UUID | None = None
     explanation: str = Field(min_length=1, max_length=2_000)
     clarification_question: str | None = Field(default=None, max_length=1_000)
@@ -306,16 +323,64 @@ class IntegrityObservation(StrictModel):
         if self.status in {
             IntegrityStatus.CONTRADICTION_DETECTED,
             IntegrityStatus.MANUAL_INTEGRITY_REVIEW,
-        } and (not self.resume_excerpt or not self.answer_excerpt or not self.response_id):
+        } and (
+            not self.resume_evidence_id
+            or not self.answer_evidence_id
+            or not self.response_id
+        ):
             raise ValueError("contradiction requires resume and answer evidence")
+        if self.answer_evidence_id and not self.response_id:
+            raise ValueError("answer evidence requires a response id")
+        if (
+            self.status is IntegrityStatus.UNVERIFIED_CLAIM
+            and not self.resume_evidence_id
+        ):
+            raise ValueError("unverified claim requires resume evidence")
         return self
 
 
 class IntegrityCheckOutput(StrictModel):
-    schema_version: Literal["session_agent_output_v1"] = AGENT_OUTPUT_VERSION
+    schema_version: Literal["session_agent_output_v2"] = AGENT_OUTPUT_VERSION
     purpose: Literal["integrity_check"] = AgentPurpose.INTEGRITY_CHECK
     observations: list[IntegrityObservation]
     is_restriction: Literal[False] = False
+
+
+class CandidateFeedbackPoint(StrictModel):
+    title: str = Field(min_length=1, max_length=300)
+    detail: str = Field(min_length=1, max_length=2_000)
+    evidence_references: list[str] = Field(min_length=1, max_length=5)
+
+
+class CandidateGrowthArea(CandidateFeedbackPoint):
+    action: str = Field(min_length=1, max_length=2_000)
+
+
+class CandidateExperienceAlignment(CandidateFeedbackPoint):
+    status: ExperienceAlignmentStatus
+
+
+class CandidateAlternativeRecommendation(StrictModel):
+    vacancy_id: UUID
+    title: str = Field(min_length=1, max_length=500)
+    matched_areas: list[str] = Field(min_length=1, max_length=10)
+    message: str = Field(min_length=1, max_length=2_000)
+    is_automatic_transfer: Literal[False] = False
+
+
+class CandidateFeedbackOutput(StrictModel):
+    schema_version: Literal["candidate_feedback_v1"] = FEEDBACK_VERSION
+    purpose: Literal["candidate_feedback"] = AgentPurpose.CANDIDATE_FEEDBACK
+    source_profile_artifact_id: UUID
+    headline: str = Field(min_length=1, max_length=500)
+    summary: str = Field(min_length=1, max_length=4_000)
+    strengths: list[CandidateFeedbackPoint] = Field(max_length=6)
+    growth_areas: list[CandidateGrowthArea] = Field(min_length=1, max_length=6)
+    experience_alignment: list[CandidateExperienceAlignment] = Field(max_length=12)
+    alternative_vacancy: CandidateAlternativeRecommendation | None = None
+    next_steps: list[str] = Field(min_length=1, max_length=6)
+    limitations: list[str] = Field(min_length=1, max_length=6)
+    is_hiring_decision: Literal[False] = False
 
 
 class CriterionSummary(StrictModel):
@@ -422,6 +487,70 @@ class FinalizationView(StrictModel):
     ranking: RankingView
 
 
+class CandidateFeedbackScoreView(StrictModel):
+    value: float | None = Field(default=None, ge=0, le=10)
+    maximum: Literal[10] = 10
+    scale_version: Literal["signed_readiness_to_10_v1"] = CANDIDATE_SCORE_VERSION
+    evidence_coverage: float = Field(ge=0, le=1)
+    explanation: str
+
+
+class CandidateFeedbackEvidenceView(StrictModel):
+    excerpt: str | None = None
+
+
+class CandidateFeedbackPointView(StrictModel):
+    title: str
+    detail: str
+    evidence: list[CandidateFeedbackEvidenceView]
+
+
+class CandidateGrowthAreaView(CandidateFeedbackPointView):
+    action: str
+
+
+class CandidateExperienceAlignmentView(CandidateFeedbackPointView):
+    status: ExperienceAlignmentStatus
+
+
+class CandidateFeedbackContentView(StrictModel):
+    score: CandidateFeedbackScoreView
+    headline: str
+    summary: str
+    strengths: list[CandidateFeedbackPointView]
+    growth_areas: list[CandidateGrowthAreaView]
+    experience_alignment: list[CandidateExperienceAlignmentView]
+    alternative_vacancy: CandidateAlternativeRecommendation | None = None
+    next_steps: list[str]
+    limitations: list[str]
+    published_at: datetime
+
+
+class CandidateFeedbackDeliveryView(StrictModel):
+    status: Literal["pending_review", "published"]
+    feedback: CandidateFeedbackContentView | None = None
+
+    @model_validator(mode="after")
+    def validate_delivery_state(self) -> Self:
+        if self.status == "published" and self.feedback is None:
+            raise ValueError("published feedback delivery requires content")
+        if self.status == "pending_review" and self.feedback is not None:
+            raise ValueError("pending feedback delivery cannot expose content")
+        return self
+
+
+class CandidateFeedbackReleaseView(StrictModel):
+    id: UUID
+    invitation_id: UUID
+    agent_session_id: UUID
+    status: FeedbackReleaseStatus
+    artifact: ArtifactView
+    created_by: str
+    created_at: datetime
+    published_by: str | None = None
+    published_at: datetime | None = None
+
+
 class CreateRestrictionRequest(StrictModel):
     decision_type: RestrictionType
     reason: str = Field(min_length=1, max_length=2_000)
@@ -460,7 +589,7 @@ class StructuredInterviewAgent(Protocol):
     model_version: str
     prompt_id: str
 
-    def run(self, context: dict[str, Any]) -> BaseModel: ...
+    def run(self, context: dict[str, Any]) -> BaseModel | dict[str, Any]: ...
 
 
 class MultiAgentError(Exception):
