@@ -288,6 +288,16 @@ paths:
         '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
         '409': {$ref: '#/components/responses/Conflict'}
+        '502':
+          description: The model output failed local schema or evidence validation.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+        '503':
+          description: The configured assessment provider is unavailable.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
         '422': {$ref: '#/components/responses/ValidationError'}
 
   /api/manager/interviews/{interview_id}/assessment-runs/{assessment_run_id}:
@@ -873,6 +883,59 @@ components:
         evidence_coverage: {type: number, minimum: 0, maximum: 1}
         label_counts: {type: object, additionalProperties: {type: integer, minimum: 0}}
 
+    BaselineRecommendationEvidence:
+      type: object
+      required: [question_id, question, excerpt, reason_code, note]
+      properties:
+        question_id: {type: string, format: uuid}
+        question: {type: string, minLength: 1}
+        excerpt: {type: [string, 'null']}
+        reason_code: {type: string, minLength: 1}
+        note: {type: string, minLength: 1}
+
+    BaselineRecommendation:
+      type: object
+      description: Non-binding content-only triage recommendation; never a hiring decision.
+      required:
+        - policy_version
+        - score
+        - label
+        - comment
+        - reason_codes
+        - evidence
+        - metrics
+        - is_hiring_decision
+        - limitations
+      properties:
+        policy_version:
+          type: string
+          enum: [llm-baseline-recommendation-v1, deterministic-baseline-recommendation-v1]
+        score:
+          type: integer
+          enum: [-1, 0, 1]
+          description: -1 requires review, 0 does not recommend advancing, 1 recommends advancing.
+        label: {type: string, enum: [needs_review, do_not_advance, advance]}
+        comment: {type: string, minLength: 1}
+        reason_codes:
+          type: array
+          minItems: 1
+          items: {type: string}
+        evidence:
+          type: array
+          items: {$ref: '#/components/schemas/BaselineRecommendationEvidence'}
+        metrics:
+          type: object
+          required: [evidence_coverage, normalized_assessment_score, concrete_answer_ratio]
+          properties:
+            evidence_coverage: {type: number, minimum: 0, maximum: 1}
+            normalized_assessment_score: {type: number, minimum: 0, maximum: 1}
+            concrete_answer_ratio: {type: number, minimum: 0, maximum: 1}
+        is_hiring_decision: {type: boolean, const: false}
+        limitations:
+          type: array
+          minItems: 1
+          items: {type: string}
+
     AssessmentRun:
       type: object
       required:
@@ -885,6 +948,7 @@ components:
         - input_hash
         - criterion_assessments
         - dimension_summaries
+        - baseline_recommendation
         - created_at
       properties:
         id: {type: string, format: uuid}
@@ -907,6 +971,11 @@ components:
           type: array
           maxItems: 2
           items: {$ref: '#/components/schemas/DimensionSummary'}
+        baseline_recommendation:
+          oneOf:
+            - $ref: '#/components/schemas/BaselineRecommendation'
+            - type: 'null'
+          description: Present for completed runs and null for failed runs.
         integrity_signals:
           type: array
           description: Human-review events stored separately and never used by scoring or ranking.

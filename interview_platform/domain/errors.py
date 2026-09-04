@@ -26,3 +26,15 @@ class NotFoundError(DomainError):
 
 class ConflictError(DomainError):
     code = "state_conflict"
+
+
+class AssessmentProviderError(DomainError):
+    """The configured assessment model could not be reached or used."""
+
+    code = "assessment_provider_error"
+
+
+class AssessmentOutputError(DomainError):
+    """The assessment model returned output that failed local validation."""
+
+    code = "assessment_output_error"

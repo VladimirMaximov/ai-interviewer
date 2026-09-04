@@ -3,8 +3,18 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.api.candidate import ConfirmUploadRequest, InvitationView, TranscriptView, UploadGrant, UploadGrantRequest, get_workflow
+from app.api.candidate import (
+    ConfirmUploadRequest,
+    InvitationView,
+    MonitoringEvidenceGrant,
+    MonitoringEventView,
+    TranscriptView,
+    UploadGrant,
+    UploadGrantRequest,
+    get_workflow,
+)
 from app.main import app
+from app.domain.proctoring import MonitoringEventKind, MonitoringReviewStatus
 from app.models.interview import TranscriptionStatus
 
 
@@ -32,6 +42,25 @@ class Workflow:
             return None
         return TranscriptView(status=TranscriptionStatus.COMPLETED, text="Синтетический ответ")
 
+    def create_monitoring_evidence_grant(self, secret: str, request):
+        if secret != "valid" or request.response_id != self.response_id:
+            return None
+        return MonitoringEvidenceGrant(
+            client_event_id=request.client_event_id,
+            upload_url="https://storage/monitoring-upload",
+        )
+
+    def record_monitoring_event(self, secret: str, request):
+        if secret != "valid" or request.response_id != self.response_id:
+            return None
+        return MonitoringEventView(
+            id=request.client_event_id,
+            kind=request.kind,
+            started_at_ms=request.started_at_ms,
+            ended_at_ms=request.ended_at_ms,
+            review_status=MonitoringReviewStatus.PENDING,
+        )
+
 
 class CandidateApiTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -56,3 +85,48 @@ class CandidateApiTests(unittest.TestCase):
         response = self.client.get("/candidate/not-a-real-secret")
         self.assertEqual(response.status_code, 404)
         self.assertNotIn("secret", response.json()["detail"].lower())
+
+    def test_browser_can_save_bounded_face_event_for_response(self) -> None:
+        question_id = uuid4()
+        event_id = uuid4()
+        grant = self.client.post(
+            "/candidate/valid/monitoring-evidence-grants",
+            json={
+                "client_event_id": str(event_id),
+                "response_id": str(self.workflow.response_id),
+                "question_id": str(question_id),
+                "content_type": "video/webm",
+            },
+        )
+        self.assertEqual(grant.status_code, 200)
+        event = self.client.post(
+            "/candidate/valid/monitoring-events",
+            json={
+                "client_event_id": str(event_id),
+                "response_id": str(self.workflow.response_id),
+                "question_id": str(question_id),
+                "kind": MonitoringEventKind.FACE_MISSING,
+                "started_at_ms": 5_000,
+                "ended_at_ms": 9_000,
+                "detector_name": "mediapipe_face_detector",
+                "detector_version": "face_presence_v1",
+            },
+        )
+        self.assertEqual(event.status_code, 200)
+        self.assertEqual(event.json()["review_status"], "pending")
+
+    def test_browser_event_rejects_reversed_interval(self) -> None:
+        response = self.client.post(
+            "/candidate/valid/monitoring-events",
+            json={
+                "client_event_id": str(uuid4()),
+                "response_id": str(self.workflow.response_id),
+                "question_id": str(uuid4()),
+                "kind": "face_missing",
+                "started_at_ms": 9_000,
+                "ended_at_ms": 5_000,
+                "detector_name": "mediapipe_face_detector",
+                "detector_version": "face_presence_v1",
+            },
+        )
+        self.assertEqual(response.status_code, 422)

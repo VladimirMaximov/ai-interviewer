@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from interview_platform.domain.assessment import AssessmentLabel, LABEL_VALUES
+from interview_platform.domain.baseline_recommendation import build_baseline_recommendation
 from interview_platform.domain.hiring import new_id
 
 
 class DeterministicEvidenceEvaluator:
     evaluator_id = "deterministic-evidence-v1"
     model_id = "deterministic-stub"
+    prompt_id = "deterministic-evidence-evaluator-v1"
 
     def evaluate(self, context_bundle: dict) -> list[dict]:
         questions_by_position = {
@@ -78,3 +80,8 @@ class DeterministicEvidenceEvaluator:
                 }
             )
         return results
+
+    def recommend(self, context_bundle: dict, results: list[dict]) -> dict:
+        """Build the POC's non-binding 1/0/-1 recommendation."""
+
+        return build_baseline_recommendation(context_bundle, results)

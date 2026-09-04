@@ -6,6 +6,7 @@ from collections import Counter
 from enum import StrEnum
 from typing import Any
 
+from .baseline_recommendation import validate_baseline_recommendation
 from .errors import ValidationError
 from .hiring import canonical_hash, new_id, utc_now
 
@@ -99,14 +100,17 @@ def complete_assessment_run(
     idempotency_key: str,
     evaluator_id: str,
     model_id: str,
+    prompt_id: str,
     input_hash: str,
     raw_results: list[dict[str, Any]],
+    baseline_recommendation: dict[str, Any],
     answers: dict[str, str],
     created_at: str,
     integrity_signals: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     for item in raw_results:
         validate_result_evidence(item, answers=answers)
+    validate_baseline_recommendation(baseline_recommendation, answers=answers)
     dimensions = ["corporate_competency", "vacancy_fit"]
     summaries = [
         aggregate_dimension(raw_results, dimension)
@@ -116,6 +120,7 @@ def complete_assessment_run(
     output = {
         "criterion_assessments": raw_results,
         "dimension_summaries": summaries,
+        "baseline_recommendation": baseline_recommendation,
     }
     return {
         "id": run_id,
@@ -127,7 +132,7 @@ def complete_assessment_run(
         "status": "completed",
         "evaluator_id": evaluator_id,
         "model_id": model_id,
-        "prompt_hash": canonical_hash("deterministic-evidence-evaluator-v1"),
+        "prompt_hash": canonical_hash(prompt_id),
         "input_hash": input_hash,
         "output_hash": canonical_hash(output),
         "compatibility_key": canonical_hash(
@@ -166,6 +171,7 @@ def failed_assessment_run(
         "compatibility_key": canonical_hash({"context_snapshot_id": context_snapshot_id}),
         "criterion_assessments": [],
         "dimension_summaries": [],
+        "baseline_recommendation": None,
         "integrity_signals": [],
         "failure_code": failure_code,
         "created_at": created_at,

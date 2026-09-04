@@ -7,6 +7,7 @@ from typing import Protocol
 class PrivateObjectStorage(Protocol):
     def create_upload_url(self, key: str, content_type: str) -> str: ...
     def object_exists(self, key: str) -> bool: ...
+    def object_size(self, key: str) -> int: ...
     def download_to(self, key: str, destination: Path) -> None: ...
 
 
@@ -28,6 +29,10 @@ class S3ObjectStorage:
         except Exception:
             return False
         return True
+
+    def object_size(self, key: str) -> int:
+        response = self._client.head_object(Bucket=self._bucket, Key=key)
+        return int(response["ContentLength"])
 
     def download_to(self, key: str, destination: Path) -> None:
         self._client.download_file(self._bucket, key, str(destination))

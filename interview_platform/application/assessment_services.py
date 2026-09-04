@@ -44,7 +44,13 @@ class AssessmentService:
         if interview.status not in {InterviewStatus.SUBMITTED, InterviewStatus.REVIEWED}:
             raise ConflictError("assessment requires a submitted interview")
         bundle = self.context_assembler.build(snapshot, interview)
-        results = self.evaluator.evaluate(bundle)
+        if hasattr(self.evaluator, "evaluate_interview"):
+            evaluation = self.evaluator.evaluate_interview(bundle)
+            results = evaluation["criterion_assessments"]
+            baseline_recommendation = evaluation["baseline_recommendation"]
+        else:
+            results = self.evaluator.evaluate(bundle)
+            baseline_recommendation = self.evaluator.recommend(bundle, results)
         answers = {question.id: interview.answers[question.id].content for question in interview.questions}
         previous = self.repository.list_assessment_runs(interview_id)
         created_at = utc_now()
@@ -58,8 +64,10 @@ class AssessmentService:
             idempotency_key=idempotency_key,
             evaluator_id=self.evaluator.evaluator_id,
             model_id=self.evaluator.model_id,
+            prompt_id=self.evaluator.prompt_id,
             input_hash=bundle["input_hash"],
             raw_results=results,
+            baseline_recommendation=baseline_recommendation,
             answers=answers,
             created_at=created_at,
             integrity_signals=integrity_signals,

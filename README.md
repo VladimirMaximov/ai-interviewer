@@ -117,6 +117,15 @@ Napoleon IT, а `vacancy_fit` — только из утверждённых м�
 Полнота evidence хранится третьим показателем и не превращается в оценку. Ранжирование работает
 лишь для assessment runs одного snapshot, не меняет статус кандидата и не создаёт отказ.
 
+Каждый завершённый assessment run также содержит `baseline_recommendation`:
+`1` рекомендует следующий этап, `0` не рекомендует его, `-1` отправляет результат на ручную
+проверку. Комментарий и каждая причина связаны с точным вопросом и фрагментом ответа. Прямое
+«Я ничего не хочу» даёт `0`; неполный или пограничный ответ даёт `-1`, а не скрытый отказ.
+По умолчанию компетенции и итог оценивает GPT через Responses API и Structured Outputs. Локальный
+код проверяет каждую цитату и детерминированно считает только агрегаты. Результат не оценивает
+внешность, голос, акцент или эмоции и всегда возвращает `is_hiring_decision: false` — кадровое
+решение по-прежнему сохраняет только человек.
+
 Менеджер может добавить короткую фразу, вставленный текст, UTF-8 `.txt`/`.md` либо уже готовую
 расшифровку речи. Материал сохраняется как provenance-bearing data, превращается в редактируемые
 критерии и начинает влиять на интервью только после явного утверждения профиля. Snapshot фиксирует
@@ -128,6 +137,8 @@ Napoleon IT, а `vacancy_fit` — только из утверждённых м�
 ```bash
 export INTERVIEW_MANAGER_KEY='local-manager-secret'
 export INTERVIEW_RECRUITER_KEY='local-recruiter-secret'
+export OPENAI_API_KEY='your-project-api-key'
+export INTERVIEW_ASSESSMENT_PROVIDER='openai'
 python -m interview_platform \
   --db-path /tmp/interview-platform-vacancy.sqlite3 \
   --seed-vacancy-assessment-demo
@@ -138,13 +149,17 @@ context. Создание обычных приглашений и управл�
 менеджер рассматривает только назначенных ему рекрутёром кандидатов. В vacancy-aware timeline
 кандидат видит только опубликованные область оценки, сильные стороны, зоны роста, пробелы evidence,
 ограничения и следующие шаги; внутренние scores, ранги, заметки и решения не сериализуются.
+В режиме `--assessment-provider deterministic` три synthetic-кандидата в seed демонстрируют все
+исходы baseline в порядке `1`, `0`, `-1`.
 
 JSON API описан в
 [`specs/002-vacancy-fit-assessment/contracts/openapi.yaml`](specs/002-vacancy-fit-assessment/contracts/openapi.yaml),
 а пошаговая проверка — в
 [`specs/002-vacancy-fit-assessment/quickstart.md`](specs/002-vacancy-fit-assessment/quickstart.md).
-Текущий evaluator является детерминированным text-only stub: он нужен для проверки архитектуры,
-не валидирован как модель качества найма и не должен использоваться для реальных кандидатов.
+Настройка ключа, LLM-модели, запуск и диагностика описаны в
+[`docs/openai-assessment-setup.md`](docs/openai-assessment-setup.md). Детерминированный text-only
+stub оставлен только как явный offline/test provider. Ни LLM, ни stub пока не откалиброваны как
+модель качества найма и не должны самостоятельно принимать решение по реальным кандидатам.
 
 ## Локальная проверка
 

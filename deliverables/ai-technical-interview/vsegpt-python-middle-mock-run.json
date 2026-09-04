@@ -1,0 +1,1997 @@
+{
+  "status": "failed",
+  "data_classification": "synthetic",
+  "started_at": "2026-09-04T17:55:18.190030+00:00",
+  "completed_at": "2026-09-04T17:58:39.381522+00:00",
+  "provider": {
+    "base_url": "https://api.vsegpt.ru/v1",
+    "api_mode": "chat_completions",
+    "model": "openai/gpt-4o-mini",
+    "api_key_present": true
+  },
+  "inputs": {
+    "vacancy": "Middle + Python Developer\nУровень должности: Middle\nТип занятости: Полная занятость\nЗарплата: Не указана\nОпыт работы: от 3 лет коммерческой разработки\nРегионы показа вакансии: Санкт-Петербург/ Челябинск\n\nОбязанности:\n● Разработка и поддержка высоконагруженных микросервисов;\n● Интеграция с Kafka для обработки потоков данных;\n● Проектирование Event Sourcing и CQRS паттернов;\n● Разработка API для межсервисного взаимодействия;\n● Настройка мониторинга и алертинга сервисов;\n● Участие в Code review.\n\nТребования:\n● Опыт работы с Python от 5 лет;\n● Django/FastAPI - опыт разработки REST API;\n● Микросервисная архитектура - опыт проектирования и поддержки;\n● Apache Kafka - продакшн опыт работы с producers/consumers;\n● PostgreSQL - проектирование схем, оптимизация запросов;\n● ETL процессы - Extract, Transform, Load данных;\n● Docker/Kubernetes - контейнеризация и оркестрация;\n● Базы данных: PostgreSQL, ClickHouse;\n● Event-driven архитектура - паттерны работы с событиями;\n● API Gateway - опыт интеграции через шлюзы;\n● Мониторинг: Prometheus, Grafana или аналоги;\n● Git, CI/CD - DevOps практики.\n\nБудет плюсом:\n● Знание gRPC для межсервисного взаимодействия;\n● Опыт с ELK Stack (Elasticsearch, Logstash, Kibana);\n● Redis Cluster для высокодоступного кэширования;\n● Знание Domain-Driven Design (DDD);\n● Опыт performance tuning Python приложений.\n\nУсловия:\n● Удаленная работа, гибкое начало и конец рабочего дня при синхронизации с командой.\n● Индивидуальный план развития с возможностью освоения новых технологий.\n● Насыщенная корпоративная жизнь.\n● Оплата профильных конференций и профессиональной литературы.\n● Доступ к курсам GIGASCHOOL.\n",
+    "resume": "СИНТЕТИЧЕСКОЕ РЕЗЮМЕ — данные не принадлежат реальному человеку.\n\nПозиция 1: BetaSoft, Python-разработчик, июнь 2018 — август 2021.\nПроект: REST-платформа обработки заказов.\nОбязанности: разработка Django REST API, проектирование схем PostgreSQL, оптимизация SQL,\nконтейнеризация в Docker, участие в code review и настройке GitLab CI/CD.\nДостижение: сократил p95 ответа API с 900 до 320 мс после профилирования Python-кода и SQL.\n\nПозиция 2: StreamWorks, Middle Python Developer, сентябрь 2021 — настоящее время.\nПроект: высоконагруженная событийная платформа, 12 микросервисов и до 18 000 событий в секунду.\nОбязанности: разработка FastAPI-микросервисов; Kafka producers и consumers; внедрение transactional\noutbox, идемпотентности, Event Sourcing и CQRS в сервисе статусов; ETL из PostgreSQL в ClickHouse;\nдеплой в Kubernetes; мониторинг Prometheus и Grafana; алерты и разбор инцидентов; code review.\nДостижение: снизил долю повторно обработанных событий с 1,8% до 0,03%, добавив idempotency key,\nretry с backoff и dead-letter topic. Настроил gRPC между двумя внутренними сервисами и Redis Cluster\nдля кэша справочников. Регулярно писал ADR и согласовывал изменения контрактов с соседними командами.\n",
+    "alternative_vacancy": "Middle Data Platform Python Developer.\nТребования: Middle, Python, FastAPI, Kafka, ETL, PostgreSQL, ClickHouse, Docker, Kubernetes,\nPrometheus, Grafana. Задачи: потоковая обработка данных, сервисы загрузки данных и REST API.\n",
+    "answers": [
+      {
+        "response_id": "9cb04a2c-27c2-48c2-905f-363c0bdf3fcc",
+        "question_id": "0efc907d-b50b-55af-9aa8-f674a490225e",
+        "question": "Расскажите о сложной технической задаче, которую вы решили лично: подход, компромиссы и результат.",
+        "answer": "Я лично проектировал обработчик статусов на FastAPI для потока до 18 000 событий в секунду. Сначала замерил p95 и lag consumer group, затем сравнил прямую запись и transactional outbox. Выбрал outbox с PostgreSQL и Kafka: producer использовал idempotency key, consumer фиксировал обработанные ключи, retry выполнялся с exponential backoff, ошибки уходили в dead-letter topic. Схему события версионировали, миграцию провели без остановки. После нагрузочного теста доля повторной обработки снизилась с 1,8% до 0,03%, p95 составил 210 мс. Решение оформил в ADR, обсудил на code review и добавил дашборд Grafana с алертами на lag и DLQ."
+      },
+      {
+        "response_id": "d6b2c743-8b46-4290-ae13-64a8ac153322",
+        "question_id": "238a1926-1614-5c5a-8262-f3fa771dd2da",
+        "question": "Опишите рабочее разногласие в команде и как вы помогли прийти к решению.",
+        "answer": "На проекте команда спорила, вводить ли Event Sourcing во всех сервисах. Я предложил не спорить на уровне предпочтений: собрал требования, подготовил ADR и два прототипа. Вместе с аналитиком, SRE и разработчиками сравнили сложность восстановления, latency и стоимость поддержки. Решили применить Event Sourcing и CQRS только в сервисе истории статусов, а в остальных оставить transactional outbox. Я учёл замечания коллег, обновил контракты и провёл совместное code review. Команда приняла решение, а релиз прошёл без конфликтов между потребителями Kafka."
+      },
+      {
+        "response_id": "31b5b5c1-edb0-4fbc-920f-afc62aab63c4",
+        "question_id": "e50251bb-32dd-52bc-944d-056990c697c9",
+        "question": "Приведите пример, когда вы взяли ответственность за результат за пределами своей непосредственной задачи.",
+        "answer": "После ночного инцидента с ростом Kafka lag я взял координацию, хотя дежурил другой сервис. Проверил метрики Prometheus, нашёл медленный запрос PostgreSQL в consumer, добавил индекс и временно уменьшил batch. Сообщал команде статус каждые 20 минут и после восстановления создал postmortem без поиска виноватых. Затем добавил нагрузочный тест в CI, алерт на прогнозируемый lag и runbook. Время обнаружения похожей проблемы на следующей проверке сократилось с 25 до 4 минут."
+      },
+      {
+        "response_id": "c6e03d5d-d3b6-4d77-ab01-f7e44a1fed8c",
+        "question_id": "89adc49a-3742-5c5b-bf08-2f0e57f30250",
+        "question": "Какие задачи вакансии «Middle + Python Developer» наиболее близки вашему опыту и почему?",
+        "answer": "Ближе всего мне разработка высоконагруженных FastAPI-микросервисов, Kafka producers/consumers, PostgreSQL и ClickHouse ETL. С Python коммерчески работаю с июня 2018 года. В Kubernetes настраивал deployment, readiness probes и limits, в Prometheus и Grafana — метрики, дашборды и алерты. Использовал API Gateway для маршрутизации REST API и gRPC для двух внутренних сервисов. Event Sourcing и CQRS применял адресно, потому что для обычного CRUD их сложность не окупается. Я готов отвечать за разработку, эксплуатацию и code review таких сервисов."
+      }
+    ]
+  },
+  "events": [
+    {
+      "stage": "resume_relevance",
+      "attempt": 1,
+      "status": "failed",
+      "elapsed_seconds": 17.672,
+      "errors": [
+        "MultiAgentOutputError: resume claim excerpt is not present in pinned resume"
+      ]
+    },
+    {
+      "stage": "resume_relevance",
+      "attempt": 2,
+      "status": "succeeded",
+      "elapsed_seconds": 16.209
+    },
+    {
+      "stage": "question_plan",
+      "attempt": 1,
+      "status": "succeeded",
+      "elapsed_seconds": 103.833
+    },
+    {
+      "stage": "answer_assessment_1",
+      "attempt": 1,
+      "status": "failed",
+      "elapsed_seconds": 4.509,
+      "errors": [
+        "MultiAgentOutputError: answer evidence excerpt is not present in stored transcript"
+      ]
+    },
+    {
+      "stage": "answer_assessment_1",
+      "attempt": 2,
+      "status": "succeeded",
+      "elapsed_seconds": 5.227
+    },
+    {
+      "stage": "answer_assessment_2",
+      "attempt": 1,
+      "status": "succeeded",
+      "elapsed_seconds": 4.411
+    },
+    {
+      "stage": "answer_assessment_3",
+      "attempt": 1,
+      "status": "succeeded",
+      "elapsed_seconds": 6.373
+    },
+    {
+      "stage": "answer_assessment_4",
+      "attempt": 1,
+      "status": "failed",
+      "elapsed_seconds": 3.01,
+      "errors": [
+        "MultiAgentOutputError: answer assessment must return every applicable criterion exactly once"
+      ]
+    },
+    {
+      "stage": "answer_assessment_4",
+      "attempt": 2,
+      "status": "succeeded",
+      "elapsed_seconds": 4.723
+    },
+    {
+      "stage": "finalize_integrity_and_alternatives",
+      "attempt": 1,
+      "status": "succeeded",
+      "elapsed_seconds": 8.338
+    },
+    {
+      "stage": "candidate_feedback",
+      "attempt": 1,
+      "status": "failed",
+      "elapsed_seconds": 11.268,
+      "errors": [
+        "MultiAgentOutputError: candidate feedback references unknown evidence"
+      ]
+    },
+    {
+      "stage": "candidate_feedback",
+      "attempt": 2,
+      "status": "failed",
+      "elapsed_seconds": 8.048,
+      "errors": [
+        "MultiAgentOutputError: candidate feedback references unknown evidence"
+      ]
+    },
+    {
+      "stage": "candidate_feedback",
+      "attempt": 3,
+      "status": "failed",
+      "elapsed_seconds": 7.511,
+      "errors": [
+        "MultiAgentOutputError: candidate experience status conflicts with its evidence label"
+      ]
+    }
+  ],
+  "agent_runs": [
+    {
+      "purpose": "resume_relevance",
+      "attempt": 1,
+      "status": "invalid_output",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "resume-relevance-v1",
+      "failure_code": "invalid_output",
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "resume_relevance",
+        "positions": [
+          {
+            "position_id": "1",
+            "employer": "BetaSoft",
+            "role": "Python-разработчик",
+            "period": "июнь 2018 — август 2021",
+            "project": "REST-платформа обработки заказов",
+            "responsibilities": [
+              "разработка Django REST API",
+              "проектирование схем PostgreSQL",
+              "оптимизация SQL",
+              "контейнеризация в Docker",
+              "участие в code review и настройке GitLab CI/CD"
+            ],
+            "skills": [
+              "Django",
+              "PostgreSQL",
+              "SQL",
+              "Docker",
+              "GitLab CI/CD"
+            ],
+            "achievements": [
+              "сократил p95 ответа API с 900 до 320 мс после профилирования Python-кода и SQL"
+            ],
+            "source_excerpt": "Позиция 1: BetaSoft, Python-разработчик, июнь 2018 — август 2021.\nПроект: REST-платформа обработки заказов.\nОбязанности: разработка Django REST API, проектирование схем PostgreSQL, оптимизация SQL,\nконтейнеризация в Docker, участие в code review и настройке GitLab CI/CD.\nДостижение: сократил p95 ответа API с 900 до 320 мс после профилирования Python-кода и SQL."
+          },
+          {
+            "position_id": "2",
+            "employer": "StreamWorks",
+            "role": "Middle Python Developer",
+            "period": "сентябрь 2021 — настоящее время",
+            "project": "высоконагруженная событийная платформа",
+            "responsibilities": [
+              "разработка FastAPI-микросервисов",
+              "Kafka producers и consumers",
+              "внедрение transactional outbox",
+              "идемпотентности",
+              "Event Sourcing и CQRS в сервисе статусов",
+              "ETL из PostgreSQL в ClickHouse",
+              "деплой в Kubernetes",
+              "мониторинг Prometheus и Grafana",
+              "алерты и разбор инцидентов",
+              "code review"
+            ],
+            "skills": [
+              "FastAPI",
+              "Kafka",
+              "transactional outbox",
+              "идемпотентность",
+              "Event Sourcing",
+              "CQRS",
+              "PostgreSQL",
+              "ClickHouse",
+              "Kubernetes",
+              "Prometheus",
+              "Grafana"
+            ],
+            "achievements": [
+              "снизил долю повторно обработанных событий с 1,8% до 0,03%, добавив idempotency key, retry с backoff и dead-letter topic",
+              "Настроил gRPC между двумя внутренними сервисами и Redis Cluster для кэша справочников",
+              "Регулярно писал ADR и согласовывал изменения контрактов с соседними командами."
+            ],
+            "source_excerpt": "Позиция 2: StreamWorks, Middle Python Developer, сентябрь 2021 — настоящее время.\nПроект: высоконагруженная событийная платформа, 12 микросервисов и до 18 000 событий в секунду.\nОбязанности: разработка FastAPI-микросервисов; Kafka producers и consumers; внедрение transactional\noutbox, идемпотентности, Event Sourcing и CQRS в сервисе статусов; ETL из PostgreSQL в ClickHouse;\nдеплой в Kubernetes; мониторинг Prometheus и Grafana; алерты и разбор инцидентов; code review.\nДостижение: снизил долю повторно обработанных событий с 1,8% до 0,03%, добавив idempotency key,\nretry с backoff и dead-letter topic. Настроил gRPC между двумя внутренними сервисами и Redis Cluster\nдля кэша справочников. Регулярно писал ADR и согласовывал изменения контрактов с соседними командами."
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "1",
+            "claim_type": "experience",
+            "subject": "Опыт работы с Python от 5 лет",
+            "source_excerpt": "Middle + Python Developer\nУровень должности: Middle\n...Опыт работы: от 3 лет коммерческой разработки",
+            "verification_status": "contradicted"
+          },
+          {
+            "claim_id": "2",
+            "claim_type": "experience",
+            "subject": "Опыт работы с Django/FastAPI",
+            "source_excerpt": "Django/FastAPI - опыт разработки REST API",
+            "verification_status": "supported"
+          },
+          {
+            "claim_id": "3",
+            "claim_type": "experience",
+            "subject": "Опыт проектирования и поддержки микросервисной архитектуры",
+            "source_excerpt": "микросервисная архитектура - опыт проектирования и поддержки",
+            "verification_status": "supported"
+          },
+          {
+            "claim_id": "4",
+            "claim_type": "experience",
+            "subject": "Продакшн опыт работы с Apache Kafka",
+            "source_excerpt": "Apache Kafka - продакшн опыт работы с producers/consumers;",
+            "verification_status": "supported"
+          },
+          {
+            "claim_id": "5",
+            "claim_type": "experience",
+            "subject": "Проектирование схем, оптимизация запросов в PostgreSQL",
+            "source_excerpt": "PostgreSQL - проектирование схем, оптимизация запросов;",
+            "verification_status": "supported"
+          },
+          {
+            "claim_id": "6",
+            "claim_type": "experience",
+            "subject": "Опыт работы с ETL процессами",
+            "source_excerpt": "ETL процессы - Extract, Transform, Load данных;",
+            "verification_status": "supported"
+          },
+          {
+            "claim_id": "7",
+            "claim_type": "experience",
+            "subject": "Опыт работы с Docker/Kubernetes",
+            "source_excerpt": "Docker/Kubernetes - контейнеризация и оркестрация;",
+            "verification_status": "supported"
+          },
+          {
+            "claim_id": "8",
+            "claim_type": "experience",
+            "subject": "Опыт работы с базами данных: PostgreSQL, ClickHouse",
+            "source_excerpt": "Базы данных: PostgreSQL, ClickHouse;",
+            "verification_status": "supported"
+          },
+          {
+            "claim_id": "9",
+            "claim_type": "experience",
+            "subject": "Опыт работы с мониторингом: Prometheus, Grafana или аналоги",
+            "source_excerpt": "Мониторинг: Prometheus, Grafana или аналоги;",
+            "verification_status": "supported"
+          },
+          {
+            "claim_id": "10",
+            "claim_type": "experience",
+            "subject": "Знание gRPC для межсервисного взаимодействия",
+            "source_excerpt": "Знание gRPC для межсервисного взаимодействия;",
+            "verification_status": "supported"
+          }
+        ],
+        "experience_matches": [
+          {
+            "experience_label": "Опыт работы с Django/FastAPI",
+            "source_excerpt": "Django/FastAPI - опыт разработки REST API;",
+            "requirement": "● Django/FastAPI - опыт разработки REST API;",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Соответствует опыту разработки REST API на Django и FastAPI в предыдущих проектах.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "2"
+            ]
+          },
+          {
+            "experience_label": "Опыт проектирования и поддержки микросервисной архитектуры",
+            "source_excerpt": "микросервисная архитектура - опыт проектирования и поддержки;",
+            "requirement": "● Микросервисная архитектура - опыт проектирования и поддержки;",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Наличие опыта проектирования и поддержки микросервисов в текущей роли.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "3"
+            ]
+          },
+          {
+            "experience_label": "Продакшн опыт работы с Apache Kafka",
+            "source_excerpt": "Apache Kafka - продакшн опыт работы с producers/consumers;",
+            "requirement": "● Apache Kafka - продакшн опыт работы с producers/consumers;",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Прямой опыт работы с Kafka в разработке микросервисов.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "4"
+            ]
+          },
+          {
+            "experience_label": "Проектирование схем, оптимизация запросов в PostgreSQL",
+            "source_excerpt": "PostgreSQL - проектирование схем, оптимизация запросов;",
+            "requirement": "● PostgreSQL - проектирование схем, оптимизация запросов;",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Указан опыт проектирования схем и оптимизации в PostgreSQL.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "5"
+            ]
+          },
+          {
+            "experience_label": "Опыт работы с ETL процессами",
+            "source_excerpt": "ETL процессы - Extract, Transform, Load данных;",
+            "requirement": "● ETL процессы - Extract, Transform, Load данных;",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Опыт реализации ETL процессов из PostgreSQL в ClickHouse.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "6"
+            ]
+          },
+          {
+            "experience_label": "Опыт работы с Docker/Kubernetes",
+            "source_excerpt": "Docker/Kubernetes - контейнеризация и оркестрация;",
+            "requirement": "● Docker/Kubernetes - контейнеризация и оркестрация;",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Отмечен опыт с контейнеризацией в Docker и оркестрацией в Kubernetes.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "7"
+            ]
+          },
+          {
+            "experience_label": "Опыт работы с базами данных: PostgreSQL, ClickHouse",
+            "source_excerpt": "Базы данных: PostgreSQL, ClickHouse;",
+            "requirement": "● Базы данных: PostgreSQL, ClickHouse;",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Подтвержденный опыт работы с указанными базами данных.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "8"
+            ]
+          },
+          {
+            "experience_label": "Опыт работы с мониторингом: Prometheus, Grafana или аналоги",
+            "source_excerpt": "Мониторинг: Prometheus, Grafana или аналоги;",
+            "requirement": "● Мониторинг: Prometheus, Grafana или аналоги;",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Опыт настройки мониторинга с использованием Prometheus и Grafana.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "9"
+            ]
+          },
+          {
+            "experience_label": "Знание gRPC для межсервисного взаимодействия",
+            "source_excerpt": "Знание gRPC для межсервисного взаимодействия;",
+            "requirement": "● Знание gRPC для межсервисного взаимодействия;",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Знания gRPC подтверждено в проекте с настройкой между сервисами.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "10"
+            ]
+          }
+        ],
+        "gaps": [
+          "Опыт работы с Python от 5 лет."
+        ]
+      },
+      "started_at": "2026-09-04T17:55:18.244310",
+      "completed_at": "2026-09-04T17:55:35.908626"
+    },
+    {
+      "purpose": "resume_relevance",
+      "attempt": 2,
+      "status": "succeeded",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "resume-relevance-v1",
+      "failure_code": null,
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "resume_relevance",
+        "positions": [
+          {
+            "position_id": "1",
+            "employer": "BetaSoft",
+            "role": "Python-разработчик",
+            "period": "июнь 2018 — август 2021.",
+            "project": "REST-платформа обработки заказов.",
+            "responsibilities": [
+              "разработка Django REST API",
+              "проектирование схем PostgreSQL",
+              "оптимизация SQL",
+              "контейнеризация в Docker",
+              "участие в code review и настройке GitLab CI/CD."
+            ],
+            "skills": [
+              "Python",
+              "Django",
+              "PostgreSQL",
+              "SQL",
+              "Docker",
+              "GitLab CI/CD"
+            ],
+            "achievements": [
+              "сократил p95 ответа API с 900 до 320 мс после профилирования Python-кода и SQL."
+            ],
+            "source_excerpt": "Позиция 1: BetaSoft, Python-разработчик, июнь 2018 — август 2021.\nПроект: REST-платформа обработки заказов.\nОбязанности: разработка Django REST API, проектирование схем PostgreSQL, оптимизация SQL,\nконтейнеризация в Docker, участие в code review и настройке GitLab CI/CD.\nДостижение: сократил p95 ответа API с 900 до 320 мс после профилирования Python-кода и SQL."
+          },
+          {
+            "position_id": "2",
+            "employer": "StreamWorks",
+            "role": "Middle Python Developer",
+            "period": "сентябрь 2021 — настоящее время.",
+            "project": "высоконагруженная событийная платформа, 12 микросервисов и до 18 000 событий в секунду.",
+            "responsibilities": [
+              "разработка FastAPI-микросервисов",
+              "Kafka producers и consumers",
+              "внедрение transactional outbox",
+              "идемпотентности",
+              "Event Sourcing и CQRS в сервисе статусов",
+              "ETL из PostgreSQL в ClickHouse",
+              "деплой в Kubernetes",
+              "мониторинг Prometheus и Grafana",
+              "алерты и разбор инцидентов",
+              "code review."
+            ],
+            "skills": [
+              "Python",
+              "FastAPI",
+              "Kafka",
+              "PostgreSQL",
+              "ClickHouse",
+              "Kubernetes",
+              "Prometheus",
+              "Grafana"
+            ],
+            "achievements": [
+              "снизил долю повторно обработанных событий с 1,8% до 0,03%, добавив idempotency key, retry с backoff и dead-letter topic.",
+              "Настроил gRPC между двумя внутренними сервисами и Redis Cluster для кэша справочников.",
+              "Регулярно писал ADR и согласовывал изменения контрактов с соседними командами."
+            ],
+            "source_excerpt": "Позиция 2: StreamWorks, Middle Python Developer, сентябрь 2021 — настоящее время.\nПроект: высоконагруженная событийная платформа, 12 микросервисов и до 18 000 событий в секунду.\nОбязанности: разработка FastAPI-микросервисов; Kafka producers и consumers; внедрение transactional\noutbox, идемпотентности, Event Sourcing и CQRS в сервисе статусов; ETL из PostgreSQL в ClickHouse;\nдеплой в Kubernetes; мониторинг Prometheus и Grafana; алерты и разбор инцидентов; code review.\nДостижение: снизил долю повторно обработанных событий с 1,8% до 0,03%, добавив idempotency key,\nretry с backoff и dead-letter topic. Настроил gRPC между двумя внутренними сервисами и Redis Cluster\nдля кэша справочников. Регулярно писал ADR и согласовывал изменения контрактов с соседними командами."
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "1",
+            "claim_type": "experience",
+            "subject": "Python-разработчик",
+            "source_excerpt": "Python-разработчик, июнь 2018 — август 2021.",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "2",
+            "claim_type": "experience",
+            "subject": "Middle Python Developer",
+            "source_excerpt": "Middle Python Developer, сентябрь 2021 — настоящее время.",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "3",
+            "claim_type": "skill",
+            "subject": "разработка Django REST API",
+            "source_excerpt": "разработка Django REST API",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "4",
+            "claim_type": "skill",
+            "subject": "разработка FastAPI-микросервисов",
+            "source_excerpt": "разработка FastAPI-микросервисов;",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "5",
+            "claim_type": "skill",
+            "subject": "Kafka producers и consumers",
+            "source_excerpt": "Kafka producers и consumers;",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "6",
+            "claim_type": "skill",
+            "subject": "оптимизация SQL",
+            "source_excerpt": "оптимизация SQL,",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "7",
+            "claim_type": "skill",
+            "subject": "деплой в Kubernetes",
+            "source_excerpt": "деплой в Kubernetes;",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "8",
+            "claim_type": "skill",
+            "subject": "мониторинг Prometheus и Grafana",
+            "source_excerpt": "мониторинг Prometheus и Grafana;",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "9",
+            "claim_type": "skill",
+            "subject": "контейнеризация в Docker",
+            "source_excerpt": "контейнеризация в Docker,",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "10",
+            "claim_type": "skill",
+            "subject": "ETL из PostgreSQL в ClickHouse",
+            "source_excerpt": "ETL из PostgreSQL в ClickHouse;",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "11",
+            "claim_type": "achievement",
+            "subject": "сократил p95 ответа API с 900 до 320 мс",
+            "source_excerpt": "сократил p95 ответа API с 900 до 320 мс после профилирования Python-кода и SQL.",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "12",
+            "claim_type": "achievement",
+            "subject": "снизил долю повторно обработанных событий",
+            "source_excerpt": "снизил долю повторно обработанных событий с 1,8% до 0,03%",
+            "verification_status": "unverified"
+          },
+          {
+            "claim_id": "13",
+            "claim_type": "achievement",
+            "subject": "настроил gRPC между двумя внутренними сервисами",
+            "source_excerpt": "Настроил gRPC между двумя внутренними сервисами и Redis Cluster\nдля кэша справочников.",
+            "verification_status": "unverified"
+          }
+        ],
+        "experience_matches": [
+          {
+            "experience_label": "участие в code review",
+            "source_excerpt": "участие в code review и настройке GitLab CI/CD.",
+            "requirement": "● Участие в Code review.",
+            "requirement_origin": "vacancy",
+            "relevance": 1.0,
+            "confidence": 0.9,
+            "explanation": "Совпадает с требованием об участии в code review.",
+            "position_ids": [
+              "1",
+              "2"
+            ],
+            "claim_ids": []
+          },
+          {
+            "experience_label": "Kafka producers и consumers",
+            "source_excerpt": "Kafka producers и consumers;",
+            "requirement": "● Apache Kafka - продакшн опыт работы с producers/consumers;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.9,
+            "confidence": 0.9,
+            "explanation": "Подтвержденный опыт работы с Kafka соответствует требованиям продакшн уровня.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "5"
+            ]
+          },
+          {
+            "experience_label": "ETL из PostgreSQL в ClickHouse",
+            "source_excerpt": "ETL из PostgreSQL в ClickHouse;",
+            "requirement": "● ETL процессы - Extract, Transform, Load данных;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.9,
+            "confidence": 0.9,
+            "explanation": "Прямое совпадение с опытами ETL, что удовлетворяет требованию к этому процессу.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "10"
+            ]
+          },
+          {
+            "experience_label": "настроил gRPC между двумя внутренними сервисами",
+            "source_excerpt": "Настроил gRPC между двумя внутренними сервисами и Redis Cluster\nдля кэша справочников.",
+            "requirement": "● Знание gRPC для межсервисного взаимодействия;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.9,
+            "confidence": 0.9,
+            "explanation": "Опыт с gRPC соответствует дополнительным требованиям.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "13"
+            ]
+          },
+          {
+            "experience_label": "разработка Django REST API",
+            "source_excerpt": "разработка Django REST API",
+            "requirement": "● Django/FastAPI - опыт разработки REST API;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.8,
+            "confidence": 0.9,
+            "explanation": "Прямое соответствие с требованием опыта разработки REST API на Django.",
+            "position_ids": [
+              "1"
+            ],
+            "claim_ids": [
+              "3"
+            ]
+          },
+          {
+            "experience_label": "разработка FastAPI-микросервисов",
+            "source_excerpt": "разработка FastAPI-микросервисов;",
+            "requirement": "● Django/FastAPI - опыт разработки REST API;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.8,
+            "confidence": 0.9,
+            "explanation": "Прямое соответствие с требованием опыта разработки REST API на FastAPI.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "4"
+            ]
+          },
+          {
+            "experience_label": "оптимизация SQL",
+            "source_excerpt": "оптимизация SQL,",
+            "requirement": "● PostgreSQL - проектирование схем, оптимизация запросов;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.8,
+            "confidence": 0.8,
+            "explanation": "Ссылка на оптимизацию запросов напрямую соответствует требованиям по PostgreSQL.",
+            "position_ids": [
+              "1",
+              "2"
+            ],
+            "claim_ids": [
+              "6"
+            ]
+          },
+          {
+            "experience_label": "деплой в Kubernetes",
+            "source_excerpt": "деплой в Kubernetes;",
+            "requirement": "● Docker/Kubernetes - контейнеризация и оркестрация;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.8,
+            "confidence": 0.8,
+            "explanation": "Опыт в деплое в Kubernetes соответствует требованиям по контейнеризации и оркестрации.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "7"
+            ]
+          },
+          {
+            "experience_label": "мониторинг Prometheus и Grafana",
+            "source_excerpt": "мониторинг Prometheus и Grafana;",
+            "requirement": "● Мониторинг: Prometheus, Grafana или аналоги;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.8,
+            "confidence": 0.8,
+            "explanation": "Упоминание мониторинга с данными инструментами подходит под требования.",
+            "position_ids": [
+              "2"
+            ],
+            "claim_ids": [
+              "8"
+            ]
+          },
+          {
+            "experience_label": "контейнеризация в Docker",
+            "source_excerpt": "контейнеризация в Docker,",
+            "requirement": "● Docker/Kubernetes - контейнеризация и оркестрация;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.8,
+            "confidence": 0.8,
+            "explanation": "Опыт контейнеризации в Docker соответствует требованиям.",
+            "position_ids": [
+              "1"
+            ],
+            "claim_ids": [
+              "9"
+            ]
+          },
+          {
+            "experience_label": "Python-разработчик",
+            "source_excerpt": "Python-разработчик, июнь 2018 — август 2021.",
+            "requirement": "● Опыт работы с Python от 5 лет;",
+            "requirement_origin": "vacancy",
+            "relevance": 0.5,
+            "confidence": 0.7,
+            "explanation": "Не соответствует требования, так как есть только 3 года опыта работы с Python.",
+            "position_ids": [
+              "1"
+            ],
+            "claim_ids": [
+              "1"
+            ]
+          }
+        ],
+        "gaps": [
+          "Общий опыт работы с Python менее 5 лет, требуется от 5 лет."
+        ]
+      },
+      "started_at": "2026-09-04T17:55:35.914410",
+      "completed_at": "2026-09-04T17:55:52.117749"
+    },
+    {
+      "purpose": "question_plan",
+      "attempt": 1,
+      "status": "succeeded",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "question-plan-v1",
+      "failure_code": null,
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "question_plan",
+        "questions": [
+          {
+            "question_id": "0efc907d-b50b-55af-9aa8-f674a490225e",
+            "prompt": "Расскажите о сложной технической задаче, которую вы решили лично: подход, компромиссы и результат.",
+            "kind": "baseline",
+            "criteria": [
+              {
+                "criterion_id": "technical_depth",
+                "title": "Техническая глубина и применение знаний",
+                "dimension": "technical",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "collaboration",
+                "title": "Работа в команде и коммуникация",
+                "dimension": "soft_skills",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "ownership",
+                "title": "Ответственность за результат",
+                "dimension": "corporate_competencies",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "primary_vacancy_fit",
+                "title": "Соответствие задачам вакансии Middle + Python Developer",
+                "dimension": "vacancy_fit",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              }
+            ],
+            "source_claim_ids": [],
+            "source_manager_field_keys": [],
+            "selection_reason": "Обязательный сопоставимый вопрос утверждённой версии; каждый блок оценивается независимо и без evidence получает null."
+          },
+          {
+            "question_id": "238a1926-1614-5c5a-8262-f3fa771dd2da",
+            "prompt": "Опишите рабочее разногласие в команде и как вы помогли прийти к решению.",
+            "kind": "baseline",
+            "criteria": [
+              {
+                "criterion_id": "technical_depth",
+                "title": "Техническая глубина и применение знаний",
+                "dimension": "technical",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "collaboration",
+                "title": "Работа в команде и коммуникация",
+                "dimension": "soft_skills",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "ownership",
+                "title": "Ответственность за результат",
+                "dimension": "corporate_competencies",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "primary_vacancy_fit",
+                "title": "Соответствие задачам вакансии Middle + Python Developer",
+                "dimension": "vacancy_fit",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              }
+            ],
+            "source_claim_ids": [],
+            "source_manager_field_keys": [],
+            "selection_reason": "Обязательный сопоставимый вопрос утверждённой версии; каждый блок оценивается независимо и без evidence получает null."
+          },
+          {
+            "question_id": "e50251bb-32dd-52bc-944d-056990c697c9",
+            "prompt": "Приведите пример, когда вы взяли ответственность за результат за пределами своей непосредственной задачи.",
+            "kind": "baseline",
+            "criteria": [
+              {
+                "criterion_id": "technical_depth",
+                "title": "Техническая глубина и применение знаний",
+                "dimension": "technical",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "collaboration",
+                "title": "Работа в команде и коммуникация",
+                "dimension": "soft_skills",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "ownership",
+                "title": "Ответственность за результат",
+                "dimension": "corporate_competencies",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "primary_vacancy_fit",
+                "title": "Соответствие задачам вакансии Middle + Python Developer",
+                "dimension": "vacancy_fit",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              }
+            ],
+            "source_claim_ids": [],
+            "source_manager_field_keys": [],
+            "selection_reason": "Обязательный сопоставимый вопрос утверждённой версии; каждый блок оценивается независимо и без evidence получает null."
+          },
+          {
+            "question_id": "89adc49a-3742-5c5b-bf08-2f0e57f30250",
+            "prompt": "Какие задачи вакансии «Middle + Python Developer» наиболее близки вашему опыту и почему?",
+            "kind": "baseline",
+            "criteria": [
+              {
+                "criterion_id": "technical_depth",
+                "title": "Техническая глубина и применение знаний",
+                "dimension": "technical",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "collaboration",
+                "title": "Работа в команде и коммуникация",
+                "dimension": "soft_skills",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "ownership",
+                "title": "Ответственность за результат",
+                "dimension": "corporate_competencies",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "primary_vacancy_fit",
+                "title": "Соответствие задачам вакансии Middle + Python Developer",
+                "dimension": "vacancy_fit",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              }
+            ],
+            "source_claim_ids": [],
+            "source_manager_field_keys": [],
+            "selection_reason": "Обязательный сопоставимый вопрос утверждённой версии; каждый блок оценивается независимо и без evidence получает null."
+          },
+          {
+            "question_id": "74517aa3-4ae9-5a2e-991e-cafc6c609f34",
+            "prompt": "Опишите ваш опыт разработки Django REST API.",
+            "kind": "personalized",
+            "criteria": [
+              {
+                "criterion_id": "technical_depth",
+                "title": "Техническая глубина и применение знаний",
+                "dimension": "technical",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "collaboration",
+                "title": "Работа в команде и коммуникация",
+                "dimension": "soft_skills",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "ownership",
+                "title": "Ответственность за результат",
+                "dimension": "corporate_competencies",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "primary_vacancy_fit",
+                "title": "Соответствие задачам вакансии Middle + Python Developer",
+                "dimension": "vacancy_fit",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              }
+            ],
+            "source_claim_ids": [
+              "3"
+            ],
+            "source_manager_field_keys": [],
+            "selection_reason": "Подтверждение навыка в области разработки Django REST API."
+          },
+          {
+            "question_id": "9dbda560-43ec-5687-a6dc-da8c57e2b698",
+            "prompt": "Как вы осуществляли ETL из PostgreSQL в ClickHouse?",
+            "kind": "personalized",
+            "criteria": [
+              {
+                "criterion_id": "technical_depth",
+                "title": "Техническая глубина и применение знаний",
+                "dimension": "technical",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "collaboration",
+                "title": "Работа в команде и коммуникация",
+                "dimension": "soft_skills",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "ownership",
+                "title": "Ответственность за результат",
+                "dimension": "corporate_competencies",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "primary_vacancy_fit",
+                "title": "Соответствие задачам вакансии Middle + Python Developer",
+                "dimension": "vacancy_fit",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              }
+            ],
+            "source_claim_ids": [
+              "10"
+            ],
+            "source_manager_field_keys": [],
+            "selection_reason": "Подтверждение опыта в ETL процессах."
+          },
+          {
+            "question_id": "829b2010-8fcd-528e-8d39-c5cb863093ae",
+            "prompt": "Как вы работали с Kafka в продакшне?",
+            "kind": "personalized",
+            "criteria": [
+              {
+                "criterion_id": "technical_depth",
+                "title": "Техническая глубина и применение знаний",
+                "dimension": "technical",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "collaboration",
+                "title": "Работа в команде и коммуникация",
+                "dimension": "soft_skills",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              },
+              {
+                "criterion_id": "ownership",
+                "title": "Ответственность за результат",
+                "dimension": "corporate_competencies",
+                "weight": 1.0,
+                "positive_signals": [],
+                "negative_signals": []
+              }
+            ],
+            "source_claim_ids": [
+              "5"
+            ],
+            "source_manager_field_keys": [],
+            "selection_reason": "Подтверждение навыка работы с Kafka."
+          }
+        ]
+      },
+      "started_at": "2026-09-04T17:55:52.127009",
+      "completed_at": "2026-09-04T17:57:35.943230"
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 1,
+      "status": "invalid_output",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "answer-assessment-v1",
+      "failure_code": "invalid_output",
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "answer_assessment",
+        "response_id": "9cb04a2c-27c2-48c2-905f-363c0bdf3fcc",
+        "question_id": "0efc907d-b50b-55af-9aa8-f674a490225e",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The candidate described a technical solution involving FastAPI, PostgreSQL, Kafka, and detailed the implementation process, including the use of idempotency keys and retry mechanisms which demonstrates strong technical depth.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Я лично проектировал обработчик статусов на FastAPI для потока до 18 000 событий в секунду."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Выбрал outbox с PostgreSQL и Kafka: producer использовал idempotency key."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "retry выполнялся с exponential backoff."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "После нагрузочного теста доля повторной обработки снизилась с 1,8% до 0,03%."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "p95 составил 210 мс."
+              }
+            ]
+          },
+          {
+            "criterion_id": "collaboration",
+            "dimension": "soft_skills",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The candidate indicated collaboration through code reviews and discussing the solution, showing effective communication and teamwork skills.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Решение оформил в ADR, обсудил на code review."
+              }
+            ]
+          },
+          {
+            "criterion_id": "ownership",
+            "dimension": "corporate_competencies",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The candidate demonstrated ownership by leading the design of the status handler and implementing effective solutions, showcasing responsibility for the outcome.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Я лично проектировал обработчик статусов на FastAPI."
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The technical solution provided is highly relevant to the role of Middle + Python Developer, illustrating direct applicability of skills to the job requirements.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Я лично проектировал обработчик статусов на FastAPI для потока до 18 000 событий в секунду."
+              }
+            ]
+          }
+        ]
+      },
+      "started_at": "2026-09-04T17:57:35.956582",
+      "completed_at": "2026-09-04T17:57:40.457983"
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 2,
+      "status": "succeeded",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "answer-assessment-v1",
+      "failure_code": null,
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "answer_assessment",
+        "response_id": "9cb04a2c-27c2-48c2-905f-363c0bdf3fcc",
+        "question_id": "0efc907d-b50b-55af-9aa8-f674a490225e",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The candidate provided a detailed example of designing a status handler that processes up to 18,000 events per second, showcasing a thorough application of technical knowledge including performance metrics and specific technologies used.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Я лично проектировал обработчик статусов на FastAPI для потока до 18 000 событий в секунду."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Сначала замерил p95 и lag consumer group, затем сравнил прямую запись и transactional outbox."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Выбрал outbox с PostgreSQL и Kafka: producer использовал idempotency key, consumer фиксировал обработанные ключи, retry выполнялся с exponential backoff, ошибки уходили в dead-letter topic."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "После нагрузочного теста доля повторной обработки снизилась с 1,8% до 0,03%, p95 составил 210 мс."
+              }
+            ]
+          },
+          {
+            "criterion_id": "collaboration",
+            "dimension": "soft_skills",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The description includes elements of collaboration such as discussing the architectural decision during a code review and implementing a monitoring dashboard, which indicates effective communication and teamwork.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Решение оформил в ADR, обсудил на code review и добавил дашборд Grafana с алертами на lag и DLQ."
+              }
+            ]
+          },
+          {
+            "criterion_id": "ownership",
+            "dimension": "corporate_competencies",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The candidate demonstrates ownership through the entire process of the project, from initial measurements to implementing monitoring solutions, showcasing a commitment to results.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Я лично проектировал обработчик статусов на FastAPI для потока до 18 000 событий в секунду."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Решение оформил в ADR, обсудил на code review и добавил дашборд Grafana с алертами на lag и DLQ."
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The response aligns well with the requirements of a Middle + Python Developer, demonstrating relevant experience with FastAPI, PostgreSQL, and Kafka, along with handling real-time data processing.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Я лично проектировал обработчик статусов на FastAPI для потока до 18 000 событий в секунду."
+              }
+            ]
+          }
+        ]
+      },
+      "started_at": "2026-09-04T17:57:40.466963",
+      "completed_at": "2026-09-04T17:57:45.688585"
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 1,
+      "status": "succeeded",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "answer-assessment-v1",
+      "failure_code": null,
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "answer_assessment",
+        "response_id": "d6b2c743-8b46-4290-ae13-64a8ac153322",
+        "question_id": "238a1926-1614-5c5a-8262-f3fa771dd2da",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "Answer demonstrates a clear understanding and application of Event Sourcing and CQRS, including exploring trade-offs and complexities involved in the decision.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Решили применить Event Sourcing и CQRS только в сервисе истории статусов,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Вместе с аналитиком, SRE и разработчиками сравнили сложность восстановления,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "latency и стоимость поддержки."
+              }
+            ]
+          },
+          {
+            "criterion_id": "collaboration",
+            "dimension": "soft_skills",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The response shows effective collaboration with multiple roles in the team and managing input from colleagues during the decision-making process.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Я учёл замечания коллег,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "обновил контракты и провёл совместное code review."
+              }
+            ]
+          },
+          {
+            "criterion_id": "ownership",
+            "dimension": "corporate_competencies",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The candidate takes ownership by gathering requirements, preparing an ADR, and ensuring successful implementation without conflicts during release.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Я предложил не спорить на уровне предпочтений: собрал требования,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Команда приняла решение,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "а релиз прошёл без конфликтов между потребителями Kafka."
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The response aligns well with the needs of a Middle + Python Developer role by addressing technical decisions, team collaboration, and ownership.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Решили применить Event Sourcing и CQRS только в сервисе истории статусов,"
+              }
+            ]
+          }
+        ]
+      },
+      "started_at": "2026-09-04T17:57:45.692895",
+      "completed_at": "2026-09-04T17:57:50.100712"
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 1,
+      "status": "succeeded",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "answer-assessment-v1",
+      "failure_code": null,
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "answer_assessment",
+        "response_id": "31b5b5c1-edb0-4fbc-920f-afc62aab63c4",
+        "question_id": "e50251bb-32dd-52bc-944d-056990c697c9",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The applicant provided a detailed account of troubleshooting Kafka lag, including specific actions taken such as checking Prometheus metrics and adding an index to PostgreSQL.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Проверил метрики Prometheus,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "нашёл медленный запрос PostgreSQL в consumer,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "добавил индекс и временно уменьшил batch."
+              }
+            ]
+          },
+          {
+            "criterion_id": "collaboration",
+            "dimension": "soft_skills",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The answer indicates effective communication within the team by stating that status updates were provided every 20 minutes during the incident recovery process.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Сообщал команде статус каждые 20 минут и после восстановления создал postmortem без поиска виноватых."
+              }
+            ]
+          },
+          {
+            "criterion_id": "ownership",
+            "dimension": "corporate_competencies",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The example demonstrates a clear sense of ownership by taking charge of coordination during the incident, implementing solutions, and following up with a postmortem.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "После ночного инцидента с ростом Kafka lag я взял координацию,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Затем добавил нагрузочный тест в CI, алерт на прогнозируемый lag и runbook."
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The experience related to resolving performance issues and enhancing system reliability aligns well with the role of Middle + Python Developer, indicating a good fit for the vacancy.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Время обнаружения похожей проблемы на следующей проверке сократилось с 25 до 4 минут."
+              }
+            ]
+          }
+        ]
+      },
+      "started_at": "2026-09-04T17:57:50.106260",
+      "completed_at": "2026-09-04T17:57:56.473211"
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 1,
+      "status": "invalid_output",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "answer-assessment-v1",
+      "failure_code": "invalid_output",
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "answer_assessment",
+        "response_id": "c6e03d5d-d3b6-4d77-ab01-f7e44a1fed8c",
+        "question_id": "89adc49a-3742-5c5b-bf08-2f0e57f30250",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The response demonstrates substantial technical knowledge and implementation experience with multiple technologies.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Ближе всего мне разработка высоконагруженных FastAPI-микросервисов,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Kafka producers/consumers,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "PostgreSQL и ClickHouse ETL."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "В Kubernetes настраивал deployment,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "в Prometheus и Grafana — метрики,"
+              }
+            ]
+          }
+        ]
+      },
+      "started_at": "2026-09-04T17:57:56.481418",
+      "completed_at": "2026-09-04T17:57:59.487372"
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 2,
+      "status": "succeeded",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "answer-assessment-v1",
+      "failure_code": null,
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "answer_assessment",
+        "response_id": "c6e03d5d-d3b6-4d77-ab01-f7e44a1fed8c",
+        "question_id": "89adc49a-3742-5c5b-bf08-2f0e57f30250",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The response provides specific examples of work with high-loaded FastAPI microservices, Kafka, PostgreSQL, ClickHouse ETL, Kubernetes deployment configurations, and API management, showcasing depth in technical knowledge and practical implementation.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Ближе всего мне разработка высоконагруженных FastAPI-микросервисов,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Kafka producers/consumers,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "PostgreSQL и ClickHouse ETL."
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "В Kubernetes настраивал deployment,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "Использовал API Gateway для маршрутизации REST API и gRPC для двух внутренних сервисов."
+              }
+            ]
+          },
+          {
+            "criterion_id": "collaboration",
+            "dimension": "soft_skills",
+            "label": "insufficient_information",
+            "value": null,
+            "confidence": 0.0,
+            "explanation": "The response does not address teamwork or communication skills explicitly, making it unclear how the candidate collaborates with others.",
+            "evidence": [
+              {
+                "kind": "information_gap",
+                "excerpt": null
+              }
+            ]
+          },
+          {
+            "criterion_id": "ownership",
+            "dimension": "corporate_competencies",
+            "label": "supported",
+            "value": 0.5,
+            "confidence": 1.0,
+            "explanation": "The candidate expresses readiness to take responsibility for the development, operation, and code review of services, indicating an understanding of ownership, though specific past experiences or examples are not provided.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "Я готов отвечать за разработку,"
+              },
+              {
+                "kind": "supporting",
+                "excerpt": "эксплуатацию и code review таких сервисов."
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 1.0,
+            "explanation": "The candidate's experience closely aligns with the tasks of a Middle + Python Developer, as indicated by their experience with relevant technologies and concepts outlined for the role.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "excerpt": "С Python коммерчески работаю с июня 2018 года."
+              }
+            ]
+          }
+        ]
+      },
+      "started_at": "2026-09-04T17:57:59.490285",
+      "completed_at": "2026-09-04T17:58:04.209389"
+    },
+    {
+      "purpose": "integrity_check",
+      "attempt": 1,
+      "status": "succeeded",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "integrity-check-v1",
+      "failure_code": null,
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "integrity_check",
+        "observations": [],
+        "is_restriction": false
+      },
+      "started_at": "2026-09-04T17:58:04.217618",
+      "completed_at": "2026-09-04T17:58:07.243166"
+    },
+    {
+      "purpose": "alternative_vacancy_match",
+      "attempt": 1,
+      "status": "succeeded",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "alternative-vacancy-match-v1",
+      "failure_code": null,
+      "output_payload": {
+        "schema_version": "session_agent_output_v1",
+        "purpose": "alternative_vacancy_match",
+        "target_vacancy_id": "d67041d6-7211-4c90-9858-aefbb70a9ebf",
+        "candidate_grade": "middle",
+        "target_grade": "middle",
+        "compatibility_status": "compatible",
+        "fit_value": 1.0,
+        "matched_criteria": [
+          "collaboration",
+          "ownership",
+          "primary_vacancy_fit",
+          "technical_depth"
+        ],
+        "matched_terms": [
+          "Middle",
+          "Python",
+          "FastAPI",
+          "Kafka",
+          "ETL",
+          "PostgreSQL",
+          "ClickHouse",
+          "Docker",
+          "Kubernetes",
+          "Prometheus",
+          "Grafana"
+        ],
+        "gaps": [],
+        "evidence_references": [
+          "1fb1cb4d-57d7-4814-b2bd-d012595538a7:ownership",
+          "1fb1cb4d-57d7-4814-b2bd-d012595538a7:primary_vacancy_fit",
+          "1fb1cb4d-57d7-4814-b2bd-d012595538a7:technical_depth",
+          "6f18e981-8b6f-4c8a-96e4-44f59b67384c:collaboration",
+          "6f18e981-8b6f-4c8a-96e4-44f59b67384c:ownership",
+          "6f18e981-8b6f-4c8a-96e4-44f59b67384c:primary_vacancy_fit",
+          "6f18e981-8b6f-4c8a-96e4-44f59b67384c:technical_depth",
+          "ab9e550e-a30a-42a9-a5fd-9cbf0b5e3455:collaboration",
+          "ab9e550e-a30a-42a9-a5fd-9cbf0b5e3455:ownership",
+          "ab9e550e-a30a-42a9-a5fd-9cbf0b5e3455:primary_vacancy_fit",
+          "ab9e550e-a30a-42a9-a5fd-9cbf0b5e3455:technical_depth",
+          "cee1b06e-b96f-4b02-8723-3fd80f8faefb:collaboration",
+          "cee1b06e-b96f-4b02-8723-3fd80f8faefb:ownership",
+          "cee1b06e-b96f-4b02-8723-3fd80f8faefb:primary_vacancy_fit",
+          "cee1b06e-b96f-4b02-8723-3fd80f8faefb:technical_depth"
+        ],
+        "explanation": "The candidate meets all key requirements for the Middle Data Platform Python Developer role, including expertise with Python, FastAPI, Kafka, ETL processes, PostgreSQL, and ClickHouse. The strong evidence of collaboration, ownership, and technical depth aligns perfectly with the expectations set forth in the job description."
+      },
+      "started_at": "2026-09-04T17:58:07.252827",
+      "completed_at": "2026-09-04T17:58:12.535862"
+    },
+    {
+      "purpose": "candidate_feedback",
+      "attempt": 1,
+      "status": "invalid_output",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "candidate-feedback-v1",
+      "failure_code": "invalid_output",
+      "output_payload": {
+        "schema_version": "candidate_feedback_v1",
+        "purpose": "candidate_feedback",
+        "source_profile_artifact_id": "227ec68a-da87-4875-97aa-31cacfe40a5a",
+        "headline": "Обратная связь по результатам собеседования на позицию Middle + Python Developer",
+        "summary": "У вас проявились сильные технические навыки и понимание ответственности за результаты. Подтверждены ваши знания в таких областях, как FastAPI, Kafka, PostgreSQL и ClickHouse. Однако, необходимо уделить внимание вопросу о работе в команде и коммуникации, так как это не было достаточно подробно освещено в ответах.",
+        "strengths": [
+          {
+            "title": "Техническая глубина и применение знаний",
+            "detail": "Проявили сильные знания в области разработки высоконагруженных микросервисов с использованием FastAPI, Kafka и работы с PostgreSQL и ClickHouse.",
+            "evidence_references": [
+              "2d1a43e5-f506-4a67-bbc5-ea23f9e08027:technical_depth:0",
+              "2d1a43e5-f506-4a67-bbc5-ea23f9e08027:technical_depth:1",
+              "2d1a43e5-f506-4a67-bbc5-ea23f9e08027:technical_depth:2",
+              "2d1a43e5-f506-4a67-bbc5-ea23f9e08027:technical_depth:3",
+              "2d1a43e5-f506-4a67-bbc5-ea23f9e08027:technical_depth:4"
+            ]
+          },
+          {
+            "title": "Ответственность за результат",
+            "detail": "Обсуждение примеров, обрисовывающих способность брать ответственность за проекты и координацию в ситуации повышения нагрузки на Kafka, показывает ваше понимание важности этой компетенции.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:ownership:0",
+              "6f18e981-8b6f-4c8a-96e4-44f59b67384c:ownership:1"
+            ]
+          },
+          {
+            "title": "Соответствие задачам вакансии",
+            "detail": "Ваш опыт в использовании Python и разработке микросервисов отлично соответствует требованиям вакансии Middle + Python Developer.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:primary_vacancy_fit:0",
+              "6f18e981-8b6f-4c8a-96e4-44f59b67384c:primary_vacancy_fit:0"
+            ]
+          }
+        ],
+        "growth_areas": [
+          {
+            "title": "Навыки сотрудничества и общения",
+            "detail": "Хотя в некоторых ответах упоминалось о работе с командой, отсутствовали конкретные примеры успешного общения и синергии с коллегами. Рекомендуется подготовить примеры работы в команде.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:collaboration:0",
+              "6f18e981-8b6f-4c8a-96e4-44f59b67384c:collaboration:0"
+            ],
+            "action": "Подумайте о ситуациях, когда вы работали с другими людьми над проектами или принимали участие в командных обсуждениях."
+          }
+        ],
+        "experience_alignment": [
+          {
+            "title": "Работа с высоконагруженными микросервисами",
+            "detail": "Ваш опыт разработки микросервисов на FastAPI и использовании Kafka для обработки данных соответствует требованиям вакансии.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:primary_vacancy_fit:0",
+              "6f18e981-8b6f-4c8a-96e4-44f59b67384c:primary_vacancy_fit:0"
+            ],
+            "status": "confirmed"
+          },
+          {
+            "title": "Проектирование ETL процессов",
+            "detail": "Ваш опыт с ETL из PostgreSQL в ClickHouse соответствует требованиями к процессам извлечения, трансформации и загрузки данных.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:primary_vacancy_fit:0",
+              "6f18e981-8b6f-4c8a-96e4-44f59b67384c:primary_vacancy_fit:0"
+            ],
+            "status": "confirmed"
+          },
+          {
+            "title": "Понимание и применение концепций Event Sourcing и CQRS",
+            "detail": "Ваши примеры использования Event Sourcing и CQRS в проекте показывают хорошую теоретическую и практическую подготовленность к данным архитектурным паттернам.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:primary_vacancy_fit:0",
+              "6f18e981-8b6f-4c8a-96e4-44f59b67384c:primary_vacancy_fit:0"
+            ],
+            "status": "confirmed"
+          }
+        ],
+        "alternative_vacancy": {
+          "vacancy_id": "d67041d6-7211-4c90-9858-aefbb70a9ebf",
+          "title": "Middle Data Platform Python Developer",
+          "matched_areas": [
+            "ClickHouse",
+            "Docker",
+            "ETL",
+            "FastAPI",
+            "Grafana",
+            "Kafka",
+            "Kubernetes",
+            "Middle",
+            "PostgreSQL",
+            "Prometheus"
+          ],
+          "message": "Ваша квалификация и опыт работы идеально подходят для этой роли, но обратите внимание на требование о 5 годах опыта работы с Python, которое у вас пока не хватает.",
+          "is_automatic_transfer": false
+        },
+        "next_steps": [
+          "Подумайте о конкретных примерах работы в команде и коммуникации для будущих собеседований.",
+          "При возможности улучшите навыки работы с API и продемонстрируйте больше примеров применения в своей практической деятельности."
+        ],
+        "limitations": [
+          "Общий опыт работы с Python менее 5 лет, требуется от 5 лет."
+        ],
+        "is_hiring_decision": false
+      },
+      "started_at": "2026-09-04T17:58:12.553913",
+      "completed_at": "2026-09-04T17:58:23.809478"
+    },
+    {
+      "purpose": "candidate_feedback",
+      "attempt": 2,
+      "status": "invalid_output",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "candidate-feedback-v1",
+      "failure_code": "invalid_output",
+      "output_payload": {
+        "schema_version": "candidate_feedback_v1",
+        "purpose": "candidate_feedback",
+        "source_profile_artifact_id": "227ec68a-da87-4875-97aa-31cacfe40a5a",
+        "headline": "Обратная связь по интервью",
+        "summary": "Ваши технические навыки и опыт работы соответствуют требованиям вакансии Middle Data Platform Python Developer. Однако стоит развить некоторые области, чтобы еще больше соответствовать ожиданиям.",
+        "strengths": [
+          {
+            "title": "Техническая глубина и применение знаний",
+            "detail": "Вы продемонстрировали уверенные навыки разработки высоконагруженных микросервисов на FastAPI, понимание работы с Kafka, PostgreSQL и ClickHouse.",
+            "evidence_references": [
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:4",
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:5",
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:10"
+            ]
+          },
+          {
+            "title": "Ответственность за результат",
+            "detail": "Вы показали готовность брать на себя ответственность за разработку, эксплуатацию и code review.",
+            "evidence_references": [
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:4"
+            ]
+          },
+          {
+            "title": "Командная работа и коммуникация",
+            "detail": "Ваши ответы демонстрируют эффективное взаимодействие с командой при решении инцидентов и разработке архитектурных решений.",
+            "evidence_references": [
+              "6f18e981-8b6f-4c8a-96e4-44f59b67384c:collaboration:1",
+              "ab9e550e-a30a-42a9-a5fd-9cbf0b5e3455:collaboration:1"
+            ]
+          }
+        ],
+        "growth_areas": [
+          {
+            "title": "Улучшение навыков командной работы",
+            "detail": "Хотя вы продемонстрировали некоторые примеры командной работы, стоит более четко описывать ваши взаимодействия с коллегами и вклад в общие проекты.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:collaboration:0"
+            ],
+            "action": "Работайте над улучшением ваших коммуникационных навыков и активным вовлечением в коллективные задачи."
+          },
+          {
+            "title": "Углубление знаний о DevOps практиках",
+            "detail": "Дополнительный опыт в развертывании и управлении CI/CD пайплайнами поможет вам быть более конкурентоспособным.",
+            "evidence_references": [
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:7",
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:9"
+            ],
+            "action": "Изучите более глубокие аспекты внедрения CI/CD и работы с Docker и Kubernetes."
+          }
+        ],
+        "experience_alignment": [
+          {
+            "title": "Опыт работы с API",
+            "detail": "Ваш опыт разработки REST API на FastAPI и Django соответствует требованиям вакансии.",
+            "evidence_references": [
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:3",
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:4"
+            ],
+            "status": "confirmed"
+          },
+          {
+            "title": "Опыт работы с Kafka",
+            "detail": "Ваш опыт с Kafka в продакшне соответствует требованиям к вакансии по работе с потоками данных.",
+            "evidence_references": [
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:5"
+            ],
+            "status": "confirmed"
+          },
+          {
+            "title": "Опыт ETL процессов",
+            "detail": "Разработка ETL из PostgreSQL в ClickHouse полностью соответствует требованиям вакансии.",
+            "evidence_references": [
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_claim:10"
+            ],
+            "status": "confirmed"
+          }
+        ],
+        "alternative_vacancy": {
+          "vacancy_id": "d67041d6-7211-4c90-9858-aefbb70a9ebf",
+          "title": "Middle Data Platform Python Developer",
+          "matched_areas": [
+            "ClickHouse",
+            "Docker",
+            "ETL",
+            "FastAPI",
+            "Grafana",
+            "Kafka",
+            "Kubernetes",
+            "Middle",
+            "PostgreSQL",
+            "Prometheus"
+          ],
+          "message": "Эта вакансия соответствует вашему опыту и навыкам, включая технологический стек и уровень ответственности. Однако это не автоматический перевод и не гарантирует трудоустройство.",
+          "is_automatic_transfer": false
+        },
+        "next_steps": [
+          "Работайте над улучшением коммуникационных навыков и вовлечения в командные проекты.",
+          "Изучите передовые практики CI/CD и DevOps, чтобы повысить свою квалификацию.",
+          "Постоянно практикуйте работу с Kafka и другими технологиями из вакансиях для дальнейшего повышения квалификации."
+        ],
+        "limitations": [
+          "Общий опыт работы с Python менее 5 лет, требуется от 5 лет."
+        ],
+        "is_hiring_decision": false
+      },
+      "started_at": "2026-09-04T17:58:23.822648",
+      "completed_at": "2026-09-04T17:58:31.859369"
+    },
+    {
+      "purpose": "candidate_feedback",
+      "attempt": 3,
+      "status": "invalid_output",
+      "model_adapter": "openai-chat-completions",
+      "model": "openai/gpt-4o-mini",
+      "prompt_id": "candidate-feedback-v1",
+      "failure_code": "invalid_output",
+      "output_payload": {
+        "schema_version": "candidate_feedback_v1",
+        "purpose": "candidate_feedback",
+        "source_profile_artifact_id": "227ec68a-da87-4875-97aa-31cacfe40a5a",
+        "headline": "Обратная связь по результатам интервью",
+        "summary": "Ваш опыт и знания идеально соответствуют требованиям вакансии Middle Data Platform Python Developer. Вы продемонстрировали высокий уровень технической глубины и ответственности, но есть возможности для улучшения в области командной работы и коммуникации.",
+        "strengths": [
+          {
+            "title": "Техническая глубина и применение знаний",
+            "detail": "Вы продемонстрировали отличное знание Python и других технологий, необходимых для выполнения задач на вакансии, с конкретными примерами работы с FastAPI, Kafka, PostgreSQL и ClickHouse ETL.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:technical_depth:0",
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:technical_depth:1",
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:technical_depth:2",
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:technical_depth:3",
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:technical_depth:4"
+            ]
+          },
+          {
+            "title": "Ответственность за результат",
+            "detail": "Вы сообщили о своей готовности принимать на себя ответственность за разработку и эксплуатацию сервисов, что подтверждается примерами из недавней практики.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:ownership:0",
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:ownership:1"
+            ]
+          },
+          {
+            "title": "Промежуточное соответствие задачам вакансии",
+            "detail": "Ваш опыт работы с ключевыми технологиями, включая FastAPI и Kafka, показывает ваше соответствие вакансии.",
+            "evidence_references": [
+              "1fb1cb4d-57d7-4814-b2bd-d012595538a7:primary_vacancy_fit:0"
+            ]
+          }
+        ],
+        "growth_areas": [
+          {
+            "title": "Командная работа и коммуникация",
+            "detail": "В ваших ответах не было достаточных примеров того, как вы взаимодействовали с командой и как обеспечивали эффективную коммуникацию. Рекомендуется более подробно описать свой опыт работы в команде в следующих интервью.",
+            "evidence_references": [
+              "6f18e981-8b6f-4c8a-96e4-44f59b67384c:collaboration:0"
+            ],
+            "action": "Подумайте о конкретных примерах командной работы и ситуациях, где вам приходилось успешно взаимодействовать с коллегами."
+          }
+        ],
+        "experience_alignment": [
+          {
+            "title": "Опыт работы с Python",
+            "detail": "Ваш опыт работы с Python с 2018 года является существенным, но шкала вакансии требует ожидания от 5 лет.",
+            "evidence_references": [
+              "fffc18bb-f407-4901-ad34-7cea06803008:resume_gap:0"
+            ],
+            "status": "not_confirmed"
+          }
+        ],
+        "alternative_vacancy": {
+          "vacancy_id": "d67041d6-7211-4c90-9858-aefbb70a9ebf",
+          "title": "Middle Data Platform Python Developer",
+          "matched_areas": [
+            "ClickHouse",
+            "Docker",
+            "ETL",
+            "FastAPI",
+            "Grafana",
+            "Kafka",
+            "Kubernetes",
+            "Middle",
+            "PostgreSQL",
+            "Prometheus"
+          ],
+          "message": "Ваша компетенция и опыт идеально соответствуют требованиям этой вакансии. Однако это не автоматическая рекомендация, и вам все равно нужно пройти процесс собеседования.",
+          "is_automatic_transfer": false
+        },
+        "next_steps": [
+          "Подробно проанализируйте примеры своей командной работы для следующих интервью.",
+          "Повысьте уровень уверенности в своих навыках взаимодействия с коллегами в условиях стресса."
+        ],
+        "limitations": [
+          "Общий опыт работы с Python менее 5 лет, что ниже требуемого уровня.",
+          "Некоторые навыки, такие как работа с gRPC и Деньги-Driven Design (DDD), не подтвердились."
+        ],
+        "is_hiring_decision": false
+      },
+      "started_at": "2026-09-04T17:58:31.874988",
+      "completed_at": "2026-09-04T17:58:39.368680"
+    }
+  ],
+  "artifacts": [],
+  "candidate_feedback": null,
+  "errors": [
+    "MultiAgentOutputError: candidate experience status conflicts with its evidence label"
+  ],
+  "summary": "Прогон остановлен; подробности находятся в разделе ошибок."
+}

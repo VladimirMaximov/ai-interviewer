@@ -1,0 +1,468 @@
+openapi: 3.1.0
+info:
+  title: Multi-agent Candidate Matching API
+  version: 0.5.0
+  description: >-
+    Additive recruiter contract for isolated agent sessions, resume relevance, question planning,
+    answer assessment, deterministic profiles/rankings, alternative vacancy matching, integrity
+    observations, candidate feedback drafts, human publication, and human-only restrictions. No
+    endpoint makes a hiring decision.
+servers:
+  - url: http://127.0.0.1:8000
+
+paths:
+  /candidate/{secret}/questions:
+    get:
+      operationId: getCandidateQuestionPlan
+      parameters:
+        - name: secret
+          in: path
+          required: true
+          schema: {type: string, minLength: 1}
+      responses:
+        '200':
+          description: Candidate-safe questions without criteria, weights, or selection reasoning.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [agent_session_id, questions]
+                properties:
+                  agent_session_id: {type: string, format: uuid}
+                  questions:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [question_id, prompt, kind]
+                      properties:
+                        question_id: {type: string, format: uuid}
+                        prompt: {type: string}
+                        kind: {enum: [baseline, personalized]}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /candidate/{secret}/feedback:
+    get:
+      operationId: getPublishedCandidateFeedback
+      parameters:
+        - name: secret
+          in: path
+          required: true
+          schema: {type: string, minLength: 1}
+      responses:
+        '200':
+          description: Pending state or latest human-published candidate-safe feedback.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CandidateFeedbackDelivery'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /recruiter/vacancies/{vacancy_id}/applications/{invitation_id}/agent-session:
+    post:
+      operationId: createAgentSession
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/InvitationId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '201':
+          description: Created or idempotently returned session with pinned input versions.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AgentSession'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    get:
+      operationId: getAgentSession
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/InvitationId'}
+      responses:
+        '200':
+          description: Recruiter projection including artifacts but no provider raw failures.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AgentSession'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /recruiter/vacancies/{vacancy_id}/applications/{invitation_id}/agent-session/resume-analysis:
+    post:
+      operationId: runResumeRelevance
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/InvitationId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '200': {$ref: '#/components/responses/Artifact'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/InvalidAgentOutput'}
+
+  /recruiter/vacancies/{vacancy_id}/applications/{invitation_id}/agent-session/question-plan:
+    post:
+      operationId: runQuestionPlan
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/InvitationId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '200': {$ref: '#/components/responses/Artifact'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/InvalidAgentOutput'}
+
+  /recruiter/vacancies/{vacancy_id}/applications/{invitation_id}/agent-session/answer-assessments:
+    post:
+      operationId: assessStoredAnswer
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/InvitationId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [response_id]
+              properties:
+                response_id: {type: string, format: uuid}
+      responses:
+        '200': {$ref: '#/components/responses/Artifact'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/InvalidAgentOutput'}
+
+  /recruiter/vacancies/{vacancy_id}/applications/{invitation_id}/agent-session/finalize:
+    post:
+      operationId: finalizeCandidateProfile
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/InvitationId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '200':
+          description: Deterministic profile, integrity artifact, and eligible alternative matches.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Finalization'}
+        '409': {$ref: '#/components/responses/Conflict'}
+
+  /recruiter/vacancies/{vacancy_id}/applications/{invitation_id}/agent-session/candidate-feedback:
+    post:
+      operationId: generateCandidateFeedbackDraft
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/InvitationId'}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses:
+        '201':
+          description: Validated LLM draft; not visible to the candidate before publication.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CandidateFeedbackRelease'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/InvalidAgentOutput'}
+
+  /recruiter/vacancies/{vacancy_id}/applications/{invitation_id}/agent-session/candidate-feedback/{release_id}/publish:
+    post:
+      operationId: publishCandidateFeedback
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/InvitationId'}
+        - name: release_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200':
+          description: Human-published immutable feedback release.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CandidateFeedbackRelease'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+
+  /recruiter/vacancies/{vacancy_id}/ranking:
+    get:
+      operationId: getVacancyRanking
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+      responses:
+        '200':
+          description: Latest deterministic ranking of compatible completed profiles.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Ranking'}
+
+  /recruiter/applications/{invitation_id}/restrictions:
+    post:
+      operationId: appendHumanRestriction
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/InvitationId'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateRestriction'}
+      responses:
+        '201':
+          description: Human-authored append-only decision.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Restriction'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+    get:
+      operationId: listHumanRestrictions
+      security: [{RecruiterKey: []}]
+      parameters:
+        - {$ref: '#/components/parameters/InvitationId'}
+      responses:
+        '200':
+          description: Complete human restriction history.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [decisions]
+                properties:
+                  decisions:
+                    type: array
+                    items: {$ref: '#/components/schemas/Restriction'}
+
+components:
+  securitySchemes:
+    RecruiterKey:
+      type: apiKey
+      in: header
+      name: X-Recruiter-Key
+
+  parameters:
+    VacancyId:
+      name: vacancy_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    InvitationId:
+      name: invitation_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, minLength: 8, maxLength: 128}
+
+  responses:
+    Artifact:
+      description: Validated immutable agent artifact.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Artifact'}
+    NotFound:
+      description: Scoped record not found.
+    Conflict:
+      description: State, dependency, or idempotency conflict.
+    InvalidAgentOutput:
+      description: Provider output failed local contract or evidence validation.
+
+  schemas:
+    AgentSession:
+      type: object
+      additionalProperties: false
+      required: [id, invitation_id, vacancy_id, input_hash, status, versions, artifacts]
+      properties:
+        id: {type: string, format: uuid}
+        invitation_id: {type: string, format: uuid}
+        vacancy_id: {type: string, format: uuid}
+        input_hash: {type: string}
+        status: {enum: [active, ready, failed]}
+        versions: {type: object}
+        artifacts:
+          type: array
+          items: {$ref: '#/components/schemas/Artifact'}
+    Artifact:
+      type: object
+      additionalProperties: false
+      required: [id, kind, schema_version, content_hash, payload, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {type: string}
+        schema_version: {type: string}
+        content_hash: {type: string}
+        payload: {type: object}
+        created_at: {type: string, format: date-time}
+    Finalization:
+      type: object
+      required: [profile, integrity, alternative_matches, ranking]
+      properties:
+        profile: {$ref: '#/components/schemas/Artifact'}
+        integrity: {$ref: '#/components/schemas/Artifact'}
+        alternative_matches:
+          type: array
+          items: {$ref: '#/components/schemas/Artifact'}
+        ranking: {$ref: '#/components/schemas/Ranking'}
+    CandidateFeedbackRelease:
+      type: object
+      additionalProperties: false
+      required: [id, invitation_id, agent_session_id, status, artifact, created_by, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        invitation_id: {type: string, format: uuid}
+        agent_session_id: {type: string, format: uuid}
+        status: {enum: [draft, published]}
+        artifact: {$ref: '#/components/schemas/Artifact'}
+        created_by: {type: string}
+        created_at: {type: string, format: date-time}
+        published_by: {type: [string, 'null']}
+        published_at: {type: [string, 'null'], format: date-time}
+    CandidateFeedbackDelivery:
+      type: object
+      additionalProperties: false
+      required: [status, feedback]
+      properties:
+        status: {enum: [pending_review, published]}
+        feedback:
+          oneOf:
+            - {$ref: '#/components/schemas/CandidateFeedback'}
+            - {type: 'null'}
+    CandidateFeedback:
+      type: object
+      additionalProperties: false
+      required: [score, headline, summary, strengths, growth_areas, experience_alignment, alternative_vacancy, next_steps, limitations, published_at]
+      properties:
+        score:
+          type: object
+          additionalProperties: false
+          required: [value, maximum, scale_version, evidence_coverage, explanation]
+          properties:
+            value: {type: [number, 'null'], minimum: 0, maximum: 10}
+            maximum: {const: 10}
+            scale_version: {const: signed_readiness_to_10_v1}
+            evidence_coverage: {type: number, minimum: 0, maximum: 1}
+            explanation: {type: string}
+        headline: {type: string}
+        summary: {type: string}
+        strengths:
+          type: array
+          items: {$ref: '#/components/schemas/CandidateFeedbackPoint'}
+        growth_areas:
+          type: array
+          items: {$ref: '#/components/schemas/CandidateGrowthArea'}
+        experience_alignment:
+          type: array
+          items: {$ref: '#/components/schemas/CandidateExperienceAlignment'}
+        alternative_vacancy:
+          oneOf:
+            - {$ref: '#/components/schemas/CandidateAlternative'}
+            - {type: 'null'}
+        next_steps: {type: array, items: {type: string}}
+        limitations: {type: array, items: {type: string}}
+        published_at: {type: string, format: date-time}
+    CandidateFeedbackPoint:
+      type: object
+      additionalProperties: false
+      required: [title, detail, evidence]
+      properties:
+        title: {type: string}
+        detail: {type: string}
+        evidence:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [excerpt]
+            properties:
+              excerpt: {type: [string, 'null']}
+    CandidateGrowthArea:
+      type: object
+      additionalProperties: false
+      required: [title, detail, action, evidence]
+      properties:
+        title: {type: string}
+        detail: {type: string}
+        action: {type: string}
+        evidence:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [excerpt]
+            properties:
+              excerpt: {type: [string, 'null']}
+    CandidateExperienceAlignment:
+      type: object
+      additionalProperties: false
+      required: [title, detail, status, evidence]
+      properties:
+        title: {type: string}
+        detail: {type: string}
+        status: {enum: [confirmed, partially_confirmed, not_confirmed, not_assessed]}
+        evidence:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [excerpt]
+            properties:
+              excerpt: {type: [string, 'null']}
+    CandidateAlternative:
+      type: object
+      additionalProperties: false
+      required: [vacancy_id, title, matched_areas, message, is_automatic_transfer]
+      properties:
+        vacancy_id: {type: string, format: uuid}
+        title: {type: string}
+        matched_areas: {type: array, items: {type: string}}
+        message: {type: string}
+        is_automatic_transfer: {const: false}
+    Ranking:
+      type: object
+      required: [vacancy_id, compatibility_key, entries]
+      properties:
+        vacancy_id: {type: string, format: uuid}
+        compatibility_key: {type: [string, 'null']}
+        entries:
+          type: array
+          items:
+            type: object
+            required: [rank, agent_session_id, candidate_alias, overall_value, coverage]
+            properties:
+              rank: {type: integer, minimum: 1}
+              agent_session_id: {type: string, format: uuid}
+              candidate_alias: {type: [string, 'null']}
+              overall_value: {type: number, minimum: -1, maximum: 1}
+              coverage: {type: number, minimum: 0, maximum: 1}
+    CreateRestriction:
+      type: object
+      additionalProperties: false
+      required: [decision_type, reason, evidence_references]
+      properties:
+        decision_type: {enum: [verified_misrepresentation, restricted, blacklisted, cleared]}
+        reason: {type: string, minLength: 1, maxLength: 2000}
+        evidence_references:
+          type: array
+          items: {type: string}
+        expires_at: {type: [string, 'null'], format: date-time}
+        supersedes_id: {type: [string, 'null'], format: uuid}
+    Restriction:
+      allOf:
+        - {$ref: '#/components/schemas/CreateRestriction'}
+        - type: object
+          required: [id, invitation_id, created_by, created_at]
+          properties:
+            id: {type: string, format: uuid}
+            invitation_id: {type: string, format: uuid}
+            created_by: {type: string}
+            created_at: {type: string, format: date-time}

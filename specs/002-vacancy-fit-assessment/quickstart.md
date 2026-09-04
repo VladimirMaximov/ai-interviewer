@@ -93,6 +93,10 @@ Submit a synthetic interview and create its initial assessment run. Open the man
 Expected result:
 
 - `corporate_competency` and `vacancy_fit` appear as separate sections and summaries;
+- `baseline_recommendation.score` is `1`, `0`, or `-1`; its comment and evidence explain the
+  recommendation, while `is_hiring_decision` always remains `false`;
+- an explicit answer such as «Я ничего не хочу» produces `0` with the exact answer excerpt, and a
+  vague or borderline result produces `-1` for manual review;
 - every numeric label has a stored answer excerpt or time span;
 - an unanswered criterion is `insufficient_information`, has no ordinal value, and reduces evidence
   coverage without contributing a zero;
