@@ -1,12 +1,15 @@
 export type Invitation = { session_id: string; consented: boolean };
 export type UploadGrant = { response_id: string; storage_key: string; upload_url: string };
 export type Transcript = { status: "pending" | "processing" | "completed" | "failed"; text: string | null };
+export type InterviewQuestion = { question_id: string; prompt: string; kind: "baseline" | "personalized" };
+export type InterviewQuestionPlan = { agent_session_id: string; questions: InterviewQuestion[] };
 
 export class CandidateApi {
   constructor(private readonly baseUrl = "/candidate") {}
 
   async resolve(secret: string): Promise<Invitation> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}`); }
   async consent(secret: string): Promise<Invitation> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/consent`, { method: "POST" }); }
+  async questions(secret: string): Promise<InterviewQuestionPlan> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/questions`); }
   async uploadGrant(secret: string, questionId: string, contentType: string): Promise<UploadGrant> {
     return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/upload-grants`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question_id: questionId, content_type: contentType }) });
   }

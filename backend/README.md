@@ -180,3 +180,71 @@ Only the immutable approved version is exposed at
 `GET /manager/vacancies/{vacancy_id}/approved-brief-context`. This projection omits the raw manager
 text, unresolved fields, rejected proposals, and validation metadata, so it can be passed to the
 separate interview-analysis agent without reinterpreting an unapproved conversation.
+
+## Session-scoped multi-agent harness
+
+The recruiter can now create one durable agent session for an application. It pins the vacancy,
+latest resume, optional approved manager brief, scoring scale, aggregation policy, and content
+hashes. The five semantic stages all use the OpenAI Responses API with purpose-specific system
+instructions and strict Pydantic Structured Outputs:
+
+1. `resume_relevance` separates explicit work positions, then maps their exact resume excerpts to
+   vacancy and approved manager requirements.
+2. `question_plan` preserves a fixed four-question baseline and may add bounded claim-verification
+   questions.
+3. `answer_assessment` evaluates one already stored completed transcript by independent technical,
+   soft-skill, corporate-competency, vacancy-fit, and optional leadership criteria.
+4. `alternative_vacancy_match` compares an eligible evidence profile with each active alternative.
+5. `integrity_check` surfaces two-sided inconsistencies for human review and cannot create a
+   restriction or blacklist.
+
+There is deliberately no heuristic runtime fallback for these stages. Missing credentials or a
+provider failure creates a retryable audited attempt. Local code validates exact evidence spans and
+identity links, then deterministically calculates profile values, coverage, strong-pool eligibility,
+and compatible vacancy rank. It does not make a hiring decision.
+
+Configure the shared LLM provider and versioned deterministic policies:
+
+```bash
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://api.openai.com/v1
+MULTI_AGENT_MODEL=gpt-5.4-mini
+MULTI_AGENT_MAX_ATTEMPTS=3
+MULTI_AGENT_TIMEOUT_SECONDS=90
+STRONG_POOL_MIN_READINESS=0.25
+STRONG_POOL_MIN_COVERAGE=0.50
+ALTERNATIVE_VACANCY_MIN_FIT=0.25
+ALTERNATIVE_MAX_GRADE_DISTANCE=1
+MULTI_AGENT_PERSONALIZATION_CAP=3
+```
+
+After migration `005_multi_agent_harness`, call the recruiter endpoints in this order:
+
+```text
+POST .../applications/{invitation_id}/agent-session
+POST .../agent-session/resume-analysis
+POST .../agent-session/question-plan
+GET  /candidate/{candidate_token}/questions
+POST .../agent-session/answer-assessments
+POST .../agent-session/finalize
+GET  /recruiter/vacancies/{vacancy_id}/ranking
+```
+
+Every POST stage requires an `Idempotency-Key`. Answer assessment accepts a `response_id` whose
+transcript status is already `completed` and whose question ID belongs to the pinned plan. Full curl
+examples are in `specs/003-multi-agent-interview-flow/quickstart.md`.
+
+Every baseline answer is returned as separate technical, soft-skill, corporate-competency, and
+vacancy-fit observations. A block unsupported by that answer remains `null`; evidence from one block
+is never copied into another.
+
+Restrictions are a separate human-only audit stream:
+
+```text
+POST /recruiter/applications/{invitation_id}/restrictions
+GET  /recruiter/applications/{invitation_id}/restrictions
+```
+
+An authorized recruiter supplies stored evidence references and may append `restricted`,
+`blacklisted`, `verified_misrepresentation`, or a superseding `cleared` record. The operation never
+rewrites LLM observations, scores, transcripts, or prior decisions.

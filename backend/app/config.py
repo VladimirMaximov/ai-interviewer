@@ -16,6 +16,14 @@ class Settings(BaseSettings):
     openai_base_url: str = "https://api.openai.com/v1"
     manager_brief_model: str = "gpt-5-mini"
     manager_brief_max_attempts: int = Field(default=3, ge=1, le=5)
+    multi_agent_model: str = "gpt-5.4-mini"
+    multi_agent_max_attempts: int = Field(default=3, ge=1, le=5)
+    multi_agent_timeout_seconds: float = Field(default=90.0, ge=1, le=300)
+    strong_pool_min_readiness: float = Field(default=0.25, ge=-1, le=1)
+    strong_pool_min_coverage: float = Field(default=0.5, ge=0, le=1)
+    alternative_vacancy_min_fit: float = Field(default=0.25, ge=-1, le=1)
+    alternative_max_grade_distance: int = Field(default=1, ge=0, le=4)
+    multi_agent_personalization_cap: int = Field(default=3, ge=0, le=8)
     manager_key: str | None = Field(
         default=None,
         validation_alias=AliasChoices("MANAGER_KEY", "INTERVIEW_MANAGER_KEY"),

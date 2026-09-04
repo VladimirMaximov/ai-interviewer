@@ -5,6 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 import app.models.hiring_context  # noqa: F401
 import app.models.manager_brief  # noqa: F401
+import app.models.multi_agent  # noqa: F401
 from app.models.interview import Base
 
 config = context.config
