@@ -24,6 +24,7 @@ from app.domain.hiring_context import (
     HiringContextValidationError,
     InterviewAgentContext,
     InvitationCreated,
+    ResumeUploaderRole,
     ResumeView,
     VacancyStatus,
     VacancyView,
@@ -105,6 +106,7 @@ class HiringContextService:
             source_filename=resume.source_filename,
             media_type=resume.media_type,
             content_hash=resume.content_hash,
+            uploaded_by_role=ResumeUploaderRole(resume.uploaded_by_role),
             created_at=resume.created_at,
         )
 
@@ -275,6 +277,64 @@ class HiringContextService:
                 "consent is required before uploading a resume"
             )
 
+        return self._store_resume(
+            invitation=invitation,
+            document=document,
+            filename=filename,
+            media_type=media_type,
+            idempotency_key=idempotency_key,
+            uploaded_by_role=ResumeUploaderRole.CANDIDATE,
+            uploaded_by_actor_id=None,
+        )
+
+    def recruiter_upload_resume(
+        self,
+        *,
+        vacancy_id: UUID,
+        invitation_id: UUID,
+        actor_id: str,
+        document: bytes,
+        filename: str,
+        media_type: str,
+        idempotency_key: str,
+    ) -> ResumeView:
+        actor = _required_text(actor_id, "actor id", 120)
+        vacancy = self.db.get(Vacancy, vacancy_id)
+        invitation = self.db.get(InterviewInvitation, invitation_id)
+        if (
+            vacancy is None
+            or invitation is None
+            or invitation.vacancy_id != vacancy.id
+        ):
+            raise HiringContextNotFoundError("application was not found")
+        if (
+            vacancy.status is not VacancyStatus.ACTIVE
+            or invitation.status is not InvitationStatus.ACTIVE
+            or _is_expired(invitation.expires_at)
+        ):
+            raise HiringContextConflictError("application is not active")
+
+        return self._store_resume(
+            invitation=invitation,
+            document=document,
+            filename=filename,
+            media_type=media_type,
+            idempotency_key=idempotency_key,
+            uploaded_by_role=ResumeUploaderRole.RECRUITER,
+            uploaded_by_actor_id=actor,
+        )
+
+    def _store_resume(
+        self,
+        *,
+        invitation: InterviewInvitation,
+        document: bytes,
+        filename: str,
+        media_type: str,
+        idempotency_key: str,
+        uploaded_by_role: ResumeUploaderRole,
+        uploaded_by_actor_id: str | None,
+    ) -> ResumeView:
         key = _required_text(idempotency_key, "idempotency key", 128)
         extracted_text, safe_filename, normalized_type = extract_document_text(
             data=document,
@@ -294,7 +354,7 @@ class HiringContextService:
             or _is_expired(locked_invitation.expires_at)
         ):
             self.db.rollback()
-            return None
+            raise HiringContextConflictError("application is no longer active")
         existing = self.db.scalar(
             select(CandidateResume).where(
                 CandidateResume.invitation_id == invitation.id,
@@ -305,6 +365,8 @@ class HiringContextService:
             if (
                 existing.content_hash != content_hash
                 or existing.media_type != normalized_type
+                or existing.uploaded_by_role != uploaded_by_role.value
+                or existing.uploaded_by_actor_id != uploaded_by_actor_id
             ):
                 raise HiringContextConflictError(
                     "idempotency key was already used for another resume document"
@@ -326,6 +388,8 @@ class HiringContextService:
             extracted_text=extracted_text,
             content_hash=content_hash,
             idempotency_key=key,
+            uploaded_by_role=uploaded_by_role.value,
+            uploaded_by_actor_id=uploaded_by_actor_id,
             created_at=_now(),
         )
         self.db.add(resume)
@@ -343,6 +407,8 @@ class HiringContextService:
                 concurrent is not None
                 and concurrent.content_hash == content_hash
                 and concurrent.media_type == normalized_type
+                and concurrent.uploaded_by_role == uploaded_by_role.value
+                and concurrent.uploaded_by_actor_id == uploaded_by_actor_id
             ):
                 return self._resume_view(concurrent)
             raise HiringContextConflictError(
@@ -458,6 +524,7 @@ class HiringContextService:
                 content_hash=resume.content_hash,
                 untrusted_text=resume.extracted_text,
                 version=resume.version,
+                uploaded_by_role=ResumeUploaderRole(resume.uploaded_by_role),
             )
             if resume is not None
             else None
@@ -466,11 +533,20 @@ class HiringContextService:
             "schema_version": "interview_agent_context_v1",
             "invitation_id": invitation.id,
             "session_id": session.id if session else None,
-            "vacancy_hash": vacancy.content_hash,
+            "vacancy": {"id": vacancy.id, "content_hash": vacancy.content_hash},
             "approved_brief_hash": (
                 approved_brief.content_hash if approved_brief else None
             ),
-            "resume_hash": resume.content_hash if resume else None,
+            "resume": (
+                {
+                    "id": resume.id,
+                    "content_hash": resume.content_hash,
+                    "version": resume.version,
+                    "uploaded_by_role": resume.uploaded_by_role,
+                }
+                if resume
+                else None
+            ),
             "answers": [answer.model_dump(mode="json") for answer in answers],
         }
         return InterviewAgentContext(

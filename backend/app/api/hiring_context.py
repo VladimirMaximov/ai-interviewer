@@ -107,6 +107,18 @@ class HiringContextWorkflow(Protocol):
         idempotency_key: str,
     ) -> ResumeView | None: ...
 
+    def recruiter_upload_resume(
+        self,
+        *,
+        vacancy_id: UUID,
+        invitation_id: UUID,
+        actor_id: str,
+        document: bytes,
+        filename: str,
+        media_type: str,
+        idempotency_key: str,
+    ) -> ResumeView: ...
+
     def candidate_resume(self, secret: str) -> ResumeView | None: ...
 
     def list_applications(self, vacancy_id: UUID) -> list[ApplicationView]: ...
@@ -252,6 +264,37 @@ def list_applications(
     service: HiringContextWorkflow = Depends(get_hiring_context_service),
 ) -> ApplicationList:
     return ApplicationList(applications=service.list_applications(vacancy_id))
+
+
+@recruiter_router.post(
+    "/vacancies/{vacancy_id}/applications/{invitation_id}/resume",
+    response_model=ResumeView,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload or replace a candidate resume as a recruiter",
+    openapi_extra=DOCUMENT_BODY_OPENAPI,
+)
+async def upload_resume_as_recruiter(
+    vacancy_id: UUID,
+    invitation_id: UUID,
+    request: Request,
+    document_filename: Annotated[
+        str, Header(alias="X-Document-Filename", min_length=1, max_length=255)
+    ],
+    idempotency_key: Annotated[
+        str, Header(alias="Idempotency-Key", min_length=8, max_length=128)
+    ],
+    actor_id: str = Depends(require_recruiter),
+    service: HiringContextWorkflow = Depends(get_hiring_context_service),
+) -> ResumeView:
+    return service.recruiter_upload_resume(
+        vacancy_id=vacancy_id,
+        invitation_id=invitation_id,
+        actor_id=actor_id,
+        document=await _document_bytes(request),
+        filename=document_filename,
+        media_type=request.headers.get("content-type", "application/octet-stream"),
+        idempotency_key=idempotency_key,
+    )
 
 
 @recruiter_router.get(

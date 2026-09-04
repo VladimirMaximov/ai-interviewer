@@ -1,4 +1,5 @@
 import unittest
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -95,6 +96,7 @@ class HiringContextApiTests(unittest.TestCase):
         )
         self.assertEqual(resume_response.status_code, 201, resume_response.text)
         self.assertEqual(resume_response.json()["vacancy_id"], vacancy_id)
+        self.assertEqual(resume_response.json()["uploaded_by_role"], "candidate")
         refreshed_view = self.client.get(
             f"/candidate/{invitation['candidate_token']}"
         )
@@ -148,6 +150,34 @@ class HiringContextApiTests(unittest.TestCase):
         self.assertEqual(
             no_consent.json()["error"]["code"], "candidate_consent_required"
         )
+
+        recruiter_upload = self.client.post(
+            f"/recruiter/vacancies/{vacancy['id']}/applications/"
+            f"{invitation['invitation_id']}/resume",
+            content="Resume supplied by recruiter",
+            headers={
+                "Content-Type": "text/plain",
+                "X-Document-Filename": "resume.txt",
+                "Idempotency-Key": "recruiter-resume-api-001",
+            },
+        )
+        self.assertEqual(recruiter_upload.status_code, 201, recruiter_upload.text)
+        self.assertEqual(
+            recruiter_upload.json()["uploaded_by_role"], "recruiter"
+        )
+        self.assertEqual(recruiter_upload.json()["version"], 1)
+
+        mismatched_vacancy = self.client.post(
+            f"/recruiter/vacancies/{uuid4()}/applications/"
+            f"{invitation['invitation_id']}/resume",
+            content="Wrong vacancy",
+            headers={
+                "Content-Type": "text/plain",
+                "X-Document-Filename": "resume.txt",
+                "Idempotency-Key": "recruiter-resume-api-002",
+            },
+        )
+        self.assertEqual(mismatched_vacancy.status_code, 404)
 
         unsupported = self.client.post(
             "/recruiter/vacancies",

@@ -15,6 +15,11 @@ class VacancyStatus(StrEnum):
     CLOSED = "closed"
 
 
+class ResumeUploaderRole(StrEnum):
+    CANDIDATE = "candidate"
+    RECRUITER = "recruiter"
+
+
 class VacancyView(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -38,6 +43,7 @@ class ResumeView(BaseModel):
     source_filename: str
     media_type: str
     content_hash: str
+    uploaded_by_role: ResumeUploaderRole
     created_at: datetime
 
 
@@ -74,6 +80,7 @@ class AgentDocumentContext(BaseModel):
     content_hash: str
     untrusted_text: str
     version: int | None = None
+    uploaded_by_role: ResumeUploaderRole | None = None
 
 
 class ApprovedBriefContext(BaseModel):

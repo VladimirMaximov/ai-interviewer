@@ -12,6 +12,7 @@ from app.domain.hiring_context import (
     CandidateConsentRequiredError,
     HiringContextConflictError,
     HiringContextNotFoundError,
+    ResumeUploaderRole,
 )
 from app.models.interview import (
     CandidateResponse,
@@ -102,12 +103,97 @@ class HiringContextServiceTests(unittest.TestCase):
         )
 
         self.assertIsNotNone(first)
+        self.assertEqual(first.uploaded_by_role, ResumeUploaderRole.CANDIDATE)
         self.assertEqual(replay.id, first.id)
         self.assertEqual(second.vacancy_id, vacancy.id)
         self.assertEqual(second.version, 2)
         self.assertEqual(
             self.service.candidate_resume(invitation.candidate_token).id,
             second.id,
+        )
+
+    def test_recruiter_can_upload_before_consent_with_audited_source(self) -> None:
+        vacancy = self._vacancy("vacancy-recruiter-upload")
+        other_vacancy = self._vacancy("vacancy-recruiter-upload-other")
+        invitation = self.service.create_invitation(
+            vacancy_id=vacancy.id,
+            actor_id="recruiter-test",
+            candidate_alias="synthetic-candidate",
+            expires_in_hours=24,
+        )
+
+        uploaded = self.service.recruiter_upload_resume(
+            vacancy_id=vacancy.id,
+            invitation_id=invitation.invitation_id,
+            actor_id="recruiter-test",
+            document=b"Resume supplied by recruiter",
+            filename="resume.txt",
+            media_type="text/plain",
+            idempotency_key="recruiter-resume-001",
+        )
+        replay = self.service.recruiter_upload_resume(
+            vacancy_id=vacancy.id,
+            invitation_id=invitation.invitation_id,
+            actor_id="recruiter-test",
+            document=b"Resume supplied by recruiter",
+            filename="renamed.txt",
+            media_type="text/plain",
+            idempotency_key="recruiter-resume-001",
+        )
+
+        self.assertEqual(uploaded.version, 1)
+        self.assertEqual(uploaded.uploaded_by_role, ResumeUploaderRole.RECRUITER)
+        self.assertEqual(replay.id, uploaded.id)
+        with self.assertRaises(HiringContextConflictError):
+            self.service.recruiter_upload_resume(
+                vacancy_id=vacancy.id,
+                invitation_id=invitation.invitation_id,
+                actor_id="recruiter-test",
+                document=b"Conflicting recruiter upload",
+                filename="resume.txt",
+                media_type="text/plain",
+                idempotency_key="recruiter-resume-001",
+            )
+        self.assertEqual(
+            self.service.candidate_resume(invitation.candidate_token).id,
+            uploaded.id,
+        )
+        with self.assertRaises(HiringContextNotFoundError):
+            self.service.recruiter_upload_resume(
+                vacancy_id=other_vacancy.id,
+                invitation_id=invitation.invitation_id,
+                actor_id="recruiter-test",
+                document=b"Wrong vacancy",
+                filename="resume.txt",
+                media_type="text/plain",
+                idempotency_key="recruiter-resume-002",
+            )
+
+        self.db.add(
+            InterviewSession(
+                invitation_id=invitation.invitation_id,
+                consented_at=datetime.now(timezone.utc),
+            )
+        )
+        self.db.commit()
+        candidate_version = self.service.upload_resume(
+            secret=invitation.candidate_token,
+            document=b"Resume replaced by candidate",
+            filename="candidate-resume.txt",
+            media_type="text/plain",
+            idempotency_key="candidate-resume-002",
+        )
+        context = self.service.build_agent_context(
+            vacancy_id=vacancy.id,
+            invitation_id=invitation.invitation_id,
+        )
+
+        self.assertEqual(candidate_version.version, 2)
+        self.assertEqual(
+            candidate_version.uploaded_by_role, ResumeUploaderRole.CANDIDATE
+        )
+        self.assertEqual(
+            context.resume.uploaded_by_role, ResumeUploaderRole.CANDIDATE
         )
 
     def test_conflicting_idempotency_key_does_not_overwrite_vacancy(self) -> None:

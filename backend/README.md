@@ -60,6 +60,20 @@ curl -X POST http://127.0.0.1:8000/candidate/CANDIDATE_TOKEN/resume \
   --data-binary @resume.pdf
 ```
 
+The recruiter may upload the resume for an application before the candidate opens the invitation.
+This uses recruiter authentication and records `uploaded_by_role=recruiter` in the immutable resume
+version. A later candidate upload remains possible after consent and creates the next version.
+
+```bash
+curl -X POST \
+  http://127.0.0.1:8000/recruiter/vacancies/VACANCY_ID/applications/INVITATION_ID/resume \
+  -H 'X-Recruiter-Key: local-recruiter-key' \
+  -H 'X-Document-Filename: resume.pdf' \
+  -H 'Idempotency-Key: recruiter-resume-upload-001' \
+  -H 'Content-Type: application/pdf' \
+  --data-binary @resume.pdf
+```
+
 Recruiters can inspect all invitations/resume versions matched to one vacancy and retrieve the
 allowlisted context for one candidate only:
 
