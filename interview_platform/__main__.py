@@ -20,6 +20,7 @@ from interview_platform.config import Settings
 from interview_platform.domain.competencies import load_framework
 from interview_platform.domain.models import InterviewStatus
 from interview_platform.infrastructure.evaluation_stubs import DeterministicEvidenceEvaluator
+from interview_platform.infrastructure.openai_evaluator import OpenAIEvidenceEvaluator
 from interview_platform.infrastructure.sqlite_hiring_repository import SQLiteHiringRepository
 from interview_platform.infrastructure.sqlite_repository import SQLiteInterviewRepository
 from interview_platform.infrastructure.sqlite_role_repository import SQLiteRoleReviewRepository
@@ -32,6 +33,14 @@ VACANCY_DEMO_TOKENS = (
     "synthetic-vacancy-candidate-token-000001",
     "synthetic-vacancy-candidate-token-000002",
     "synthetic-vacancy-candidate-token-000003",
+)
+VACANCY_DEMO_ANSWERS = (
+    (
+        "В синтетическом проекте я описал ситуацию, личное действие, сравнил риски и "
+        "компромиссы, затем проверил результат по метрикам после запуска."
+    ),
+    "Я ничего не хочу.",
+    "Использовал Python.",
 )
 DEMO_QUESTIONS = [
     {
@@ -77,6 +86,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Create an idempotent vacancy, approved context, and three assessed candidates",
     )
+    parser.add_argument(
+        "--assessment-provider",
+        choices=("openai", "deterministic"),
+        help="Assessment adapter (defaults to INTERVIEW_ASSESSMENT_PROVIDER or openai)",
+    )
+    parser.add_argument(
+        "--assessment-model",
+        help="OpenAI model ID (defaults to INTERVIEW_ASSESSMENT_MODEL or gpt-5-mini)",
+    )
     return parser
 
 
@@ -105,12 +123,21 @@ def build_hiring_services(
         minimum_evidence_coverage=settings.minimum_evidence_coverage,
         interview_service=interviews,
     )
+    evaluator = (
+        OpenAIEvidenceEvaluator(
+            api_key=settings.openai_api_key,
+            model=settings.assessment_model,
+            base_url=settings.openai_base_url,
+        )
+        if settings.assessment_provider == "openai"
+        else DeterministicEvidenceEvaluator()
+    )
     return HiringServices(
         vacancies=vacancies,
         assessments=AssessmentService(
             repository,
             interviews,
-            DeterministicEvidenceEvaluator(),
+            evaluator,
         ),
         rankings=RankingService(repository, interviews),
         decisions=DecisionService(repository, interviews),
@@ -194,10 +221,7 @@ def seed_vacancy_assessment_demo(
                     hiring.vacancies.interview_service.save_answer(
                         token,
                         question_id=question.id,
-                        content=(
-                            "В синтетическом проекте я описал ситуацию, личное действие, "
-                            f"компромисс {index} и проверил результат по метрикам после запуска."
-                        ),
+                        content=VACANCY_DEMO_ANSWERS[index - 1],
                     )
             interview = hiring.vacancies.interview_service.complete_interview(token)
         runs.append(
@@ -218,6 +242,7 @@ def seed_vacancy_assessment_demo(
         "snapshot": snapshot,
         "interview_ids": interview_ids,
         "assessment_run_ids": [item["id"] for item in runs],
+        "baseline_scores": [item["baseline_recommendation"]["score"] for item in runs],
         "ranking_snapshot_id": ranking["id"],
         "tokens": VACANCY_DEMO_TOKENS,
     }
@@ -233,9 +258,20 @@ def main(argv: list[str] | None = None) -> int:
             db_path=args.db_path,
             host=args.host,
             port=args.port,
+            assessment_provider=args.assessment_provider,
+            assessment_model=args.assessment_model,
         )
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
+    if (
+        args.seed_vacancy_assessment_demo
+        and settings.assessment_provider == "openai"
+        and not settings.openai_api_key
+    ):
+        raise SystemExit(
+            "set OPENAI_API_KEY for LLM assessment or pass "
+            "--assessment-provider deterministic"
+        )
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     database_parent = Path(settings.db_path).expanduser().resolve().parent
@@ -272,7 +308,11 @@ def main(argv: list[str] | None = None) -> int:
     if vacancy_demo:
         print(f"Synthetic vacancy: {base_url}/manager/vacancies/{vacancy_demo['vacancy']['id']}")
         for index, token in enumerate(vacancy_demo["tokens"], start=1):
-            print(f"Synthetic vacancy candidate {index}: {base_url}/candidate/{token}")
+            score = vacancy_demo["baseline_scores"][index - 1]
+            print(
+                f"Synthetic vacancy candidate {index} (baseline {score}): "
+                f"{base_url}/candidate/{token}"
+            )
         print(f"Assessment context: {vacancy_demo['snapshot']['id']}")
         print(f"Ranking snapshot: {vacancy_demo['ranking_snapshot_id']}")
     print("Video capture: text_stub (no camera, audio, or biometric analysis)")

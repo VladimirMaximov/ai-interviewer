@@ -14,6 +14,7 @@ from interview_platform.infrastructure.evaluation_stubs import DeterministicEvid
 from interview_platform.infrastructure.sqlite_hiring_repository import SQLiteHiringRepository
 from interview_platform.infrastructure.sqlite_repository import SQLiteInterviewRepository
 from interview_platform.infrastructure.video_stub import TextCaptureStub
+from interview_platform.web.presenters import manager_detail_page
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,7 +43,12 @@ class AssessmentTests(unittest.TestCase):
         self.interviews.close()
         self.directory.cleanup()
 
-    def _submitted_interview(self, *, answer_questions: bool = True):
+    def _submitted_interview(
+        self,
+        *,
+        answer_questions: bool = True,
+        answer_text: str | None = None,
+    ):
         vacancy = self.vacancies.create_vacancy(
             title="Python API",
             role_key="software_engineer",
@@ -74,7 +80,8 @@ class AssessmentTests(unittest.TestCase):
                 self.interview_service.save_answer(
                     token,
                     question_id=question.id,
-                    content=(
+                    content=answer_text
+                    or (
                         "В проекте я сравнил риски, спроектировал контракт API, добавил тесты "
                         "и метрики, согласовал компромисс с командой и проверил результат."
                     ),
@@ -102,6 +109,66 @@ class AssessmentTests(unittest.TestCase):
             {"corporate_competency", "vacancy_fit"},
             {item["dimension"] for item in first["dimension_summaries"]},
         )
+        recommendation = first["baseline_recommendation"]
+        self.assertEqual(1, recommendation["score"])
+        self.assertEqual("advance", recommendation["label"])
+        self.assertFalse(recommendation["is_hiring_decision"])
+        self.assertTrue(recommendation["evidence"])
+        page = manager_detail_page(
+            self.interview_service.get_manager_interview(created["interview"].id),
+            vacancy_aware=True,
+            assessment_runs=[first],
+        )
+        self.assertIn("Baseline-рекомендация", page)
+        self.assertIn("deterministic-stub", page)
+
+    def test_explicit_disengagement_returns_zero_with_exact_evidence(self) -> None:
+        _, _, created = self._submitted_interview(answer_text="Я ничего не хочу.")
+
+        run = self.assessments.create_run(
+            created["interview"].id,
+            reason="initial",
+            idempotency_key="assessment-disengaged-001",
+        )
+
+        recommendation = run["baseline_recommendation"]
+        self.assertEqual(0, recommendation["score"])
+        self.assertEqual("do_not_advance", recommendation["label"])
+        self.assertEqual(["explicit_disengagement"], recommendation["reason_codes"])
+        self.assertEqual("Я ничего не хочу.", recommendation["evidence"][0]["excerpt"])
+        self.assertIn("не рекомендует", recommendation["comment"])
+
+    def test_vague_answers_return_minus_one_for_manual_review(self) -> None:
+        _, _, created = self._submitted_interview(answer_text="Использовал Python.")
+
+        run = self.assessments.create_run(
+            created["interview"].id,
+            reason="initial",
+            idempotency_key="assessment-uncertain-001",
+        )
+
+        recommendation = run["baseline_recommendation"]
+        self.assertEqual(-1, recommendation["score"])
+        self.assertEqual("needs_review", recommendation["label"])
+        self.assertIn("не уверен", recommendation["comment"])
+
+    def test_contextual_not_want_phrase_is_not_treated_as_disengagement(self) -> None:
+        _, _, created = self._submitted_interview(
+            answer_text=(
+                "В проекте я объяснил: я не хочу работать без тестов, поэтому сравнил риски, "
+                "добавил метрики и проверил результат после запуска."
+            )
+        )
+
+        run = self.assessments.create_run(
+            created["interview"].id,
+            reason="initial",
+            idempotency_key="assessment-contextual-negation-001",
+        )
+
+        recommendation = run["baseline_recommendation"]
+        self.assertNotEqual(0, recommendation["score"])
+        self.assertNotIn("explicit_disengagement", recommendation["reason_codes"])
 
     def test_missing_information_has_no_numeric_value_or_zero_penalty(self) -> None:
         results = [
@@ -170,6 +237,68 @@ class AssessmentTests(unittest.TestCase):
             idempotency_key="repairable-assessment-001",
         )
         self.assertEqual("completed", repaired["status"])
+
+    def test_invented_baseline_evidence_fails_run_atomically(self) -> None:
+        _, _, created = self._submitted_interview()
+
+        class InvalidRecommendationEvaluator(DeterministicEvidenceEvaluator):
+            def recommend(self, context_bundle, results):
+                recommendation = super().recommend(context_bundle, results)
+                recommendation["evidence"][0]["excerpt"] = "invented baseline quote"
+                return recommendation
+
+        service = AssessmentService(
+            self.hiring,
+            self.interview_service,
+            InvalidRecommendationEvaluator(),
+        )
+        with self.assertRaises(ValidationError):
+            service.create_run(
+                created["interview"].id,
+                reason="initial",
+                idempotency_key="invalid-recommendation-001",
+            )
+
+        self.assertEqual([], self.hiring.list_assessment_runs(created["interview"].id))
+
+    def test_combined_llm_style_adapter_is_called_once_per_run(self) -> None:
+        _, _, created = self._submitted_interview()
+
+        class CombinedEvaluator(DeterministicEvidenceEvaluator):
+            evaluator_id = "combined-test-evaluator"
+            model_id = "test-model"
+            prompt_id = "test-prompt-v1"
+
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def evaluate_interview(self, context_bundle):
+                self.calls += 1
+                results = super().evaluate(context_bundle)
+                return {
+                    "criterion_assessments": results,
+                    "baseline_recommendation": super().recommend(
+                        context_bundle,
+                        results,
+                    ),
+                }
+
+        evaluator = CombinedEvaluator()
+        service = AssessmentService(
+            self.hiring,
+            self.interview_service,
+            evaluator,
+        )
+
+        run = service.create_run(
+            created["interview"].id,
+            reason="initial",
+            idempotency_key="combined-adapter-run-001",
+        )
+
+        self.assertEqual(1, evaluator.calls)
+        self.assertEqual("combined-test-evaluator", run["evaluator_id"])
+        self.assertEqual("test-model", run["model_id"])
 
 
 if __name__ == "__main__":

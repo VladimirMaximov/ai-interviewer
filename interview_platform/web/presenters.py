@@ -520,6 +520,34 @@ def _vacancy_assessment_html(
 ) -> str:
     assessment_cards = []
     for run in assessment_runs:
+        recommendation = run.get("baseline_recommendation")
+        recommendation_html = ""
+        if recommendation:
+            score_labels = {
+                1: "1 · рекомендовать следующий этап",
+                0: "0 · не рекомендовать следующий этап",
+                -1: "−1 · нужна ручная проверка",
+            }
+            recommendation_evidence = "".join(
+                f"<li><strong>{escape(item['question'])}</strong><br>"
+                f"<small>{escape(item.get('excerpt') or item['note'])}</small></li>"
+                for item in recommendation.get("evidence", [])
+            )
+            recommendation_html = (
+                '<section class="notice compact"><h3>Baseline-рекомендация: '
+                + escape(score_labels.get(recommendation["score"], str(recommendation["score"])))
+                + "</h3><p>"
+                + escape(recommendation["comment"])
+                + "</p>"
+                + (
+                    "<details><summary>Подтверждение</summary><ul>"
+                    f"{recommendation_evidence}</ul></details>"
+                    if recommendation_evidence
+                    else ""
+                )
+                + "<p><small>Это рекомендация для review, а не автоматическое "
+                "кадровое решение.</small></p></section>"
+            )
         dimensions = []
         for summary in run.get("dimension_summaries", []):
             label = (
@@ -548,10 +576,15 @@ def _vacancy_assessment_html(
             if signals
             else "<p><small>Integrity-событий не зафиксировано; они не входят в score.</small></p>"
         )
+        evaluator_metadata = (
+            f"Evaluator: {escape(str(run.get('evaluator_id', 'unknown')))} · "
+            f"модель: {escape(str(run.get('model_id', 'unknown')))}"
+        )
         assessment_cards.append(
             f"""<article class="card"><span class="eyebrow">Assessment run {run['run_number']}</span>
+<p><small>{evaluator_metadata}</small></p>
 <p>Два независимых измерения; coverage не является оценкой кандидата.</p>
-<ul>{''.join(dimensions)}</ul>{signal_html}<details><summary>Критерии и доказательства</summary><ol>{evidence}</ol></details></article>"""
+{recommendation_html}<ul>{''.join(dimensions)}</ul>{signal_html}<details><summary>Критерии и доказательства</summary><ol>{evidence}</ol></details></article>"""
         )
     assessment_action = ""
     if interview.status in {InterviewStatus.SUBMITTED, InterviewStatus.REVIEWED}:

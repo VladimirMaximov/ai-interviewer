@@ -27,6 +27,7 @@ class VacancySeedTests(unittest.TestCase):
                     manager_key="seed-test-secret",
                     recruiter_key="seed-recruiter-secret",
                     db_path=path,
+                    assessment_provider="deterministic",
                 )
                 hiring = build_hiring_services(settings, hiring_repository, interviews)
                 first = seed_vacancy_assessment_demo(hiring, interview_repository)
@@ -34,6 +35,7 @@ class VacancySeedTests(unittest.TestCase):
                 self.assertEqual(first["vacancy"]["id"], second["vacancy"]["id"])
                 self.assertEqual(first["snapshot"]["id"], second["snapshot"]["id"])
                 self.assertEqual(first["assessment_run_ids"], second["assessment_run_ids"])
+                self.assertEqual([1, 0, -1], first["baseline_scores"])
                 self.assertEqual(3, len(interview_repository.list_interviews()))
             finally:
                 hiring_repository.close()

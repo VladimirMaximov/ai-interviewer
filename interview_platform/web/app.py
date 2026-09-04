@@ -16,7 +16,14 @@ from urllib.parse import parse_qs
 from interview_platform.application.services import InterviewService
 from interview_platform.application.hiring_services import HiringServices
 from interview_platform.application.role_services import RoleService
-from interview_platform.domain.errors import ConflictError, DomainError, NotFoundError, ValidationError
+from interview_platform.domain.errors import (
+    AssessmentOutputError,
+    AssessmentProviderError,
+    ConflictError,
+    DomainError,
+    NotFoundError,
+    ValidationError,
+)
 
 from .auth import (
     manager_api_authorized,
@@ -100,6 +107,10 @@ class InterviewWebApp:
                 status = 404
             elif isinstance(exc, ConflictError):
                 status = 409
+            elif isinstance(exc, AssessmentOutputError):
+                status = 502
+            elif isinstance(exc, AssessmentProviderError):
+                status = 503
             response = self._error_response(status, exc.code, exc.message, exc.details, is_api)
         except HTTPError as exc:
             response = self._error_response(exc.status, exc.code, exc.message, {}, is_api)

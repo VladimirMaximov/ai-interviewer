@@ -18,6 +18,10 @@ class Settings:
     max_context_bytes: int = 1_000_000
     max_context_chars: int = 50_000
     minimum_evidence_coverage: float = 0.5
+    assessment_provider: str = "openai"
+    assessment_model: str = "gpt-5-mini"
+    openai_api_key: str | None = None
+    openai_base_url: str = "https://api.openai.com/v1"
 
     def __post_init__(self) -> None:
         if len(self.manager_key) < 8:
@@ -34,6 +38,12 @@ class Settings:
             raise ValueError("context limits must be positive")
         if not (0 <= self.minimum_evidence_coverage <= 1):
             raise ValueError("minimum evidence coverage must be between 0 and 1")
+        if self.assessment_provider not in {"openai", "deterministic"}:
+            raise ValueError("assessment provider must be openai or deterministic")
+        if not self.assessment_model.strip():
+            raise ValueError("assessment model is required")
+        if not self.openai_base_url.startswith(("https://", "http://")):
+            raise ValueError("OPENAI_BASE_URL must be an HTTP(S) URL")
 
     @classmethod
     def from_values(
@@ -45,6 +55,8 @@ class Settings:
         port: int,
         recruiter_key: str | None = None,
         manager_id: str | None = None,
+        assessment_provider: str | None = None,
+        assessment_model: str | None = None,
     ) -> "Settings":
         resolved_manager_key = manager_key or os.environ.get("INTERVIEW_MANAGER_KEY", "")
         resolved_recruiter_key = recruiter_key or os.environ.get("INTERVIEW_RECRUITER_KEY", "")
@@ -59,4 +71,13 @@ class Settings:
             manager_id=manager_id or os.environ.get("INTERVIEW_MANAGER_ID", "hiring-manager"),
             host=host,
             port=port,
+            assessment_provider=assessment_provider
+            or os.environ.get("INTERVIEW_ASSESSMENT_PROVIDER", "openai"),
+            assessment_model=assessment_model
+            or os.environ.get("INTERVIEW_ASSESSMENT_MODEL", "gpt-5-mini"),
+            openai_api_key=os.environ.get("OPENAI_API_KEY"),
+            openai_base_url=os.environ.get(
+                "OPENAI_BASE_URL",
+                "https://api.openai.com/v1",
+            ),
         )

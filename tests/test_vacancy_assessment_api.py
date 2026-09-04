@@ -242,6 +242,9 @@ class VacancyAssessmentAPITests(unittest.TestCase):
             {"corporate_competency", "vacancy_fit"},
             {item["dimension"] for item in run["dimension_summaries"]},
         )
+        self.assertEqual(1, run["baseline_recommendation"]["score"])
+        self.assertTrue(run["baseline_recommendation"]["comment"])
+        self.assertFalse(run["baseline_recommendation"]["is_hiring_decision"])
 
         status, ranking = self.request(
             "POST",
