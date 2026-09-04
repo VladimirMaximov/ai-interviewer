@@ -16,4 +16,7 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+*.sqlite3
+*.tsbuildinfo
+backend/models/*.bin
 runs/

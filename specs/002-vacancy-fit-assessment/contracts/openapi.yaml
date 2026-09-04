@@ -1,0 +1,1087 @@
+openapi: 3.1.0
+info:
+  title: Vacancy-aware Assessment API
+  version: 0.2.0
+  description: |
+    Additive contract for versioned vacancy context, evidence-based multidimensional assessment,
+    compatible-only ranking, separate human decisions, and staged feedback. Existing interview
+    capture routes remain defined by specs/001-interview-platform-architecture/contracts/openapi.yaml.
+    No endpoint in this contract automatically advances or rejects a candidate.
+servers:
+  - url: http://127.0.0.1:8000
+security:
+  - ManagerKey: []
+paths:
+  /api/manager/competency-frameworks/current:
+    get:
+      operationId: getCurrentCompetencyFramework
+      parameters:
+        - name: role_key
+          in: query
+          schema: {type: string}
+        - name: level_key
+          in: query
+          schema: {type: string}
+      responses:
+        '200':
+          description: Published framework or one filtered role/level projection.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CompetencyFramework'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/manager/vacancies:
+    get:
+      operationId: listVacancies
+      responses:
+        '200':
+          description: Vacancies visible to the authorized staff actor.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [vacancies]
+                properties:
+                  vacancies:
+                    type: array
+                    items: {$ref: '#/components/schemas/Vacancy'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+    post:
+      operationId: createVacancy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateVacancy'}
+      responses:
+        '201':
+          description: Vacancy draft using a published role profile and target level.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Vacancy'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/vacancies/{vacancy_id}:
+    get:
+      operationId: getVacancy
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+      responses:
+        '200':
+          description: Vacancy and its active version references.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Vacancy'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/manager/vacancies/{vacancy_id}/context-sources:
+    post:
+      operationId: addVacancyContextSource
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AddTextContextSource'}
+          multipart/form-data:
+            schema: {$ref: '#/components/schemas/AddFileContextSource'}
+      responses:
+        '201':
+          description: Stored source with extraction status and provenance.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VacancyContextSource'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '413':
+          description: Source exceeds configured limit.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+        '415':
+          description: File format is unsupported; direct text remains available.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Error'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/vacancies/{vacancy_id}/profile-drafts:
+    post:
+      operationId: generateVacancyProfileDraft
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [context_source_ids]
+              properties:
+                context_source_ids:
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  items: {type: string, format: uuid}
+      responses:
+        '201':
+          description: Editable profile draft; never used for candidate assessment before approval.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VacancyProfileVersion'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/vacancies/{vacancy_id}/profile-versions/{profile_version_id}:
+    get:
+      operationId: getVacancyProfileVersion
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+        - $ref: '#/components/parameters/ProfileVersionId'
+      responses:
+        '200':
+          description: Full manager profile with criteria, provenance, and validation issues.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VacancyProfileVersion'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    put:
+      operationId: updateVacancyProfileDraft
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+        - $ref: '#/components/parameters/ProfileVersionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateVacancyProfileDraft'}
+      responses:
+        '200':
+          description: Updated draft and current validation issues.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VacancyProfileVersion'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/vacancies/{vacancy_id}/profile-versions/{profile_version_id}/approve:
+    post:
+      operationId: approveVacancyProfileVersion
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+        - $ref: '#/components/parameters/ProfileVersionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [confirm_no_automatic_rejection]
+              properties:
+                confirm_no_automatic_rejection: {type: boolean, const: true}
+      responses:
+        '200':
+          description: Immutable approved profile version and content hash.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/VacancyProfileVersion'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/vacancies/{vacancy_id}/assessment-contexts:
+    post:
+      operationId: createAssessmentContextSnapshot
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateAssessmentContextSnapshot'}
+      responses:
+        '201':
+          description: Immutable compatible version bundle used as bounded agent context.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AssessmentContextSnapshot'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/vacancies/{vacancy_id}/interviews:
+    post:
+      operationId: createVacancyInterview
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateVacancyInterview'}
+      responses:
+        '201':
+          description: Candidate invitation pinned to an assessment-context snapshot.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreatedVacancyInterview'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/interviews/{interview_id}/assessment-runs:
+    get:
+      operationId: listAssessmentRuns
+      parameters:
+        - $ref: '#/components/parameters/InterviewId'
+      responses:
+        '200':
+          description: Historical assessment runs; latest does not overwrite earlier runs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [assessment_runs]
+                properties:
+                  assessment_runs:
+                    type: array
+                    items: {$ref: '#/components/schemas/AssessmentRun'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    post:
+      operationId: createAssessmentRun
+      parameters:
+        - $ref: '#/components/parameters/InterviewId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  enum: [initial, manual_retry, model_change, policy_replay, calibration]
+      responses:
+        '202':
+          description: Pending or completed idempotent run; it cannot create a hiring decision.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AssessmentRun'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/interviews/{interview_id}/assessment-runs/{assessment_run_id}:
+    get:
+      operationId: getAssessmentRun
+      parameters:
+        - $ref: '#/components/parameters/InterviewId'
+        - $ref: '#/components/parameters/AssessmentRunId'
+      responses:
+        '200':
+          description: Separate dimension summaries, criterion evidence, and run metadata.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AssessmentRun'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/manager/vacancies/{vacancy_id}/ranking-snapshots:
+    post:
+      operationId: createRankingSnapshot
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateRankingSnapshot'}
+      responses:
+        '201':
+          description: Immutable ranking of compatible runs with a separate additional-review group.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RankingSnapshot'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/vacancies/{vacancy_id}/ranking-snapshots/{ranking_snapshot_id}:
+    get:
+      operationId: getRankingSnapshot
+      parameters:
+        - $ref: '#/components/parameters/VacancyId'
+        - $ref: '#/components/parameters/RankingSnapshotId'
+      responses:
+        '200':
+          description: Ranking explanation without changing any candidate state.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RankingSnapshot'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+  /api/manager/interviews/{interview_id}/decisions:
+    get:
+      operationId: listHumanDecisions
+      parameters:
+        - $ref: '#/components/parameters/InterviewId'
+      responses:
+        '200':
+          description: Append-only human decisions by role.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [decisions]
+                properties:
+                  decisions:
+                    type: array
+                    items: {$ref: '#/components/schemas/HumanDecision'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    post:
+      operationId: createHumanDecision
+      parameters:
+        - $ref: '#/components/parameters/InterviewId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateHumanDecision'}
+      responses:
+        '201':
+          description: Human-owned decision independent from scores and ranking.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HumanDecision'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/interviews/{interview_id}/feedback-entries:
+    get:
+      operationId: listManagerFeedbackEntries
+      parameters:
+        - $ref: '#/components/parameters/InterviewId'
+      responses:
+        '200':
+          description: Full staff feedback history including drafts and internal notes.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [feedback_entries]
+                properties:
+                  feedback_entries:
+                    type: array
+                    items: {$ref: '#/components/schemas/ManagerFeedbackEntry'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+    post:
+      operationId: createFeedbackEntry
+      parameters:
+        - $ref: '#/components/parameters/InterviewId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateFeedbackEntry'}
+      responses:
+        '201':
+          description: New preliminary, human-review, or corrective draft entry.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ManagerFeedbackEntry'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/interviews/{interview_id}/feedback-entries/{feedback_entry_id}/revisions:
+    post:
+      operationId: createFeedbackRevision
+      parameters:
+        - $ref: '#/components/parameters/InterviewId'
+        - $ref: '#/components/parameters/FeedbackEntryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/FeedbackRevisionInput'}
+      responses:
+        '201':
+          description: New draft revision; published revisions remain immutable.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/FeedbackRevision'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/manager/interviews/{interview_id}/feedback-entries/{feedback_entry_id}/revisions/{revision_id}/publish:
+    post:
+      operationId: publishFeedbackRevision
+      parameters:
+        - $ref: '#/components/parameters/InterviewId'
+        - $ref: '#/components/parameters/FeedbackEntryId'
+        - $ref: '#/components/parameters/RevisionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Immutable published candidate-safe feedback revision.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/FeedbackRevision'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+
+  /api/candidate/interviews/{token}/feedback-timeline:
+    get:
+      operationId: getCandidateFeedbackTimeline
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/InvitationToken'
+      responses:
+        '200':
+          description: Published candidate-safe entries only, in timeline order.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CandidateFeedbackTimeline'}
+        '404': {$ref: '#/components/responses/NotFound'}
+
+components:
+  securitySchemes:
+    ManagerKey:
+      type: apiKey
+      in: header
+      name: X-Manager-Key
+  parameters:
+    VacancyId:
+      name: vacancy_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    ProfileVersionId:
+      name: profile_version_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    InterviewId:
+      name: interview_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    AssessmentRunId:
+      name: assessment_run_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    RankingSnapshotId:
+      name: ranking_snapshot_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    FeedbackEntryId:
+      name: feedback_entry_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    RevisionId:
+      name: revision_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    InvitationToken:
+      name: token
+      in: path
+      required: true
+      schema: {type: string, minLength: 32}
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: {type: string, minLength: 8, maxLength: 128}
+  responses:
+    Unauthorized:
+      description: Staff credential is missing or invalid.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    NotFound:
+      description: Resource not found or not visible in the caller scope.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Conflict:
+      description: State transition, version compatibility, or idempotency conflict.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    ValidationError:
+      description: Request violates a field, evidence, fairness, or approval rule.
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            details: {type: object, additionalProperties: true}
+
+    LevelAnchor:
+      type: object
+      required: [level_key, behavior_text]
+      properties:
+        level_key: {type: string}
+        level_order: {type: integer, minimum: 1}
+        behavior_text: {type: string, minLength: 1}
+        decision_scope: {type: [string, 'null']}
+        impact_scope: {type: [string, 'null']}
+
+    Competency:
+      type: object
+      required: [id, code, display_name, dimension, source_page, anchors]
+      properties:
+        id: {type: string}
+        code: {type: string, pattern: '^[a-z0-9_]+$'}
+        display_name: {type: string}
+        dimension: {type: string, enum: [soft_skill, hard_skill, leadership]}
+        source_page: {type: integer, minimum: 1}
+        anchors:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/LevelAnchor'}
+
+    RoleProfile:
+      type: object
+      required: [role_key, display_name, profile_kind, level_keys, competencies]
+      properties:
+        role_key: {type: string, pattern: '^[a-z0-9_]+$'}
+        display_name: {type: string}
+        profile_kind:
+          type: string
+          enum: [graded_ic, architecture, technical_leadership, people_leadership]
+        level_keys:
+          type: array
+          minItems: 1
+          items: {type: string}
+        competencies:
+          type: array
+          items: {$ref: '#/components/schemas/Competency'}
+
+    CompetencyFramework:
+      type: object
+      required: [id, version, status, content_hash, common_competencies, role_profiles]
+      properties:
+        id: {type: string, format: uuid}
+        version: {type: integer, minimum: 1}
+        status: {type: string, const: published}
+        content_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        common_competencies:
+          type: array
+          items: {$ref: '#/components/schemas/Competency'}
+        role_profiles:
+          type: array
+          items: {$ref: '#/components/schemas/RoleProfile'}
+
+    CreateVacancy:
+      type: object
+      required: [title, role_key, target_level_key, owner_actor_id]
+      properties:
+        title: {type: string, minLength: 1, maxLength: 120}
+        role_key: {type: string}
+        target_level_key: {type: string}
+        owner_actor_id: {type: string, minLength: 1, maxLength: 120}
+
+    Vacancy:
+      allOf:
+        - $ref: '#/components/schemas/CreateVacancy'
+        - type: object
+          required: [id, status, created_at, updated_at]
+          properties:
+            id: {type: string, format: uuid}
+            status: {type: string, enum: [draft, active, closed]}
+            active_profile_version_id: {type: [string, 'null'], format: uuid}
+            active_ranking_policy_id: {type: [string, 'null'], format: uuid}
+            created_at: {type: string, format: date-time}
+            updated_at: {type: string, format: date-time}
+
+    AddTextContextSource:
+      type: object
+      required: [source_type, display_name, text]
+      properties:
+        source_type:
+          type: string
+          enum: [default_selection, phrase, pasted_text, speech_transcript]
+        display_name: {type: string, minLength: 1, maxLength: 255}
+        text: {type: string, minLength: 1, maxLength: 50000}
+
+    AddFileContextSource:
+      type: object
+      required: [file]
+      properties:
+        file:
+          type: string
+          format: binary
+          description: Initial adapters accept UTF-8 .txt and .md up to the configured limit.
+
+    VacancyContextSource:
+      type: object
+      required: [id, vacancy_id, source_type, display_name, content_hash, status, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        vacancy_id: {type: string, format: uuid}
+        source_type:
+          type: string
+          enum: [default_selection, phrase, pasted_text, file, speech_transcript]
+        display_name: {type: string}
+        media_type: {type: [string, 'null']}
+        content_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        status: {type: string, enum: [pending, ready, unsupported, invalid]}
+        fragment_count: {type: integer, minimum: 0}
+        created_at: {type: string, format: date-time}
+
+    VacancyCriterion:
+      type: object
+      required:
+        - id
+        - code
+        - display_name
+        - description
+        - category
+        - weight
+        - target_depth
+        - positive_anchors
+        - negative_anchors
+        - accepted_alternatives
+        - insufficient_information_rule
+        - linked_competency_ids
+        - source_fragment_ids
+        - question_prompt
+      properties:
+        id: {type: string}
+        code: {type: string, pattern: '^[a-z0-9_]+$'}
+        display_name: {type: string, minLength: 1, maxLength: 120}
+        description: {type: string, minLength: 1, maxLength: 2000}
+        category: {type: string, enum: [must_have, priority, additional]}
+        weight: {type: integer, minimum: 1, maximum: 5}
+        target_depth: {type: string, minLength: 1, maxLength: 1000}
+        positive_anchors:
+          type: array
+          minItems: 1
+          items: {type: string, minLength: 1, maxLength: 1000}
+        negative_anchors:
+          type: array
+          minItems: 1
+          items: {type: string, minLength: 1, maxLength: 1000}
+        accepted_alternatives:
+          type: array
+          items: {type: string, minLength: 1, maxLength: 1000}
+        insufficient_information_rule: {type: string, minLength: 1, maxLength: 1000}
+        linked_competency_ids:
+          type: array
+          uniqueItems: true
+          items: {type: string}
+        source_fragment_ids:
+          type: array
+          uniqueItems: true
+          items: {type: string, format: uuid}
+        suggestion_confirmed: {type: boolean, default: false}
+        question_prompt: {type: string, minLength: 1, maxLength: 1000}
+
+    ValidationIssue:
+      type: object
+      required: [code, severity, message]
+      properties:
+        code: {type: string}
+        severity: {type: string, enum: [warning, blocking]}
+        criterion_id: {type: [string, 'null']}
+        message: {type: string}
+
+    VacancyProfileVersion:
+      type: object
+      required:
+        - id
+        - vacancy_id
+        - framework_id
+        - version
+        - status
+        - summary
+        - criteria
+        - validation_issues
+        - content_hash
+        - created_at
+      properties:
+        id: {type: string, format: uuid}
+        vacancy_id: {type: string, format: uuid}
+        framework_id: {type: string, format: uuid}
+        version: {type: integer, minimum: 1}
+        status: {type: string, enum: [draft, validation_failed, approved, superseded]}
+        summary: {type: string}
+        criteria:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/VacancyCriterion'}
+        validation_issues:
+          type: array
+          items: {$ref: '#/components/schemas/ValidationIssue'}
+        content_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        created_at: {type: string, format: date-time}
+        approved_by: {type: [string, 'null']}
+        approved_at: {type: [string, 'null'], format: date-time}
+
+    UpdateVacancyProfileDraft:
+      type: object
+      required: [summary, criteria]
+      properties:
+        summary: {type: string, minLength: 1, maxLength: 4000}
+        criteria:
+          type: array
+          minItems: 1
+          maxItems: 30
+          items: {$ref: '#/components/schemas/VacancyCriterion'}
+
+    CreateAssessmentContextSnapshot:
+      type: object
+      required: [vacancy_profile_version_id]
+      properties:
+        vacancy_profile_version_id: {type: string, format: uuid}
+
+    AssessmentContextSnapshot:
+      type: object
+      required:
+        - id
+        - vacancy_id
+        - framework_id
+        - framework_version
+        - role_key
+        - target_level_key
+        - profile_version_id
+        - profile_version
+        - ranking_policy
+        - feedback_policy
+        - context_hash
+        - created_at
+      properties:
+        id: {type: string, format: uuid}
+        vacancy_id: {type: string, format: uuid}
+        framework_id: {type: string, format: uuid}
+        framework_version: {type: integer, minimum: 1}
+        role_key: {type: string}
+        target_level_key: {type: string}
+        profile_version_id: {type: string, format: uuid}
+        profile_version: {type: integer, minimum: 1}
+        ranking_policy: {type: object, additionalProperties: true}
+        feedback_policy: {type: object, additionalProperties: true}
+        context_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        created_at: {type: string, format: date-time}
+
+    CreateVacancyInterview:
+      type: object
+      required: [candidate_alias, assessment_context_snapshot_id]
+      properties:
+        candidate_alias: {type: string, minLength: 1, maxLength: 120}
+        assessment_context_snapshot_id: {type: string, format: uuid}
+
+    CreatedVacancyInterview:
+      type: object
+      required: [interview_id, vacancy_id, assessment_context_snapshot_id, invitation_token, candidate_url]
+      properties:
+        interview_id: {type: string, format: uuid}
+        vacancy_id: {type: string, format: uuid}
+        assessment_context_snapshot_id: {type: string, format: uuid}
+        invitation_token: {type: string}
+        candidate_url: {type: string}
+
+    AssessmentEvidence:
+      type: object
+      required: [id, kind, question_id, note]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {type: string, enum: [support, counter_evidence, information_gap]}
+        question_id: {type: string, format: uuid}
+        excerpt: {type: [string, 'null']}
+        start_ms: {type: [integer, 'null'], minimum: 0}
+        end_ms: {type: [integer, 'null'], minimum: 0}
+        note: {type: string, minLength: 1, maxLength: 2000}
+
+    CriterionAssessment:
+      type: object
+      required: [id, dimension, criterion_id, label, ordinal_value, confidence, explanation, weight, evidence]
+      properties:
+        id: {type: string, format: uuid}
+        dimension: {type: string, enum: [corporate_competency, vacancy_fit]}
+        criterion_id: {type: string}
+        label:
+          type: string
+          enum: [not_demonstrated, partially_demonstrated, demonstrated, strongly_demonstrated, insufficient_information]
+        ordinal_value:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 3
+        confidence: {type: number, minimum: 0, maximum: 1}
+        explanation: {type: string}
+        weight: {type: integer, minimum: 1, maximum: 5}
+        evidence:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/AssessmentEvidence'}
+
+    DimensionSummary:
+      type: object
+      required: [dimension, score, assessed_weight, applicable_weight, evidence_coverage, label_counts]
+      properties:
+        dimension: {type: string, enum: [corporate_competency, vacancy_fit]}
+        score: {type: [number, 'null'], minimum: 0, maximum: 100}
+        assessed_weight: {type: integer, minimum: 0}
+        applicable_weight: {type: integer, minimum: 1}
+        evidence_coverage: {type: number, minimum: 0, maximum: 1}
+        label_counts: {type: object, additionalProperties: {type: integer, minimum: 0}}
+
+    AssessmentRun:
+      type: object
+      required:
+        - id
+        - interview_id
+        - context_snapshot_id
+        - run_number
+        - reason
+        - status
+        - input_hash
+        - criterion_assessments
+        - dimension_summaries
+        - created_at
+      properties:
+        id: {type: string, format: uuid}
+        interview_id: {type: string, format: uuid}
+        context_snapshot_id: {type: string, format: uuid}
+        run_number: {type: integer, minimum: 1}
+        reason:
+          type: string
+          enum: [initial, manual_retry, model_change, policy_replay, calibration]
+        status: {type: string, enum: [pending, running, completed, failed, invalidated]}
+        evaluator_id: {type: string}
+        model_id: {type: [string, 'null']}
+        input_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        output_hash: {type: [string, 'null'], pattern: '^[a-f0-9]{64}$'}
+        failure_code: {type: [string, 'null']}
+        criterion_assessments:
+          type: array
+          items: {$ref: '#/components/schemas/CriterionAssessment'}
+        dimension_summaries:
+          type: array
+          maxItems: 2
+          items: {$ref: '#/components/schemas/DimensionSummary'}
+        integrity_signals:
+          type: array
+          description: Human-review events stored separately and never used by scoring or ranking.
+          items: {type: object, additionalProperties: true}
+        created_at: {type: string, format: date-time}
+        completed_at: {type: [string, 'null'], format: date-time}
+
+    CreateRankingSnapshot:
+      type: object
+      required: [assessment_run_ids]
+      properties:
+        assessment_run_ids:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: {type: string, format: uuid}
+
+    RankingContribution:
+      type: object
+      required: [criterion_id, dimension, value, note]
+      properties:
+        criterion_id: {type: string}
+        dimension: {type: string, enum: [corporate_competency, vacancy_fit]}
+        value: {type: [number, 'null']}
+        note: {type: string}
+
+    RankingEntry:
+      type: object
+      required: [assessment_run_id, interview_id, candidate_alias, group, rank, primary_value, secondary_value, evidence_coverage, contributions]
+      properties:
+        assessment_run_id: {type: string, format: uuid}
+        interview_id: {type: string, format: uuid}
+        candidate_alias: {type: string}
+        group: {type: string, enum: [ranked, additional_review]}
+        rank: {type: [integer, 'null'], minimum: 1}
+        primary_value: {type: [number, 'null']}
+        secondary_value: {type: [number, 'null']}
+        evidence_coverage: {type: number, minimum: 0, maximum: 1}
+        contributions:
+          type: array
+          items: {$ref: '#/components/schemas/RankingContribution'}
+
+    RankingSnapshot:
+      type: object
+      required: [id, vacancy_id, ranking_policy, compatibility_key, entries, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        vacancy_id: {type: string, format: uuid}
+        ranking_policy: {type: object, additionalProperties: true}
+        compatibility_key: {type: string, pattern: '^[a-f0-9]{64}$'}
+        entries:
+          type: array
+          items: {$ref: '#/components/schemas/RankingEntry'}
+        created_at: {type: string, format: date-time}
+
+    CreateHumanDecision:
+      type: object
+      required: [actor_role, decision, reason]
+      properties:
+        actor_role: {type: string, enum: [recruiter, technical_expert, hiring_manager]}
+        decision: {type: string, enum: [advance, hold, reject, request_more_evidence]}
+        reason: {type: string, minLength: 1, maxLength: 4000}
+        evidence_reference_ids:
+          type: array
+          uniqueItems: true
+          items: {type: string, format: uuid}
+        supersedes_decision_id: {type: [string, 'null'], format: uuid}
+
+    HumanDecision:
+      allOf:
+        - $ref: '#/components/schemas/CreateHumanDecision'
+        - type: object
+          required: [id, interview_id, actor_id, created_at]
+          properties:
+            id: {type: string, format: uuid}
+            interview_id: {type: string, format: uuid}
+            actor_id: {type: string}
+            created_at: {type: string, format: date-time}
+
+    FeedbackRevisionInput:
+      type: object
+      required: [assessment_scope, strengths, growth_areas, evidence_gaps, limitations, next_steps, internal_notes]
+      properties:
+        source_assessment_run_id: {type: [string, 'null'], format: uuid}
+        correction_of_revision_id: {type: [string, 'null'], format: uuid}
+        assessment_scope:
+          type: array
+          items: {type: string, maxLength: 1000}
+        strengths:
+          type: array
+          items: {type: string, maxLength: 1000}
+        growth_areas:
+          type: array
+          items: {type: string, maxLength: 1000}
+        evidence_gaps:
+          type: array
+          items: {type: string, maxLength: 1000}
+        limitations:
+          type: array
+          items: {type: string, maxLength: 1000}
+        next_steps: {type: string, minLength: 1, maxLength: 2000}
+        internal_notes: {type: string, maxLength: 4000}
+        assessment_evidence_ids:
+          type: array
+          uniqueItems: true
+          items: {type: string, format: uuid}
+
+    FeedbackRevision:
+      allOf:
+        - $ref: '#/components/schemas/FeedbackRevisionInput'
+        - type: object
+          required: [id, revision_number, status, created_by, created_at]
+          properties:
+            id: {type: string, format: uuid}
+            revision_number: {type: integer, minimum: 1}
+            status: {type: string, enum: [draft, published]}
+            created_by: {type: string}
+            created_at: {type: string, format: date-time}
+            published_by: {type: [string, 'null']}
+            published_at: {type: [string, 'null'], format: date-time}
+
+    CreateFeedbackEntry:
+      allOf:
+        - $ref: '#/components/schemas/FeedbackRevisionInput'
+        - type: object
+          required: [stage, source_kind]
+          properties:
+            stage: {type: string, enum: [post_async_assessment, post_human_review]}
+            source_kind: {type: string, enum: [ai_assisted, human_authored, corrective]}
+            source_assessment_run_id: {type: [string, 'null'], format: uuid}
+
+    ManagerFeedbackEntry:
+      type: object
+      required: [id, interview_id, stage, source_kind, sequence, revisions, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        interview_id: {type: string, format: uuid}
+        stage: {type: string, enum: [post_async_assessment, post_human_review]}
+        source_kind: {type: string, enum: [ai_assisted, human_authored, corrective]}
+        sequence: {type: integer, minimum: 1}
+        revisions:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/FeedbackRevision'}
+        created_at: {type: string, format: date-time}
+
+    CandidateFeedbackEntry:
+      type: object
+      required: [stage, sequence, assessment_scope, strengths, growth_areas, evidence_gaps, limitations, next_steps, published_at]
+      properties:
+        stage: {type: string, enum: [post_async_assessment, post_human_review]}
+        sequence: {type: integer, minimum: 1}
+        assessment_scope:
+          type: array
+          items: {type: string}
+        strengths:
+          type: array
+          items: {type: string}
+        growth_areas:
+          type: array
+          items: {type: string}
+        evidence_gaps:
+          type: array
+          items: {type: string}
+        limitations:
+          type: array
+          items: {type: string}
+        next_steps: {type: string}
+        published_at: {type: string, format: date-time}
+
+    CandidateFeedbackTimeline:
+      type: object
+      required: [status, feedback_entries]
+      properties:
+        status: {type: string, enum: [pending_review, partially_published, published]}
+        feedback_entries:
+          type: array
+          items: {$ref: '#/components/schemas/CandidateFeedbackEntry'}

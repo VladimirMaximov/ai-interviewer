@@ -1,7 +1,7 @@
 {
   "integration": "speckit",
-  "version": "1.0.4",
-  "installed_at": "2026-09-03T09:46:28.063885+00:00",
+  "version": "1.0.5.dev0",
+  "installed_at": "2026-09-03T09:02:57.313225+00:00",
   "files": {
     ".specify/scripts/bash/common.sh": "fdfebd1274594eb3fbfccdf7968d5dd1243aaf244daf262d7c9d0c012c5d21a6",
     ".specify/scripts/bash/setup-plan.sh": "f417e1b8de7a48fa9d5fea3aabea8fe62149fa11c4b41b3103de06efe73dec8d",

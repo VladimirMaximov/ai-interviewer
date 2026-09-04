@@ -1,0 +1,126 @@
+:root {
+  color-scheme: light;
+  --ink: #17212b;
+  --muted: #66727f;
+  --line: #dbe1e7;
+  --paper: #ffffff;
+  --candidate: #0c766e;
+  --candidate-soft: #dff4ef;
+  --manager: #4f46a5;
+  --manager-soft: #ecebff;
+  --recruiter: #9a4d0d;
+  --recruiter-soft: #fff0da;
+  --danger: #a33a3a;
+  --shadow: 0 14px 40px rgb(28 40 54 / 8%);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: #f4f6f8;
+  line-height: 1.55;
+}
+
+a { color: inherit; }
+
+.topbar {
+  min-height: 68px;
+  padding: 0 4vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+  background: var(--candidate);
+}
+
+.portal-manager .topbar { background: var(--manager); }
+.portal-recruiter .topbar { background: var(--recruiter); }
+.brand { font-size: 1.15rem; font-weight: 800; text-decoration: none; letter-spacing: -.02em; }
+.portal-pill { padding: .25rem .65rem; border: 1px solid rgb(255 255 255 / 45%); border-radius: 999px; text-transform: uppercase; font-size: .72rem; letter-spacing: .12em; }
+
+.shell { width: min(1100px, 92vw); margin: 2.5rem auto 5rem; }
+.hero { padding: 2rem; border-radius: 22px; margin-bottom: 1.25rem; }
+.candidate-hero { background: var(--candidate-soft); }
+.manager-hero { background: var(--manager-soft); }
+.recruiter-hero { background: var(--recruiter-soft); }
+.hero h1 { margin: .35rem 0; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1.03; letter-spacing: -.055em; }
+.eyebrow { color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.status { display: flex; gap: .7rem; margin-top: 1.2rem; }
+.status span, .state { display: inline-block; padding: .3rem .65rem; border-radius: 8px; background: rgb(255 255 255 / 70%); font-size: .83rem; font-weight: 750; }
+
+.notice { padding: 1rem 1.2rem; border-left: 4px solid var(--candidate); background: var(--paper); border-radius: 8px; margin: 1.2rem 0; }
+.notice.compact { font-size: .9rem; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 1.4rem; box-shadow: var(--shadow); }
+.stack { display: grid; gap: 1rem; margin-top: 2rem; }
+.stack > h2 { margin-bottom: 0; }
+.question-number { color: var(--muted); font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.question-card h3, .evidence-card h3 { margin: .55rem 0 1rem; }
+.answer { white-space: pre-wrap; }
+
+form { display: grid; gap: 1rem; }
+label { display: grid; gap: .4rem; font-weight: 700; font-size: .9rem; }
+.check { display: flex; align-items: flex-start; font-weight: 500; }
+input, textarea, select {
+  width: 100%;
+  padding: .78rem .85rem;
+  border: 1px solid #b9c2cc;
+  border-radius: 9px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+}
+textarea { min-height: 118px; resize: vertical; }
+input:focus, textarea:focus, select:focus { outline: 3px solid rgb(12 118 110 / 18%); border-color: var(--candidate); }
+.portal-manager input:focus, .portal-manager textarea:focus, .portal-manager select:focus { outline-color: rgb(79 70 165 / 18%); border-color: var(--manager); }
+.portal-recruiter input:focus, .portal-recruiter textarea:focus, .portal-recruiter select:focus { outline-color: rgb(154 77 13 / 18%); border-color: var(--recruiter); }
+
+button, .button {
+  width: fit-content;
+  border: 0;
+  border-radius: 9px;
+  padding: .75rem 1rem;
+  color: white;
+  background: var(--candidate);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+}
+.portal-manager button, .portal-manager .button { background: var(--manager); }
+.portal-recruiter button, .portal-recruiter .button { background: var(--recruiter); }
+button.secondary, .button.secondary { color: var(--ink); background: #e9edf1; }
+.button-row { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: .8rem; }
+.submit-panel { align-items: start; padding: 1.2rem; border: 1px dashed #99a5b1; border-radius: 14px; }
+
+.dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, .8fr); gap: 1rem; align-items: start; }
+.role-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.table-card { padding: 0; overflow: hidden; }
+.table-card h2 { padding: 0 1.4rem; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .85rem 1.2rem; text-align: left; border-top: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .07em; }
+.state-submitted { background: #fff2c7; }
+.state-reviewed { background: #dff4e7; }
+.state-in_progress { background: #dcecff; }
+.back { display: inline-block; margin-bottom: 1rem; color: var(--muted); text-decoration: none; }
+pre { overflow-x: auto; white-space: pre-wrap; font: inherit; background: #f5f7f9; padding: 1rem; border-radius: 9px; }
+fieldset { display: grid; gap: 1rem; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; }
+legend { padding: 0 .4rem; font-weight: 800; }
+.review-form { margin-top: 1rem; }
+.feedback { margin-top: 2rem; }
+.published { border-top: 5px solid var(--candidate); }
+.success-card, .error-card { max-width: 720px; margin: 8vh auto; }
+code { display: block; overflow-wrap: anywhere; padding: 1rem; background: #f0f2f5; border-radius: 8px; }
+footer { width: min(1100px, 92vw); margin: 2rem auto; color: var(--muted); font-size: .78rem; text-align: center; }
+
+@media (max-width: 760px) {
+  .shell { margin-top: 1rem; }
+  .hero, .card { padding: 1.1rem; border-radius: 13px; }
+  .dashboard-grid, .role-grid { grid-template-columns: 1fr; }
+  .status { flex-wrap: wrap; }
+  .button-row > * { width: 100%; text-align: center; }
+}
