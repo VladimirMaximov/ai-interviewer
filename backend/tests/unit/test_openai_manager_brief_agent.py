@@ -41,12 +41,15 @@ class OpenAIManagerBriefAgentTests(unittest.TestCase):
         )
 
         self.assertEqual(result.fields, [])
+        self.assertEqual(agent.prompt_id, "manager-brief-v2")
         self.assertIs(responses.arguments["text_format"], ManagerBriefAgentResult)
         self.assertFalse(responses.arguments["store"])
         messages = responses.arguments["input"]
         self.assertNotIn(injection, messages[0]["content"])
         self.assertIn(injection, messages[1]["content"])
         self.assertIn("untrusted", messages[0]["content"].lower())
+        self.assertIn("Do not create agent suggestions", messages[0]["content"])
+        self.assertIn("Omit every field", messages[0]["content"])
 
 
 if __name__ == "__main__":

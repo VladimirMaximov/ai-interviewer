@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session
 from app.domain.manager_brief import (
     FIELD_LABELS,
     SINGLE_VALUE_FIELDS,
-    UNRESOLVED_QUESTIONS,
     AgentFieldProposal,
     AgentFieldOrigin,
     AgentOperationStatus,
@@ -114,12 +113,12 @@ class ManagerBriefService:
     def fragment_source(source_text: str) -> list[dict]:
         """Build deterministic bounded fragments for provenance validation."""
         normalized = source_text.replace("\r\n", "\n").replace("\r", "\n").strip()
-        if not normalized:
-            raise ManagerBriefValidationError("source_text must not be empty")
         if len(normalized) > MAX_SOURCE_CHARS:
             raise ManagerBriefValidationError(
                 f"source_text must contain at most {MAX_SOURCE_CHARS} characters"
             )
+        if not normalized:
+            return []
 
         chunks: list[str] = []
         for paragraph in re.split(r"\n\s*\n", normalized):
@@ -148,12 +147,13 @@ class ManagerBriefService:
         operation_key = self._required_idempotency_key(idempotency_key)
         fragments = self.fragment_source(source_text)
         normalized_source = "\n\n".join(fragment["text"] for fragment in fragments)
+        prompt_id = self.agent.prompt_id if fragments else "manager-brief-empty-v1"
         input_hash = _canonical_hash(
             {
                 "vacancy_id": str(vacancy_id),
                 "actor_id": actor,
                 "source_fragments": fragments,
-                "prompt_id": self.agent.prompt_id,
+                "prompt_id": prompt_id,
             }
         )
         operation = self.db.scalar(
@@ -236,9 +236,9 @@ class ManagerBriefService:
             operation_id=operation.id,
             attempt=int(attempts or 0) + 1,
             status=AgentRunStatus.RUNNING,
-            model_id=self.agent.model_id,
-            model_version=self.agent.model_version,
-            prompt_id=self.agent.prompt_id,
+            model_id=self.agent.model_id if fragments else "deterministic-no-input",
+            model_version=self.agent.model_version if fragments else "1",
+            prompt_id=prompt_id,
             input_hash=input_hash,
             started_at=_now(),
         )
@@ -247,11 +247,19 @@ class ManagerBriefService:
         self.db.refresh(run)
 
         try:
-            raw_result = self.agent.draft(
-                vacancy_id=str(vacancy_id),
-                fragments=fragments,
-            )
-            result = ManagerBriefAgentResult.model_validate(raw_result)
+            if fragments:
+                raw_result = self.agent.draft(
+                    vacancy_id=str(vacancy_id),
+                    fragments=fragments,
+                )
+                result = ManagerBriefAgentResult.model_validate(raw_result)
+            else:
+                result = ManagerBriefAgentResult(
+                    schema_version="manager_brief_v1",
+                    purpose="manager_brief_draft",
+                    fields=[],
+                    unresolved_fields=[],
+                )
             fields, unresolved = self._validate_agent_result(
                 result,
                 fragments,
@@ -593,12 +601,6 @@ class ManagerBriefService:
             if item.field_key in seen or item.field_key in unresolved_by_key:
                 continue
             unresolved_by_key[item.field_key] = item
-        for key in FieldKey:
-            if key not in seen and key not in unresolved_by_key:
-                unresolved_by_key[key] = UnresolvedField(
-                    field_key=key,
-                    question=UNRESOLVED_QUESTIONS[key],
-                )
         unresolved = [
             unresolved_by_key[key] for key in FieldKey if key in unresolved_by_key
         ]
@@ -609,12 +611,6 @@ class ManagerBriefService:
         proposal: AgentFieldProposal,
         fragment_text: dict[str, str],
     ) -> None:
-        if proposal.origin is AgentFieldOrigin.AGENT_SUGGESTION:
-            if proposal.source_fragment_ids or proposal.source_quotes:
-                raise AgentOutputError(
-                    "agent suggestion cannot claim manager provenance"
-                )
-            return
         if not proposal.source_fragment_ids or not proposal.source_quotes:
             raise AgentOutputError("manager-derived field requires source provenance")
         try:
@@ -663,6 +659,10 @@ class ManagerBriefService:
                 if len(cleaned) > MAX_VALUE_CHARS:
                     raise error_type(f"field {key.value} item is too long")
                 normalized_items.append(cleaned)
+        if agent_output and not normalized_items:
+            raise AgentOutputError(
+                f"agent field {key.value} must contain at least one item"
+            )
         return normalized_items
 
     @staticmethod

@@ -40,28 +40,16 @@ FIELD_LABELS = {
     FieldKey.TOPICS_TO_COVER: "Темы для проверки",
 }
 
-UNRESOLVED_QUESTIONS = {
-    FieldKey.ROLE: "Какую роль должен выполнять специалист?",
-    FieldKey.SENIORITY: "Какой уровень специалиста нужен?",
-    FieldKey.BUSINESS_CONTEXT: "В каком контексте команды или продукта предстоит работать?",
-    FieldKey.RESPONSIBILITIES: "Какие рабочие задачи предстоит решать?",
-    FieldKey.MUST_HAVE_COMPETENCIES: "Какие компетенции обязательны?",
-    FieldKey.NICE_TO_HAVE_COMPETENCIES: "Какие компетенции будут преимуществом?",
-    FieldKey.EXPECTED_ANSWER_SIGNALS: "Какие признаки сильного ответа важны?",
-    FieldKey.CONSTRAINTS: "Есть ли рабочие ограничения или обязательные условия?",
-    FieldKey.TOPICS_TO_COVER: "Какие темы обязательно проверить на интервью?",
-}
-
 
 class FieldOrigin(StrEnum):
     MANAGER_SOURCE = "manager_source"
+    # Read compatibility for drafts created before agent suggestions were disabled.
     AGENT_SUGGESTION = "agent_suggestion"
     MANAGER_EDITED = "manager_edited"
 
 
 class AgentFieldOrigin(StrEnum):
     MANAGER_SOURCE = "manager_source"
-    AGENT_SUGGESTION = "agent_suggestion"
 
 
 class ConfirmationStatus(StrEnum):

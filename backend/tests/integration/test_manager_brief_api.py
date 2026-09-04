@@ -23,9 +23,13 @@ class ApiAgent:
     model_version = "1"
     prompt_id = "manager-brief-v1"
 
+    def __init__(self) -> None:
+        self.calls = 0
+
     def draft(
         self, *, vacancy_id: str, fragments: list[dict]
     ) -> ManagerBriefAgentResult:
+        self.calls += 1
         return ManagerBriefAgentResult(
             schema_version="manager_brief_v1",
             purpose="manager_brief_draft",
@@ -52,7 +56,8 @@ class ManagerBriefApiTests(unittest.TestCase):
         )
         Base.metadata.create_all(engine)
         self.db = sessionmaker(engine, expire_on_commit=False)()
-        self.service = ManagerBriefService(self.db, ApiAgent())
+        self.agent = ApiAgent()
+        self.service = ManagerBriefService(self.db, self.agent)
         app.dependency_overrides[get_manager_brief_service] = lambda: self.service
         app.dependency_overrides[require_manager] = lambda: "manager-api-test"
         self.client = TestClient(app)
@@ -116,6 +121,21 @@ class ManagerBriefApiTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()["error"]["code"], "revision_conflict")
+
+    def test_empty_wishes_create_an_optional_empty_form_without_agent_call(
+        self,
+    ) -> None:
+        response = self.client.post(
+            f"/manager/vacancies/{self.vacancy_id}/brief-drafts",
+            headers={"Idempotency-Key": "api-empty-brief"},
+            json={},
+        )
+
+        self.assertEqual(response.status_code, 201, response.text)
+        self.assertEqual(response.json()["source_text"], "")
+        self.assertEqual(response.json()["fields"], [])
+        self.assertEqual(response.json()["unresolved_fields"], [])
+        self.assertEqual(self.agent.calls, 0)
 
 
 if __name__ == "__main__":

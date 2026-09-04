@@ -30,7 +30,7 @@ router = APIRouter(prefix="/manager/vacancies", tags=["manager-brief"])
 class CreateManagerBriefRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    source_text: str = Field(min_length=1, max_length=50_000)
+    source_text: str = Field(default="", max_length=50_000)
 
 
 class UpdateManagerBriefRequest(BaseModel):

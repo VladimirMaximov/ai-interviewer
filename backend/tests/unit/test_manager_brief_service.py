@@ -1,6 +1,7 @@
 import unittest
 from uuid import uuid4
 
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -15,7 +16,6 @@ from app.domain.manager_brief import (
     ManagerBriefAgentResult,
     ManagerBriefConflictError,
     ManagerBriefValidationError,
-    UnresolvedField,
 )
 from app.models.interview import Base
 from app.models.manager_brief import ManagerBriefAgentRun
@@ -78,21 +78,8 @@ def sourced_result(fragment_id: str) -> ManagerBriefAgentResult:
                 source_quotes=["Python и PostgreSQL"],
                 confidence=0.92,
             ),
-            AgentFieldProposal(
-                field_key=FieldKey.NICE_TO_HAVE_COMPETENCIES,
-                value=["Опыт с очередями сообщений"],
-                origin=FieldOrigin.AGENT_SUGGESTION,
-                source_fragment_ids=[],
-                source_quotes=[],
-                confidence=0.55,
-            ),
         ],
-        unresolved_fields=[
-            UnresolvedField(
-                field_key=FieldKey.SENIORITY,
-                question="Какой уровень специалиста нужен?",
-            )
-        ],
+        unresolved_fields=[],
     )
 
 
@@ -118,7 +105,7 @@ class ManagerBriefServiceTests(unittest.TestCase):
         agent = StubManagerBriefAgent(sourced_result(fragments[0]["id"]))
         return ManagerBriefService(self.db, agent), agent
 
-    def test_agent_draft_preserves_sources_and_marks_suggestions(self) -> None:
+    def test_agent_draft_leaves_unmentioned_form_fields_empty(self) -> None:
         service, _ = self._service()
 
         draft = service.create_draft(
@@ -137,11 +124,30 @@ class ManagerBriefServiceTests(unittest.TestCase):
         self.assertIsNotNone(by_key[FieldKey.ROLE].confirmed_at)
         self.assertTrue(by_key[FieldKey.ROLE].source_fragment_ids)
         self.assertEqual(
-            by_key[FieldKey.NICE_TO_HAVE_COMPETENCIES].confirmation_status,
-            ConfirmationStatus.PROPOSED,
+            set(by_key),
+            {FieldKey.ROLE, FieldKey.MUST_HAVE_COMPETENCIES},
         )
-        self.assertIsNone(by_key[FieldKey.NICE_TO_HAVE_COMPETENCIES].confirmed_by)
-        self.assertEqual(draft.unresolved_fields[0].field_key, FieldKey.SENIORITY)
+        self.assertEqual(draft.unresolved_fields, [])
+
+    def test_agent_output_schema_forbids_unstated_suggestions(self) -> None:
+        with self.assertRaises(PydanticValidationError):
+            ManagerBriefAgentResult.model_validate(
+                {
+                    "schema_version": "manager_brief_v1",
+                    "purpose": "manager_brief_draft",
+                    "fields": [
+                        {
+                            "field_key": "nice_to_have_competencies",
+                            "value": ["Опыт с очередями сообщений"],
+                            "origin": "agent_suggestion",
+                            "source_fragment_ids": [],
+                            "source_quotes": [],
+                            "confidence": 0.55,
+                        }
+                    ],
+                    "unresolved_fields": [],
+                }
+            )
 
     def test_same_idempotency_key_returns_the_same_draft(self) -> None:
         service, agent = self._service()
@@ -203,6 +209,34 @@ class ManagerBriefServiceTests(unittest.TestCase):
                 idempotency_key="brief-invalid-001",
             )
         self.assertEqual(service.list_drafts(self.vacancy_id), [])
+
+    def test_agent_cannot_fill_an_unmentioned_list_with_an_empty_value(self) -> None:
+        source = "Ищем backend-разработчика."
+        fragment_id = ManagerBriefService.fragment_source(source)[0]["id"]
+        result = ManagerBriefAgentResult(
+            schema_version="manager_brief_v1",
+            purpose="manager_brief_draft",
+            fields=[
+                AgentFieldProposal(
+                    field_key=FieldKey.TOPICS_TO_COVER,
+                    value=[],
+                    origin=FieldOrigin.MANAGER_SOURCE,
+                    source_fragment_ids=[fragment_id],
+                    source_quotes=["backend-разработчика"],
+                    confidence=0.9,
+                )
+            ],
+            unresolved_fields=[],
+        )
+        service = ManagerBriefService(self.db, StubManagerBriefAgent(result))
+
+        with self.assertRaises(AgentOutputError):
+            service.create_draft(
+                vacancy_id=self.vacancy_id,
+                source_text=source,
+                actor_id="manager-1",
+                idempotency_key="brief-empty-agent-field",
+            )
 
     def test_failed_output_can_retry_without_losing_attempt_lineage(self) -> None:
         source = "Ищем Backend-разработчика. Обязательны Python и PostgreSQL."
@@ -460,6 +494,49 @@ class ManagerBriefServiceTests(unittest.TestCase):
             confirm_no_automatic_rejection=True,
         )
 
+        self.assertEqual(approved.status.value, "approved")
+        self.assertEqual(service.get_approved_context(self.vacancy_id).fields, [])
+
+    def test_empty_wishes_skip_agent_and_can_be_approved(self) -> None:
+        agent = StubManagerBriefAgent(
+            ManagerBriefAgentResult(
+                schema_version="manager_brief_v1",
+                purpose="manager_brief_draft",
+                fields=[],
+                unresolved_fields=[],
+            )
+        )
+        service = ManagerBriefService(self.db, agent)
+
+        draft = service.create_draft(
+            vacancy_id=self.vacancy_id,
+            source_text="   ",
+            actor_id="manager-1",
+            idempotency_key="brief-no-wishes",
+        )
+        approved = service.approve_draft(
+            vacancy_id=self.vacancy_id,
+            draft_id=draft.id,
+            expected_revision=draft.revision,
+            actor_id="manager-1",
+            confirm_no_automatic_rejection=True,
+        )
+        repeated = service.create_draft(
+            vacancy_id=self.vacancy_id,
+            source_text="",
+            actor_id="manager-1",
+            idempotency_key="brief-no-wishes",
+        )
+        run = self.db.scalar(select(ManagerBriefAgentRun))
+
+        self.assertEqual(agent.calls, 0)
+        self.assertEqual(repeated.id, draft.id)
+        self.assertIsNotNone(run)
+        self.assertEqual(run.model_id, "deterministic-no-input")
+        self.assertEqual(run.prompt_id, "manager-brief-empty-v1")
+        self.assertEqual(draft.source_text, "")
+        self.assertEqual(draft.fields, [])
+        self.assertEqual(draft.unresolved_fields, [])
         self.assertEqual(approved.status.value, "approved")
         self.assertEqual(service.get_approved_context(self.vacancy_id).fields, [])
 

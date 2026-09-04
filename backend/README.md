@@ -107,8 +107,9 @@ The manager flow turns free-form wishes into a versioned form. It uses the OpenA
 with a strict Pydantic structured output, following the official
 [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs).
 Manager text is passed as untrusted user data. Every extracted value carries source fragment IDs
-and exact quotes; unstated agent proposals have no source and must be explicitly confirmed or
-rejected before approval.
+and exact quotes. The agent is not allowed to propose or infer unstated requirements: fields absent
+from the manager's text are omitted from `fields` and remain blank in the form. Missing fields do
+not block approval.
 
 Configure the provider and manager API key in the environment:
 
@@ -131,10 +132,16 @@ curl -X POST http://127.0.0.1:8000/manager/vacancies/00000000-0000-0000-0000-000
   -d '{"source_text":"Ищем middle backend-разработчика. Обязательны Python и PostgreSQL."}'
 ```
 
-The response is ready for form rendering: every field contains `field_key`, a Russian `label`,
-`value`, `origin`, provenance, `confidence`, and `confirmation_status`. Save changed or confirmed
-fields with `PATCH /manager/vacancies/{vacancy_id}/brief-drafts/{draft_id}` and the returned
-`revision`; a stale revision returns `409` instead of overwriting another edit. Approve through
+`source_text` is optional. Sending `{}` or an empty string creates an approvable empty brief without
+calling the model; downstream interview planning can then rely only on the vacancy and corporate
+context.
+
+The response is ready for form rendering: every populated field contains `field_key`, a Russian
+`label`, `value`, `origin`, provenance, `confidence`, and `confirmation_status`. Unmentioned fields
+are absent from `fields`; the UI can render them as blank using the fixed field keys and add only
+values entered by the manager. Save changed fields with
+`PATCH /manager/vacancies/{vacancy_id}/brief-drafts/{draft_id}` and the returned `revision`; a stale
+revision returns `409` instead of overwriting another edit. Approve through
 `POST .../{draft_id}/approve` with `confirm_no_automatic_rejection=true`.
 
 ```json
