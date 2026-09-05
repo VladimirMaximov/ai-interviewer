@@ -1,91 +1,16 @@
-# main.py
-from fastapi import FastAPI, Form, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-import sqlite3, hashlib, uuid
-from contextlib import contextmanager
+"""Compatibility launcher for the canonical backend in ``backend_ux``."""
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+from pathlib import Path
+import sys
 
-@contextmanager
-def db():
-    conn = sqlite3.connect("interview.db")
-    conn.row_factory = sqlite3.Row
-    yield conn
-    conn.commit()
-    conn.close()
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
 
-def init():
-    with db() as conn:
-        conn.execute("CREATE TABLE IF NOT EXISTS users (id TEXT, username TEXT, password TEXT, role TEXT)")
-        conn.execute("CREATE TABLE IF NOT EXISTS vacancies (id TEXT, title TEXT, desc TEXT, author_id TEXT)")
-        conn.execute("CREATE TABLE IF NOT EXISTS questions (id TEXT, vacancy_id TEXT, text TEXT)")
-        
-        if not conn.execute("SELECT * FROM users").fetchone():
-            pwd = hashlib.sha256("1234".encode()).hexdigest()
-            conn.execute("INSERT INTO users VALUES ('1', 'interviewer', ?, 'interviewer')", (pwd,))
-            conn.execute("INSERT INTO users VALUES ('2', 'candidate', ?, 'candidate')", (pwd,))
-            conn.execute("INSERT INTO users VALUES ('3', 'manager', ?, 'hiring_manager')", (pwd,))
-            
-            conn.execute("INSERT INTO vacancies VALUES ('1', 'Middle Python разработчик', 'Разработка бэкенда на Python', '1')")
-            conn.execute("INSERT INTO vacancies VALUES ('2', 'Junior Data Scientist', 'Анализ данных и ML', '1')")
-            
-            conn.execute("INSERT INTO questions VALUES ('q1', '1', 'Расскажите о опыте работы с Django')")
-            conn.execute("INSERT INTO questions VALUES ('q2', '1', 'Как тестируете код?')")
-init()
+from backend_ux.main import app  # noqa: E402
 
-def hash_pwd(pwd):
-    return hashlib.sha256(pwd.encode()).hexdigest()
 
-@app.post("/api/login")
-async def login(username: str = Form(...), password: str = Form(...)):
-    with db() as conn:
-        user = conn.execute("SELECT * FROM users WHERE username=? AND password=?", 
-                           (username, hash_pwd(password))).fetchone()
-    if not user:
-        raise HTTPException(401, "Неверный логин или пароль")
-    return {"id": user["id"], "username": user["username"], "role": user["role"]}
+if __name__ == "__main__":
+    import uvicorn
 
-@app.get("/api/vacancies")
-async def get_vacancies():
-    with db() as conn:
-        return [dict(v) for v in conn.execute("SELECT * FROM vacancies").fetchall()]
-
-@app.get("/api/vacancies/{vacancy_id}")
-async def get_vacancy(vacancy_id: str):
-    with db() as conn:
-        vac = conn.execute("SELECT * FROM vacancies WHERE id=?", (vacancy_id,)).fetchone()
-        if not vac:
-            raise HTTPException(404, "Вакансия не найдена")
-        questions = conn.execute("SELECT * FROM questions WHERE vacancy_id=?", (vacancy_id,)).fetchall()
-    return {**dict(vac), "questions": [dict(q) for q in questions]}
-
-@app.post("/api/vacancies")
-async def create_vacancy(title: str = Form(...), desc: str = Form(...), author_id: str = Form(...)):
-    vid = str(uuid.uuid4())[:8]
-    with db() as conn:
-        conn.execute("INSERT INTO vacancies VALUES (?, ?, ?, ?)", (vid, title, desc, author_id))
-    return {"id": vid}
-
-@app.put("/api/vacancies/{vacancy_id}")
-async def update_vacancy(vacancy_id: str, title: str = Form(...), desc: str = Form(...), questions: list = Form([])):
-    with db() as conn:
-        conn.execute("UPDATE vacancies SET title=?, desc=? WHERE id=?", (title, desc, vacancy_id))
-        conn.execute("DELETE FROM questions WHERE vacancy_id=?", (vacancy_id,))
-        for q in questions:
-            if q.strip():
-                conn.execute("INSERT INTO questions VALUES (?, ?, ?)", (str(uuid.uuid4())[:8], vacancy_id, q.strip()))
-    return {"success": True}
-
-@app.get("/api/leaderboard")
-async def get_leaderboard():
-    return [
-        {"name": "Анна С.", "score": 92},
-        {"name": "Михаил К.", "score": 87},
-        {"name": "Екатерина П.", "score": 81},
-    ]
+    uvicorn.run(app, host="0.0.0.0", port=8000)

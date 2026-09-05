@@ -23,7 +23,7 @@ const CandidateHome: React.FC = () => {
     <>
       <nav className="navbar navbar-light bg-white shadow-sm">
         <div className="container">
-          <span className="navbar-brand">🤖 AI Интервьюер</span>
+          <span className="navbar-brand">AI Интервьюер</span>
           <button className="btn btn-sm btn-outline-danger" onClick={() => {
             localStorage.clear();
             navigate('/login');
@@ -34,14 +34,14 @@ const CandidateHome: React.FC = () => {
       <div className="container mt-5" style={{ maxWidth: 600 }}>
         <div className="card">
           <div className="card-body text-center">
-            <h4 className="mb-4">🔗 Ваша ссылка для интервью</h4>
+            <h4 className="mb-4">Ваша ссылка для интервью</h4>
             <div className="p-3 bg-light rounded">
               <code className="text-break">
                 https://your-interview-service.com/interview/{user.id}
               </code>
             </div>
             <button className="btn btn-primary mt-3" onClick={copyLink}>
-              📋 Скопировать ссылку
+              Скопировать ссылку
             </button>
             <p className="text-muted mt-3">
               Перейдите по ссылке, чтобы начать интервью
