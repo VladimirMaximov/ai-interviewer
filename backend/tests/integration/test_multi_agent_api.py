@@ -98,6 +98,35 @@ class ApiAgent:
             return QuestionPlanOutput(questions=context["baseline_questions"])
         if self.purpose is AgentPurpose.ANSWER_ASSESSMENT:
             evidence_id = context["answer_evidence_catalog"][0]["evidence_id"]
+            if "Не могу" in context["answer_text"]:
+                return AnswerAssessmentOutput(
+                    response_id=context["response_id"],
+                    question_id=context["question_id"],
+                    observations=[
+                        {
+                            "criterion_id": criterion["criterion_id"],
+                            "dimension": criterion["dimension"],
+                            "label": "weak",
+                            "value": -0.5,
+                            "confidence": 0.9,
+                            "explanation": "Заявленный навык не подтверждён.",
+                            "evidence": [
+                                {"kind": "counter", "evidence_id": evidence_id}
+                            ],
+                        }
+                        for criterion in context["question"]["criteria"]
+                    ],
+                    live_coding={
+                        "trigger": "claimed_technical_skill_not_demonstrated",
+                        "prompt": "Реализуйте функцию unique на Python.",
+                        "reason": "Нужно проверить заявленный навык Python.",
+                        "criterion_ids": ["technical_depth"],
+                        "requirement_ids": [
+                            context["requirement_catalog"][0]["requirement_id"]
+                        ],
+                        "resume_claim_ids": ["python-claim"],
+                    },
+                )
             return AnswerAssessmentOutput(
                 response_id=context["response_id"],
                 question_id=context["question_id"],
@@ -208,7 +237,7 @@ class MultiAgentApiTests(unittest.TestCase):
             vacancy_id=self.vacancy.id,
             candidate_alias="synthetic-candidate",
             created_by="recruiter-api-test",
-            expires_at=NOW + timedelta(days=1),
+            expires_at=datetime.now(timezone.utc) + timedelta(days=1),
             status=InvitationStatus.ACTIVE,
         )
         self.db.add(self.invitation)
@@ -390,6 +419,89 @@ class MultiAgentApiTests(unittest.TestCase):
             f"/recruiter/vacancies/{self.vacancy.id}/ranking"
         )
         self.assertEqual(ranking_after.json()["entries"], [])
+
+    def test_candidate_submits_one_live_coding_response_for_assessment(
+        self,
+    ) -> None:
+        self.client.post(
+            self.base,
+            headers={"Idempotency-Key": "live-agent-session-api"},
+        )
+        self.client.post(
+            f"{self.base}/resume-analysis",
+            headers={"Idempotency-Key": "live-resume-analysis-api"},
+        )
+        plan = self.client.post(
+            f"{self.base}/question-plan",
+            headers={"Idempotency-Key": "live-question-plan-api"},
+        )
+        question_id = plan.json()["payload"]["questions"][0]["question_id"]
+        response = CandidateResponse(
+            session_id=self.interview.id,
+            question_id=UUID(question_id),
+            storage_key=f"responses/{uuid4()}.webm",
+            content_type="audio/webm",
+            checksum="e" * 64,
+            transcription_status=TranscriptionStatus.COMPLETED,
+            transcript_text="Не могу ответить про Python.",
+            created_at=NOW,
+        )
+        self.db.add(response)
+        self.db.commit()
+        assessment = self.client.post(
+            f"{self.base}/answer-assessments",
+            headers={"Idempotency-Key": "live-trigger-assessment-api"},
+            json={"response_id": str(response.id)},
+        )
+        self.assertEqual(assessment.status_code, 200, assessment.text)
+
+        candidate_plan = self.client.get(
+            f"/candidate/{self.candidate_secret}/questions"
+        )
+        live_questions = [
+            question
+            for question in candidate_plan.json()["questions"]
+            if question["kind"] == "live_coding"
+        ]
+        self.assertEqual(len(live_questions), 1)
+        live_payload = {
+            "question_id": live_questions[0]["question_id"],
+            "code": "def unique(items):\n    return list(dict.fromkeys(items))",
+        }
+        submitted = self.client.post(
+            f"/candidate/{self.candidate_secret}/live-coding-responses",
+            json=live_payload,
+        )
+        self.assertEqual(submitted.status_code, 201, submitted.text)
+        self.assertEqual(submitted.json()["status"], "completed")
+        replay = self.client.post(
+            f"/candidate/{self.candidate_secret}/live-coding-responses",
+            json=live_payload,
+        )
+        self.assertEqual(replay.json()["response_id"], submitted.json()["response_id"])
+        duplicate = self.client.post(
+            f"/candidate/{self.candidate_secret}/live-coding-responses",
+            json={**live_payload, "code": "def unique(items):\n    return items"},
+        )
+        self.assertEqual(duplicate.status_code, 409, duplicate.text)
+
+        scored = self.client.post(
+            f"{self.base}/answer-assessments",
+            headers={"Idempotency-Key": "live-score-assessment-api"},
+            json={"response_id": submitted.json()["response_id"]},
+        )
+        self.assertEqual(scored.status_code, 200, scored.text)
+        final = self.client.post(
+            f"{self.base}/finalize",
+            headers={"Idempotency-Key": "live-finalize-profile-api"},
+        )
+        self.assertEqual(final.status_code, 200, final.text)
+        technical = next(
+            item
+            for item in final.json()["profile"]["payload"]["criterion_summaries"]
+            if item["criterion_id"] == "technical_depth"
+        )
+        self.assertEqual(technical["observation_count"], 2)
 
     def test_scoped_session_and_precondition_errors_are_structured(self) -> None:
         missing = self.client.get(

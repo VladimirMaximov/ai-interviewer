@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Request, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.hiring_context import require_recruiter
 from app.api.errors import invalid_invitation
@@ -19,6 +19,7 @@ from app.domain.multi_agent import (
     CandidateFeedbackDeliveryView,
     CandidateFeedbackReleaseView,
     FinalizationView,
+    LiveCodingSubmissionView,
     MultiAgentConflictError,
     MultiAgentError,
     MultiAgentNotFoundError,
@@ -40,6 +41,13 @@ class AnswerAssessmentRequest(BaseModel):
     response_id: UUID
 
 
+class LiveCodingSubmissionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: UUID
+    code: str = Field(min_length=4, max_length=30_000)
+
+
 class MultiAgentWorkflow(Protocol):
     def close(self) -> None: ...
 
@@ -59,6 +67,14 @@ class MultiAgentWorkflow(Protocol):
     def candidate_question_plan(
         self, *, secret: str
     ) -> CandidateQuestionPlanView | None: ...
+
+    def submit_live_coding(
+        self,
+        *,
+        secret: str,
+        question_id: UUID,
+        code: str,
+    ) -> LiveCodingSubmissionView | None: ...
 
     def candidate_feedback(
         self, *, secret: str
@@ -147,6 +163,26 @@ def get_candidate_questions(
     service: MultiAgentWorkflow = Depends(get_multi_agent_harness),
 ) -> CandidateQuestionPlanView:
     result = service.candidate_question_plan(secret=secret)
+    if result is None:
+        raise invalid_invitation()
+    return result
+
+
+@candidate_router.post(
+    "/{secret}/live-coding-responses",
+    response_model=LiveCodingSubmissionView,
+    status_code=status.HTTP_201_CREATED,
+)
+def submit_live_coding(
+    secret: str,
+    payload: LiveCodingSubmissionRequest,
+    service: MultiAgentWorkflow = Depends(get_multi_agent_harness),
+) -> LiveCodingSubmissionView:
+    result = service.submit_live_coding(
+        secret=secret,
+        question_id=payload.question_id,
+        code=payload.code,
+    )
     if result is None:
         raise invalid_invitation()
     return result

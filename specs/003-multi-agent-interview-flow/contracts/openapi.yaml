@@ -39,8 +39,44 @@ paths:
                       properties:
                         question_id: {type: string, format: uuid}
                         prompt: {type: string}
-                        kind: {enum: [baseline, personalized]}
+                        kind: {enum: [baseline, personalized, follow_up, live_coding]}
         '404': {$ref: '#/components/responses/NotFound'}
+
+  /candidate/{secret}/live-coding-responses:
+    post:
+      operationId: submitLiveCodingResponse
+      parameters:
+        - name: secret
+          in: path
+          required: true
+          schema: {type: string, minLength: 1}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [question_id, code]
+              properties:
+                question_id: {type: string, format: uuid}
+                code: {type: string, minLength: 4, maxLength: 30000}
+      responses:
+        '201':
+          description: Stored completed code response, ready for answer assessment.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [response_id, question_id, status]
+                properties:
+                  response_id: {type: string, format: uuid}
+                  question_id: {type: string, format: uuid}
+                  status: {const: completed}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
 
   /candidate/{secret}/feedback:
     get:
@@ -276,6 +312,8 @@ components:
       description: State, dependency, or idempotency conflict.
     InvalidAgentOutput:
       description: Provider output failed local contract or evidence validation.
+    ValidationError:
+      description: Request payload failed validation.
 
   schemas:
     AgentSession:

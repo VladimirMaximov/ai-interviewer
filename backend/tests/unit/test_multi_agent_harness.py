@@ -31,6 +31,7 @@ from app.domain.multi_agent import (
     MultiAgentProviderError,
     MultiAgentValidationError,
     ObservationLabel,
+    QuestionKind,
     QuestionPlanOutput,
     RestrictionType,
     ResumeRelevanceOutput,
@@ -828,6 +829,454 @@ class MultiAgentHarnessTests(unittest.TestCase):
         self.assertEqual(
             self.agent_map[AgentPurpose.ANSWER_ASSESSMENT].calls, []
         )
+
+    def test_weak_answer_creates_two_grounded_follow_ups(self) -> None:
+        _, plan = self._session_and_plan()
+        response = self._response(
+            plan.questions[0].question_id,
+            "Не знаю деталей, просто использовали Python.",
+        )
+
+        def weak_answer(context):
+            evidence_id = context["answer_evidence_catalog"][0]["evidence_id"]
+            return AnswerAssessmentOutput(
+                response_id=context["response_id"],
+                question_id=context["question_id"],
+                observations=[
+                    {
+                        "criterion_id": criterion["criterion_id"],
+                        "dimension": criterion["dimension"],
+                        "label": "weak",
+                        "value": -0.5,
+                        "confidence": 0.4,
+                        "explanation": (
+                            "Ответ не раскрывает реализацию и личный вклад."
+                        ),
+                        "evidence": [
+                            {"kind": "counter", "evidence_id": evidence_id}
+                        ],
+                    }
+                    for criterion in context["question"]["criteria"]
+                ],
+                follow_up=[
+                    {
+                        "trigger": "low_confidence",
+                        "prompt": (
+                            "Какую часть Python-сервиса вы реализовали лично?"
+                        ),
+                        "reason": (
+                            "Нужно отделить личный опыт от общего упоминания "
+                            "технологии."
+                        ),
+                        "criterion_ids": ["technical_depth"],
+                        "requirement_ids": [
+                            context["requirement_catalog"][0]["requirement_id"]
+                        ],
+                        "resume_claim_ids": ["claim-python"],
+                    },
+                    {
+                        "trigger": "low_confidence",
+                        "prompt": (
+                            "Какой измеримый результат дала эта реализация?"
+                        ),
+                        "reason": "Нужно уточнить результат работы кандидата.",
+                        "criterion_ids": ["technical_depth"],
+                        "requirement_ids": [
+                            context["requirement_catalog"][0]["requirement_id"]
+                        ],
+                        "resume_claim_ids": ["claim-python"],
+                    },
+                ],
+            )
+
+        weak_agent = CallbackAgent(
+            AgentPurpose.ANSWER_ASSESSMENT,
+            weak_answer,
+        )
+        self.harness.agents[AgentPurpose.ANSWER_ASSESSMENT] = weak_agent
+        assessment = self.harness.assess_answer(
+            vacancy_id=self.vacancy.id,
+            invitation_id=self.invitation.id,
+            response_id=response.id,
+            idempotency_key="weak-answer-with-follow-up",
+        )
+        parsed = AnswerAssessmentOutput.model_validate(assessment.payload)
+        self.assertEqual(len(parsed.follow_up), 2)
+        self.assertTrue(
+            all(
+                item.trigger.value == "low_confidence"
+                for item in parsed.follow_up
+            )
+        )
+        weak_call = weak_agent.calls[0]
+        self.assertEqual(weak_call["vacancy"]["title"], self.vacancy.title)
+        self.assertEqual(
+            weak_call["resume_relevance"]["claims"][0]["claim_id"],
+            "claim-python",
+        )
+
+        self.invitation.token_digest = digest_invitation_secret(
+            "weak-follow-up-token"
+        )
+        self.invitation.expires_at = datetime.now(timezone.utc) + timedelta(days=1)
+        self.db.commit()
+        candidate_plan = self.harness.candidate_question_plan(
+            secret="weak-follow-up-token"
+        )
+        follow_ups = [
+            question
+            for question in candidate_plan.questions
+            if question.kind is QuestionKind.FOLLOW_UP
+        ]
+        self.assertEqual(len(follow_ups), 2)
+        self.assertEqual(
+            [question.prompt for question in follow_ups],
+            [question.prompt for question in parsed.follow_up],
+        )
+        with self.assertRaises(MultiAgentConflictError):
+            self.harness.finalize(
+                vacancy_id=self.vacancy.id,
+                invitation_id=self.invitation.id,
+                idempotency_key="weak-finalize-before-follow-up",
+            )
+
+        self.harness.agents[AgentPurpose.ANSWER_ASSESSMENT] = CallbackAgent(
+            AgentPurpose.ANSWER_ASSESSMENT,
+            answer_output,
+        )
+        for index, follow_up in enumerate(follow_ups):
+            follow_up_response = self._response(
+                follow_up.question_id,
+                "Я лично реализовал обработчик и добавил тесты.",
+            )
+            self.harness.assess_answer(
+                vacancy_id=self.vacancy.id,
+                invitation_id=self.invitation.id,
+                response_id=follow_up_response.id,
+                idempotency_key=f"weak-follow-up-answer-{index}",
+            )
+            if index == 0:
+                with self.assertRaises(MultiAgentConflictError):
+                    self.harness.finalize(
+                        vacancy_id=self.vacancy.id,
+                        invitation_id=self.invitation.id,
+                        idempotency_key="weak-finalize-after-one-follow-up",
+                    )
+        follow_up_calls = self.harness.agents[
+            AgentPurpose.ANSWER_ASSESSMENT
+        ].calls
+        self.assertTrue(
+            all(not call["follow_up_policy"]["allowed"] for call in follow_up_calls)
+        )
+        self.harness.finalize(
+            vacancy_id=self.vacancy.id,
+            invitation_id=self.invitation.id,
+            idempotency_key="weak-finalize-after-follow-up",
+        )
+
+    def test_high_confidence_supported_answer_cannot_create_follow_up(self) -> None:
+        _, plan = self._session_and_plan()
+        response = self._response(plan.questions[0].question_id)
+
+        def unnecessary_follow_up(context):
+            output = answer_output(context).model_dump(mode="json")
+            output["follow_up"] = {
+                "trigger": "missing_detail",
+                "prompt": "Расскажите об этом ещё раз?",
+                "reason": "Запрашиваются дополнительные детали.",
+                "criterion_ids": ["technical_depth"],
+                "requirement_ids": [
+                    context["requirement_catalog"][0]["requirement_id"]
+                ],
+                "resume_claim_ids": [],
+            }
+            return output
+
+        self.harness.agents[AgentPurpose.ANSWER_ASSESSMENT] = CallbackAgent(
+            AgentPurpose.ANSWER_ASSESSMENT,
+            unnecessary_follow_up,
+        )
+        with self.assertRaises(MultiAgentOutputError):
+            self.harness.assess_answer(
+                vacancy_id=self.vacancy.id,
+                invitation_id=self.invitation.id,
+                response_id=response.id,
+                idempotency_key="unnecessary-follow-up",
+            )
+
+    def test_claimed_technical_gap_opens_one_scored_live_coding_section(
+        self,
+    ) -> None:
+        _, plan = self._session_and_plan()
+        response = self._response(
+            plan.questions[0].question_id,
+            "Не могу объяснить, как это работает в Python.",
+        )
+
+        def request_live_coding(context):
+            evidence_id = context["answer_evidence_catalog"][0]["evidence_id"]
+            return AnswerAssessmentOutput(
+                response_id=context["response_id"],
+                question_id=context["question_id"],
+                observations=[
+                    {
+                        "criterion_id": criterion["criterion_id"],
+                        "dimension": criterion["dimension"],
+                        "label": "weak",
+                        "value": -0.5,
+                        "confidence": 0.9,
+                        "explanation": "Заявленный навык не раскрыт в ответе.",
+                        "evidence": [
+                            {"kind": "counter", "evidence_id": evidence_id}
+                        ],
+                    }
+                    for criterion in context["question"]["criteria"]
+                ],
+                live_coding={
+                    "trigger": "claimed_technical_skill_not_demonstrated",
+                    "prompt": (
+                        "Реализуйте на Python функцию удаления дубликатов "
+                        "с сохранением порядка элементов."
+                    ),
+                    "reason": (
+                        "Кандидат не подтвердил заявленный в резюме навык Python."
+                    ),
+                    "criterion_ids": ["technical_depth"],
+                    "requirement_ids": [
+                        context["requirement_catalog"][0]["requirement_id"]
+                    ],
+                    "resume_claim_ids": ["claim-python"],
+                },
+            )
+
+        live_coding_agent = CallbackAgent(
+            AgentPurpose.ANSWER_ASSESSMENT,
+            request_live_coding,
+        )
+        self.harness.agents[AgentPurpose.ANSWER_ASSESSMENT] = live_coding_agent
+        assessment = self.harness.assess_answer(
+            vacancy_id=self.vacancy.id,
+            invitation_id=self.invitation.id,
+            response_id=response.id,
+            idempotency_key="technical-gap-live-coding",
+        )
+        parsed = AnswerAssessmentOutput.model_validate(assessment.payload)
+        self.assertIsNotNone(parsed.live_coding)
+        self.assertTrue(
+            live_coding_agent.calls[0]["live_coding_policy"]["allowed"]
+        )
+
+        self.invitation.token_digest = digest_invitation_secret(
+            "live-coding-token"
+        )
+        self.invitation.expires_at = datetime.now(timezone.utc) + timedelta(days=1)
+        self.db.commit()
+        candidate_plan = self.harness.candidate_question_plan(
+            secret="live-coding-token"
+        )
+        live_coding_questions = [
+            question
+            for question in candidate_plan.questions
+            if question.kind is QuestionKind.LIVE_CODING
+        ]
+        self.assertEqual(len(live_coding_questions), 1)
+
+        with self.assertRaises(MultiAgentConflictError):
+            self.harness.finalize(
+                vacancy_id=self.vacancy.id,
+                invitation_id=self.invitation.id,
+                idempotency_key="finalize-before-live-coding",
+            )
+
+        live_question = live_coding_questions[0]
+        submission = self.harness.submit_live_coding(
+            secret="live-coding-token",
+            question_id=live_question.question_id,
+            code="def unique(items):\n    return list(dict.fromkeys(items))",
+        )
+        replay = self.harness.submit_live_coding(
+            secret="live-coding-token",
+            question_id=live_question.question_id,
+            code="def unique(items):\n    return list(dict.fromkeys(items))",
+        )
+        self.assertEqual(submission.response_id, replay.response_id)
+        with self.assertRaises(MultiAgentConflictError):
+            self.harness.submit_live_coding(
+                secret="live-coding-token",
+                question_id=live_question.question_id,
+                code="def unique(items):\n    return items",
+            )
+
+        scored_agent = CallbackAgent(
+            AgentPurpose.ANSWER_ASSESSMENT,
+            answer_output,
+        )
+        self.harness.agents[AgentPurpose.ANSWER_ASSESSMENT] = scored_agent
+        self.harness.assess_answer(
+            vacancy_id=self.vacancy.id,
+            invitation_id=self.invitation.id,
+            response_id=submission.response_id,
+            idempotency_key="score-live-coding-solution",
+        )
+        self.assertEqual(
+            scored_agent.calls[0]["question"]["kind"],
+            QuestionKind.LIVE_CODING.value,
+        )
+        self.assertFalse(
+            scored_agent.calls[0]["live_coding_policy"]["allowed"]
+        )
+
+        final = self.harness.finalize(
+            vacancy_id=self.vacancy.id,
+            invitation_id=self.invitation.id,
+            idempotency_key="finalize-after-live-coding",
+        )
+        technical = next(
+            item
+            for item in final.profile.payload["criterion_summaries"]
+            if item["criterion_id"] == "technical_depth"
+        )
+        self.assertEqual(technical["observation_count"], 2)
+        self.assertEqual(technical["value"], 0)
+        refreshed_plan = self.harness.candidate_question_plan(
+            secret="live-coding-token"
+        )
+        self.assertEqual(
+            sum(
+                question.kind is QuestionKind.LIVE_CODING
+                for question in refreshed_plan.questions
+            ),
+            1,
+        )
+
+    def test_live_coding_requires_a_weak_or_unanswered_technical_score(
+        self,
+    ) -> None:
+        _, plan = self._session_and_plan()
+        response = self._response(plan.questions[0].question_id)
+
+        def unsupported_live_coding(context):
+            output = answer_output(context).model_dump(mode="json")
+            output["live_coding"] = {
+                "trigger": "claimed_technical_skill_not_demonstrated",
+                "prompt": "Реализуйте функцию на Python.",
+                "reason": "Проверка заявленного навыка.",
+                "criterion_ids": ["technical_depth"],
+                "requirement_ids": [
+                    context["requirement_catalog"][0]["requirement_id"]
+                ],
+                "resume_claim_ids": ["claim-python"],
+            }
+            return output
+
+        self.harness.agents[AgentPurpose.ANSWER_ASSESSMENT] = CallbackAgent(
+            AgentPurpose.ANSWER_ASSESSMENT,
+            unsupported_live_coding,
+        )
+        with self.assertRaises(MultiAgentOutputError):
+            self.harness.assess_answer(
+                vacancy_id=self.vacancy.id,
+                invitation_id=self.invitation.id,
+                response_id=response.id,
+                idempotency_key="unsupported-live-coding",
+            )
+
+    def test_missing_detail_can_trigger_follow_up_above_threshold(self) -> None:
+        _, plan = self._session_and_plan()
+        response = self._response(plan.questions[0].question_id)
+
+        def missing_detail(context):
+            output = answer_output(context).model_dump(mode="json")
+            output["observations"][0].update(
+                {
+                    "label": "neutral",
+                    "value": 0,
+                    "confidence": 0.8,
+                    "evidence": [
+                        {
+                            "kind": "mixed",
+                            "evidence_id": context["answer_evidence_catalog"][0][
+                                "evidence_id"
+                            ],
+                        }
+                    ],
+                }
+            )
+            output["follow_up"] = [
+                {
+                    "trigger": "missing_detail",
+                    "prompt": "Какие компромиссы этого решения вы оценивали?",
+                    "reason": "Ответ не раскрывает компромиссы решения.",
+                    "criterion_ids": ["technical_depth"],
+                    "requirement_ids": [
+                        context["requirement_catalog"][0]["requirement_id"]
+                    ],
+                    "resume_claim_ids": [],
+                }
+            ]
+            return output
+
+        self.harness.agents[AgentPurpose.ANSWER_ASSESSMENT] = CallbackAgent(
+            AgentPurpose.ANSWER_ASSESSMENT,
+            missing_detail,
+        )
+        artifact = self.harness.assess_answer(
+            vacancy_id=self.vacancy.id,
+            invitation_id=self.invitation.id,
+            response_id=response.id,
+            idempotency_key="missing-detail-follow-up",
+        )
+        self.assertEqual(
+            artifact.payload["follow_up"][0]["trigger"],
+            "missing_detail",
+        )
+
+    def test_each_follow_up_item_contains_exactly_one_question(self) -> None:
+        _, plan = self._session_and_plan()
+        response = self._response(plan.questions[0].question_id)
+
+        def compound_follow_up(context):
+            output = answer_output(context).model_dump(mode="json")
+            output["observations"][0].update(
+                {
+                    "label": "weak",
+                    "value": -0.5,
+                    "confidence": 0.4,
+                    "evidence": [
+                        {
+                            "kind": "counter",
+                            "evidence_id": context["answer_evidence_catalog"][0][
+                                "evidence_id"
+                            ],
+                        }
+                    ],
+                }
+            )
+            output["follow_up"] = [
+                {
+                    "trigger": "low_confidence",
+                    "prompt": "Опишите свой личный вклад. Какой был результат?",
+                    "reason": "Нужно уточнить личный вклад и результат.",
+                    "criterion_ids": ["technical_depth"],
+                    "requirement_ids": [
+                        context["requirement_catalog"][0]["requirement_id"]
+                    ],
+                    "resume_claim_ids": [],
+                }
+            ]
+            return output
+
+        self.harness.agents[AgentPurpose.ANSWER_ASSESSMENT] = CallbackAgent(
+            AgentPurpose.ANSWER_ASSESSMENT,
+            compound_follow_up,
+        )
+        with self.assertRaises(MultiAgentOutputError):
+            self.harness.assess_answer(
+                vacancy_id=self.vacancy.id,
+                invitation_id=self.invitation.id,
+                response_id=response.id,
+                idempotency_key="compound-follow-up",
+            )
 
     def test_missing_information_is_null_and_cannot_borrow_evidence(self) -> None:
         observation = {

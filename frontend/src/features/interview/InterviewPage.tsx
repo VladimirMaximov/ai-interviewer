@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AudioRecorder, RecordedAnswer, RecorderState } from "./AudioRecorder";
+import { LiveCodingEditor } from "./LiveCodingEditor";
 import { QuestionPlayer } from "./QuestionPlayer";
 import { CandidateApi, InterviewQuestion } from "../../api/candidate";
 
@@ -12,24 +13,53 @@ const demoQuestions: InterviewQuestion[] = [
 export function InterviewPage() {
   const [index, setIndex] = useState(0);
   const [questions, setQuestions] = useState<InterviewQuestion[]>(demoQuestions);
-  const [answers, setAnswers] = useState<(RecordedAnswer | null)[]>(Array(demoQuestions.length).fill(null));
+  const [answers, setAnswers] = useState<Record<string, RecordedAnswer>>({});
+  const [liveCodingAnswers, setLiveCodingAnswers] = useState<Record<string, true>>({});
   const [planError, setPlanError] = useState<string | null>(null);
   const [recorderState, setRecorderState] = useState<RecorderState>("idle");
+  const knownQuestionIds = useRef(new Set(demoQuestions.map((item) => item.question_id)));
   const token = new URLSearchParams(window.location.search).get("token");
   useEffect(() => {
     if (!token) return;
     const api = new CandidateApi();
-    api.questions(token)
+    let active = true;
+    const refreshQuestions = () => api.questions(token)
       .then((plan) => {
+        if (!active) return;
+        const newLiveCodingIndex = plan.questions.findIndex(
+          (question) => question.kind === "live_coding" && !knownQuestionIds.current.has(question.question_id),
+        );
+        knownQuestionIds.current = new Set(plan.questions.map((item) => item.question_id));
         setQuestions(plan.questions);
-        setAnswers(Array(plan.questions.length).fill(null));
-        setIndex(0);
+        setIndex((current) => newLiveCodingIndex >= 0
+          ? newLiveCodingIndex
+          : Math.min(current, Math.max(0, plan.questions.length - 1)));
+        setPlanError(null);
       })
-      .catch(() => setPlanError("План интервью пока недоступен. Попробуйте открыть ссылку позже."));
+      .catch(() => {
+        if (active) setPlanError("План интервью пока недоступен. Попробуйте открыть ссылку позже.");
+      });
+    setAnswers({});
+    setLiveCodingAnswers({});
+    knownQuestionIds.current = new Set();
+    setIndex(0);
+    void refreshQuestions();
+    const interval = window.setInterval(refreshQuestions, 3000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, [token]);
-  const complete = answers.every(Boolean);
-  const saveAnswer = (answer: RecordedAnswer) => setAnswers((current) => current.map((currentAnswer, i) => i === index ? answer : currentAnswer));
-  const clearAnswer = () => setAnswers((current) => current.map((answer, i) => i === index ? null : answer));
+  const currentQuestion = questions[index];
+  const complete = questions.every((question) => question.kind === "live_coding"
+    ? Boolean(liveCodingAnswers[question.question_id])
+    : Boolean(answers[question.question_id]));
+  const saveAnswer = (answer: RecordedAnswer) => setAnswers((current) => ({ ...current, [currentQuestion.question_id]: answer }));
+  const clearAnswer = () => setAnswers((current) => {
+    const next = { ...current };
+    delete next[currentQuestion.question_id];
+    return next;
+  });
   const checksum = async (media: Blob) => {
     const digest = await crypto.subtle.digest("SHA-256", await media.arrayBuffer());
     return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
@@ -70,12 +100,26 @@ export function InterviewPage() {
     }
     await api.confirm(token, grant.response_id, await checksum(audio));
   };
+  const submitLiveCoding = async (code: string) => {
+    if (token) {
+      await new CandidateApi().submitLiveCoding(
+        token,
+        currentQuestion.question_id,
+        code,
+      );
+    }
+    setLiveCodingAnswers((current) => ({
+      ...current,
+      [currentQuestion.question_id]: true,
+    }));
+  };
 
   if (planError) return <main><h1>Техническое интервью</h1><p role="alert">{planError}</p></main>;
   if (questions.length === 0) return <main><h1>Техническое интервью</h1><p>План интервью готовится.</p></main>;
 
-  return <main><h1>Техническое интервью</h1>{!token && <p>Демо-режим: аудио не отправляется на сервер.</p>}<QuestionPlayer index={index} total={questions.length} text={questions[index].prompt} /><AudioRecorder key={questions[index].question_id} onRecorded={saveAnswer} onCleared={clearAnswer} onSubmit={token ? submit : undefined} onStateChange={setRecorderState} />
-    <p>{answers[index] ? "Ответ сохранён в браузере до отправки." : "Ответ ещё не записан."}</p>
+  return <main><h1>Техническое интервью</h1>{!token && <p>Демо-режим: аудио не отправляется на сервер.</p>}{currentQuestion.kind === "follow_up" && <p>Уточняющий вопрос по вашему предыдущему ответу.</p>}{currentQuestion.kind === "live_coding"
+    ? <LiveCodingEditor key={currentQuestion.question_id} prompt={currentQuestion.prompt} onSubmit={submitLiveCoding} />
+    : <><QuestionPlayer index={index} total={questions.length} text={currentQuestion.prompt} /><AudioRecorder key={currentQuestion.question_id} onRecorded={saveAnswer} onCleared={clearAnswer} onSubmit={token ? submit : undefined} onStateChange={setRecorderState} /><p>{answers[currentQuestion.question_id] ? "Ответ сохранён в браузере до отправки." : "Ответ ещё не записан."}</p></>}
     <button disabled={index === 0 || recorderState === "recording"} onClick={() => setIndex(index - 1)}>Предыдущий</button>
     <button disabled={index === questions.length - 1 || recorderState === "recording"} onClick={() => setIndex(index + 1)}>Следующий</button>
     {index === questions.length - 1 && <button disabled={!complete} onClick={() => alert("Все ответы готовы к безопасной отправке.")}>Сохранить интервью</button>}

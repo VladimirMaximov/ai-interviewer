@@ -111,7 +111,7 @@ evidence catalog. Missing subfields stay null or empty; they are never inferred.
 
 - stable question ID;
 - prompt;
-- kind: `baseline` or `personalized`;
+- kind: `baseline`, `personalized`, `follow_up` or `live_coding`;
 - one or more `CriterionDefinition` objects;
 - source claim IDs for personalized questions;
 - confirmed manager field keys for manager-requested personalized questions;
@@ -146,6 +146,24 @@ Allowed label/value pairs:
 | `supported` | `0.5` |
 | `strong` | `1` |
 | `insufficient_information` | `null` |
+
+### Conditional follow-up
+
+`AnswerAssessmentOutput.follow_up` равен `null` для уверенного полного ответа. Иначе он содержит
+массив из одного или двух сфокусированных вопросов с trigger `low_confidence` или
+`missing_detail`, причиной, ID исходных критериев, allowlisted requirement IDs вакансии и
+существующими resume claim IDs. Harness детерминированно проверяет каждое основание, не допускает
+больше двух вопросов за сессию и публикует вопросы в candidate projection как `kind=follow_up`.
+Ответ на follow-up оценивается тем же assessor, но не может создать следующий follow-up.
+
+### One-time live coding
+
+`AnswerAssessmentOutput.live_coding` по умолчанию равен `null`. Объект разрешён только если
+техническое наблюдение имеет `weak` или `insufficient_information`, а указанный skill-claim резюме
+связан с тем же требованием вакансии. Harness публикует практическую задачу как
+`kind=live_coding`, жёстко ограничивает секцию одним вызовом за интервью и принимает одно текстовое
+решение. Решение проходит через обычный answer assessor, а его technical observation входит в
+детерминированную агрегацию профиля. До сохранения и оценки решения финализация запрещена.
 
 ## CandidateProfile payload
 

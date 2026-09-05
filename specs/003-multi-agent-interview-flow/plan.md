@@ -120,7 +120,7 @@ replaying successful stages.
 |---|---|---|---|
 | `resume_relevance` | pinned vacancy, resume, approved brief | LLM claims and experience-to-requirement matches | answers, other candidates, sensitive traits |
 | `question_plan` | vacancy, approved brief, resume analysis | fixed baseline plus bounded claim-verification questions | new criteria, ranking, decisions |
-| `answer_assessment` | one stored transcript, one question, applicable criteria | independent criterion observations with exact evidence | other candidates, hiring decisions |
+| `answer_assessment` | one stored transcript or code response, one question, vacancy requirements, resume analysis | independent criterion observations with exact evidence, one or two gated follow-ups, or one one-time live-coding task | other candidates, hiring decisions, recursive conditional sections |
 | `alternative_vacancy_match` | completed evidence profile, active vacancy catalog | explanatory candidate-vacancy observations | cohort rank, application creation |
 | `integrity_check` | resume claims and the candidate's own stored answers | consistency observations and clarification prompts | `blacklisted`, `restricted`, rejection |
 | `candidate_feedback` | finalized profile, resume analysis, own answers/assessments, evidence catalog, allowed alternatives | evidence-linked Russian candidate draft | rank, pool, integrity, restrictions, automatic publication |

@@ -1,8 +1,9 @@
 export type Invitation = { session_id: string; consented: boolean };
 export type UploadGrant = { response_id: string; storage_key: string; upload_url: string };
 export type Transcript = { status: "pending" | "processing" | "completed" | "failed"; text: string | null };
-export type InterviewQuestion = { question_id: string; prompt: string; kind: "baseline" | "personalized" };
+export type InterviewQuestion = { question_id: string; prompt: string; kind: "baseline" | "personalized" | "follow_up" | "live_coding" };
 export type InterviewQuestionPlan = { agent_session_id: string; questions: InterviewQuestion[] };
+export type LiveCodingSubmission = { response_id: string; question_id: string; status: "completed" };
 export type BrowserMonitoringEventKind =
   | "face_missing"
   | "multiple_faces"
@@ -62,6 +63,13 @@ export class CandidateApi {
   async resolve(secret: string): Promise<Invitation> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}`); }
   async consent(secret: string): Promise<Invitation> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/consent`, { method: "POST" }); }
   async questions(secret: string): Promise<InterviewQuestionPlan> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/questions`); }
+  async submitLiveCoding(secret: string, questionId: string, code: string): Promise<LiveCodingSubmission> {
+    return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/live-coding-responses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question_id: questionId, code }),
+    });
+  }
   async feedback(secret: string): Promise<CandidateFeedbackDelivery> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/feedback`); }
   async uploadGrant(secret: string, questionId: string, contentType: string): Promise<UploadGrant> {
     return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/upload-grants`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question_id: questionId, content_type: contentType }) });

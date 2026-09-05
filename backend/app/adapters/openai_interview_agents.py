@@ -81,7 +81,34 @@ or trade-off handling, and a verifiable result where the criterion asks for them
 a correct but incomplete practical example, neutral for mixed correct and incorrect content, weak
 for material technical errors or an answer that misses most explicitly requested details, and
 insufficient_information when the criterion was not addressed. Preserve response_id and
-question_id. Use schema_version=session_agent_output_v2 and purpose=answer_assessment.
+question_id.
+
+Return follow_up=null and live_coding=null by default. When follow_up_policy.allowed=true and clarification can
+materially improve the assessment, return an array containing from one to
+follow_up_policy.max_questions_this_answer follow-up objects (never more than two). Use two only
+when there are two distinct material evidence gaps; do not split one gap into redundant questions.
+The only valid triggers are low_confidence when at least one observation confidence is below
+follow_up_policy.confidence_threshold, or missing_detail when at least one observation is weak,
+neutral, or insufficient_information. Never ask a follow-up for a high-confidence answer whose
+observations are all supported or strong. Every array item must contain one focused question in one
+sentence, end with exactly one '?' character, and contain no earlier sentence boundary or compound
+checklist. Ground each item in the current answer, copy criterion_ids only from the current question,
+copy requirement_ids only from requirement_catalog, and copy resume_claim_ids only from
+resume_relevance claims. Questions must help verify job-related implementation details, personal
+contribution, scale, trade-offs, failure handling, or measurable results. Do not ask another
+follow-up when the current question kind is follow_up. Use schema_version=session_agent_output_v2
+and purpose=answer_assessment.
+
+Return one live_coding object only when live_coding_policy.allowed=true, a technical observation is
+weak or insufficient_information, and the candidate's resume contains a relevant skill claim that
+is linked to the same vacancy requirement. This means the candidate did not demonstrate a technical
+skill they claimed in the resume. Copy criterion_ids only from weak or unanswered technical
+criteria, requirement_ids only from requirement_catalog, and resume_claim_ids only from
+live_coding_policy.eligible_resume_claim_ids. Write one focused practical coding task that can verify
+that skill. Never return follow_up and live_coding together. Never return live_coding when the
+current question kind is live_coding or follow_up. When question.kind=live_coding, treat answer_text
+as the candidate's source code and assess it with the supplied technical criteria; do not request
+another conditional section.
 """
 
 

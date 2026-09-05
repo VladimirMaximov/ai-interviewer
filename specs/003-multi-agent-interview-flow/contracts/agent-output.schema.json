@@ -115,7 +115,7 @@
             "properties": {
               "question_id": {"type": "string", "format": "uuid"},
               "prompt": {"type": "string", "minLength": 1},
-              "kind": {"enum": ["baseline", "personalized"]},
+              "kind": {"enum": ["baseline", "personalized", "follow_up", "live_coding"]},
               "criteria": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/criterion"}},
               "source_claim_ids": {"type": "array", "items": {"type": "string"}},
               "source_manager_field_keys": {"type": "array", "items": {"type": "string"}},
@@ -151,13 +151,54 @@
     "answer_assessment": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema_version", "purpose", "response_id", "question_id", "observations"],
+      "required": ["schema_version", "purpose", "response_id", "question_id", "observations", "follow_up", "live_coding"],
       "properties": {
         "schema_version": {"const": "session_agent_output_v2"},
         "purpose": {"const": "answer_assessment"},
         "response_id": {"type": "string", "format": "uuid"},
         "question_id": {"type": "string", "format": "uuid"},
-        "observations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/observation"}}
+        "observations": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/observation"}},
+        "follow_up": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["trigger", "prompt", "reason", "criterion_ids", "requirement_ids", "resume_claim_ids"],
+                "properties": {
+                  "trigger": {"enum": ["low_confidence", "missing_detail"]},
+                  "prompt": {"type": "string", "minLength": 1, "pattern": "^[^?]*\\?[^?]*$"},
+                  "reason": {"type": "string", "minLength": 1},
+                  "criterion_ids": {"type": "array", "minItems": 1, "maxItems": 4, "items": {"type": "string"}},
+                  "requirement_ids": {"type": "array", "minItems": 1, "maxItems": 4, "items": {"type": "string"}},
+                  "resume_claim_ids": {"type": "array", "maxItems": 4, "items": {"type": "string"}}
+                }
+              }
+            }
+          ]
+        },
+        "live_coding": {
+          "oneOf": [
+            {"type": "null"},
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["trigger", "prompt", "reason", "criterion_ids", "requirement_ids", "resume_claim_ids"],
+              "properties": {
+                "trigger": {"const": "claimed_technical_skill_not_demonstrated"},
+                "prompt": {"type": "string", "minLength": 1, "maxLength": 2000},
+                "reason": {"type": "string", "minLength": 1, "maxLength": 1000},
+                "criterion_ids": {"type": "array", "minItems": 1, "maxItems": 4, "items": {"type": "string"}},
+                "requirement_ids": {"type": "array", "minItems": 1, "maxItems": 4, "items": {"type": "string"}},
+                "resume_claim_ids": {"type": "array", "minItems": 1, "maxItems": 4, "items": {"type": "string"}}
+              }
+            }
+          ]
+        }
       }
     },
     "alternative_vacancy_match": {

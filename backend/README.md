@@ -222,6 +222,8 @@ STRONG_POOL_MIN_COVERAGE=0.50
 ALTERNATIVE_VACANCY_MIN_FIT=0.25
 ALTERNATIVE_MAX_GRADE_DISTANCE=1
 MULTI_AGENT_PERSONALIZATION_CAP=3
+FOLLOW_UP_CONFIDENCE_THRESHOLD=0.65
+FOLLOW_UP_MAX_PER_SESSION=2
 ```
 
 For an OpenAI-compatible provider that exposes Chat Completions, such as VseGPT, use its
@@ -235,6 +237,7 @@ POST .../applications/{invitation_id}/agent-session
 POST .../agent-session/resume-analysis
 POST .../agent-session/question-plan
 GET  /candidate/{candidate_token}/questions
+POST /candidate/{candidate_token}/live-coding-responses
 POST .../agent-session/answer-assessments
 POST .../agent-session/finalize
 POST .../agent-session/candidate-feedback
@@ -250,6 +253,12 @@ examples are in `specs/003-multi-agent-interview-flow/quickstart.md`.
 Every baseline answer is returned as separate technical, soft-skill, corporate-competency, and
 vacancy-fit observations. A block unsupported by that answer remains `null`; evidence from one block
 is never copied into another.
+
+If a candidate cannot demonstrate a technical skill explicitly claimed in the resume and linked to
+the vacancy requirement, the assessor may add one practical `live_coding` task. The candidate UI
+opens a code editor automatically. Exactly one solution is stored as a completed text response,
+assessed through the same evidence-first stage, and included in the technical score. The session can
+never expose a second live-coding section and cannot be finalized before that solution is assessed.
 
 Candidate feedback is never published directly by the model. The generation endpoint creates an
 immutable `draft`; an authenticated recruiter reviews it and calls the publication endpoint. Until

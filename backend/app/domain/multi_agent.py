@@ -115,6 +115,19 @@ class RequirementOrigin(StrEnum):
 class QuestionKind(StrEnum):
     BASELINE = "baseline"
     PERSONALIZED = "personalized"
+    FOLLOW_UP = "follow_up"
+    LIVE_CODING = "live_coding"
+
+
+class FollowUpTrigger(StrEnum):
+    LOW_CONFIDENCE = "low_confidence"
+    MISSING_DETAIL = "missing_detail"
+
+
+class LiveCodingTrigger(StrEnum):
+    CLAIMED_TECHNICAL_SKILL_NOT_DEMONSTRATED = (
+        "claimed_technical_skill_not_demonstrated"
+    )
 
 
 class AlternativeCompatibility(StrEnum):
@@ -275,12 +288,56 @@ class CriterionObservation(StrictModel):
         return self
 
 
+class FollowUpQuestion(StrictModel):
+    trigger: FollowUpTrigger
+    prompt: str = Field(min_length=1, max_length=1_000)
+    reason: str = Field(min_length=1, max_length=1_000)
+    criterion_ids: list[str] = Field(min_length=1, max_length=4)
+    requirement_ids: list[str] = Field(min_length=1, max_length=4)
+    resume_claim_ids: list[str] = Field(default_factory=list, max_length=4)
+
+
+class LiveCodingChallenge(StrictModel):
+    trigger: LiveCodingTrigger
+    prompt: str = Field(min_length=1, max_length=2_000)
+    reason: str = Field(min_length=1, max_length=1_000)
+    criterion_ids: list[str] = Field(min_length=1, max_length=4)
+    requirement_ids: list[str] = Field(min_length=1, max_length=4)
+    resume_claim_ids: list[str] = Field(min_length=1, max_length=4)
+
+
 class AnswerAssessmentOutput(StrictModel):
     schema_version: Literal["session_agent_output_v2"] = AGENT_OUTPUT_VERSION
     purpose: Literal["answer_assessment"] = AgentPurpose.ANSWER_ASSESSMENT
     response_id: UUID
     question_id: UUID
     observations: list[CriterionObservation] = Field(min_length=1)
+    follow_up: list[FollowUpQuestion] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=2,
+    )
+    live_coding: LiveCodingChallenge | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_legacy_follow_up(cls, value: Any) -> Any:
+        """Read v2 artifacts that stored one follow-up object."""
+
+        if not isinstance(value, dict):
+            return value
+        follow_up = value.get("follow_up")
+        if follow_up is None or isinstance(follow_up, list):
+            return value
+        normalized = dict(value)
+        normalized["follow_up"] = [follow_up]
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_single_conditional_section(self) -> Self:
+        if self.follow_up is not None and self.live_coding is not None:
+            raise ValueError("only one conditional interview section may be requested")
+        return self
 
 
 class AlternativeVacancyMatchOutput(StrictModel):
@@ -463,6 +520,12 @@ class CandidateQuestionView(StrictModel):
 class CandidateQuestionPlanView(StrictModel):
     agent_session_id: UUID
     questions: list[CandidateQuestionView]
+
+
+class LiveCodingSubmissionView(StrictModel):
+    response_id: UUID
+    question_id: UUID
+    status: Literal["completed"] = "completed"
 
 
 class RankingEntryView(StrictModel):

@@ -126,4 +126,6 @@ def multi_agent_harness_factory() -> MultiAgentHarness:
         alternative_min_fit=settings.alternative_vacancy_min_fit,
         alternative_max_grade_distance=settings.alternative_max_grade_distance,
         personalization_cap=settings.multi_agent_personalization_cap,
+        follow_up_confidence_threshold=settings.follow_up_confidence_threshold,
+        follow_up_max_per_session=settings.follow_up_max_per_session,
     )

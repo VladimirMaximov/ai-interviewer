@@ -54,13 +54,16 @@ from app.domain.multi_agent import (
     FEEDBACK_VERSION,
     FeedbackReleaseStatus,
     FinalizationView,
+    FollowUpTrigger,
     IntegrityCheckOutput,
     IntegrityStatus,
+    LiveCodingSubmissionView,
     MultiAgentConflictError,
     MultiAgentNotFoundError,
     MultiAgentOutputError,
     MultiAgentProviderError,
     MultiAgentValidationError,
+    ObservationLabel,
     QuestionKind,
     QuestionPlanOutput,
     QuestionSelection,
@@ -70,6 +73,7 @@ from app.domain.multi_agent import (
     RestrictionListView,
     RestrictionType,
     RequirementOrigin,
+    ResumeClaimType,
     ResumeRelevanceOutput,
     SeniorityBand,
     SessionVersions,
@@ -128,6 +132,7 @@ GRADE_ORDER = {
     SeniorityBand.SENIOR: 3,
     SeniorityBand.LEAD: 4,
 }
+FOLLOW_UP_MAX_QUESTIONS = 2
 
 
 def _now() -> datetime:
@@ -172,7 +177,13 @@ class MultiAgentHarness:
         alternative_min_fit: float = 0.25,
         alternative_max_grade_distance: int = 1,
         personalization_cap: int = 3,
+        follow_up_confidence_threshold: float = 0.65,
+        follow_up_max_per_session: int = FOLLOW_UP_MAX_QUESTIONS,
     ) -> None:
+        if not 0 <= follow_up_confidence_threshold <= 1:
+            raise ValueError("follow-up confidence threshold must be in [0, 1]")
+        if not 1 <= follow_up_max_per_session <= FOLLOW_UP_MAX_QUESTIONS:
+            raise ValueError("follow-up session cap must be in [1, 2]")
         missing = set(AgentPurpose) - set(agents)
         if missing:
             names = ", ".join(sorted(item.value for item in missing))
@@ -187,6 +198,9 @@ class MultiAgentHarness:
             "alternative_min_fit": alternative_min_fit,
             "alternative_max_grade_distance": alternative_max_grade_distance,
             "personalization_cap": personalization_cap,
+            "follow_up_confidence_threshold": follow_up_confidence_threshold,
+            "follow_up_max_per_session": follow_up_max_per_session,
+            "live_coding_max_per_session": 1,
             "automatic_hiring_decision_forbidden": True,
             "automatic_restriction_forbidden": True,
         }
@@ -346,6 +360,7 @@ class MultiAgentHarness:
         if artifact is None:
             return None
         plan = QuestionPlanOutput.model_validate(artifact.payload)
+        questions = self._session_questions(agent_session, plan)
         return CandidateQuestionPlanView(
             agent_session_id=agent_session.id,
             questions=[
@@ -354,8 +369,109 @@ class MultiAgentHarness:
                     prompt=item.prompt,
                     kind=item.kind,
                 )
-                for item in plan.questions
+                for item in questions
             ],
+        )
+
+    def submit_live_coding(
+        self,
+        *,
+        secret: str,
+        question_id: UUID,
+        code: str,
+    ) -> LiveCodingSubmissionView | None:
+        if not secret:
+            return None
+        invitation = self.db.scalar(
+            select(InterviewInvitation).where(
+                InterviewInvitation.token_digest == digest_invitation_secret(secret)
+            )
+        )
+        if (
+            invitation is None
+            or invitation.status.value != "active"
+            or _aware(invitation.expires_at) <= _now()
+        ):
+            return None
+        agent_session = self.db.scalar(
+            select(AgentSession).where(AgentSession.invitation_id == invitation.id)
+        )
+        interview = self.db.scalar(
+            select(InterviewSession).where(
+                InterviewSession.invitation_id == invitation.id
+            )
+        )
+        if (
+            agent_session is None
+            or interview is None
+            or interview.consented_at is None
+        ):
+            return None
+        plan_artifact = self._latest_artifact(
+            agent_session.id, ArtifactKind.QUESTION_PLAN, required=False
+        )
+        if plan_artifact is None:
+            return None
+        plan = QuestionPlanOutput.model_validate(plan_artifact.payload)
+        question = next(
+            (
+                item
+                for item in self._session_questions(agent_session, plan)
+                if item.question_id == question_id
+            ),
+            None,
+        )
+        if question is None or question.kind is not QuestionKind.LIVE_CODING:
+            raise MultiAgentValidationError(
+                "code can only be submitted for the active live-coding question"
+            )
+        if len(code.strip()) < 4:
+            raise MultiAgentValidationError(
+                "live-coding solution must contain at least 4 characters"
+            )
+        if len(code) > 30_000:
+            raise MultiAgentValidationError(
+                "live-coding solution exceeds 30000 characters"
+            )
+        normalized_code = code
+        existing = self.db.scalar(
+            select(CandidateResponse)
+            .where(
+                CandidateResponse.session_id == interview.id,
+                CandidateResponse.question_id == question_id,
+            )
+            .order_by(CandidateResponse.created_at, CandidateResponse.id)
+        )
+        if existing is not None:
+            if (
+                existing.content_type == "text/plain"
+                and existing.transcript_text == normalized_code
+                and existing.transcription_status is TranscriptionStatus.COMPLETED
+            ):
+                return LiveCodingSubmissionView(
+                    response_id=existing.id,
+                    question_id=existing.question_id,
+                )
+            raise MultiAgentConflictError(
+                "a live-coding solution was already submitted for this interview"
+            )
+        response_id = uuid4()
+        response = CandidateResponse(
+            id=response_id,
+            session_id=interview.id,
+            question_id=question_id,
+            storage_key=f"live-coding/{interview.id}/{response_id}.txt",
+            content_type="text/plain",
+            checksum=hashlib.sha256(normalized_code.encode("utf-8")).hexdigest(),
+            transcription_status=TranscriptionStatus.COMPLETED,
+            transcript_text=normalized_code,
+            created_at=_now(),
+        )
+        self.db.add(response)
+        self.db.commit()
+        return LiveCodingSubmissionView(
+            response_id=response.id,
+            question_id=response.question_id,
         )
 
     def candidate_feedback(
@@ -694,6 +810,10 @@ class MultiAgentHarness:
             agent_session.id, ArtifactKind.QUESTION_PLAN, required=True
         )
         plan = QuestionPlanOutput.model_validate(plan_artifact.payload)
+        vacancy = self.db.get(Vacancy, vacancy_id)
+        resume_artifact = self._latest_artifact(
+            agent_session.id, ArtifactKind.RESUME_RELEVANCE, required=True
+        )
         response = self.db.get(CandidateResponse, response_id)
         if response is None:
             raise MultiAgentNotFoundError("candidate response was not found")
@@ -709,13 +829,62 @@ class MultiAgentHarness:
                 "a completed stored transcript is required before assessment"
             )
         question = next(
-            (item for item in plan.questions if item.question_id == response.question_id),
+            (
+                item
+                for item in self._session_questions(agent_session, plan)
+                if item.question_id == response.question_id
+            ),
             None,
         )
         if question is None:
             raise MultiAgentConflictError(
                 "candidate response does not belong to the pinned question plan"
             )
+        approved_brief = self._approved_brief_payload(agent_session)
+        requirement_catalog = self._requirement_catalog(
+            vacancy.extracted_text,
+            approved_brief,
+        )
+        follow_up_count = self._follow_up_count(agent_session.id)
+        follow_up_limit = min(
+            FOLLOW_UP_MAX_QUESTIONS,
+            int(
+                agent_session.policy_payload.get(
+                    "follow_up_max_per_session",
+                    FOLLOW_UP_MAX_QUESTIONS,
+                )
+            ),
+        )
+        follow_up_remaining = max(0, follow_up_limit - follow_up_count)
+        follow_up_allowed = (
+            question.kind
+            not in {QuestionKind.FOLLOW_UP, QuestionKind.LIVE_CODING}
+            and follow_up_remaining > 0
+        )
+        confidence_threshold = float(
+            agent_session.policy_payload.get(
+                "follow_up_confidence_threshold", 0.65
+            )
+        )
+        resume_relevance = ResumeRelevanceOutput.model_validate(
+            resume_artifact.payload
+        )
+        eligible_live_coding_claim_ids = sorted(
+            claim.claim_id
+            for claim in resume_relevance.claims
+            if claim.claim_type is ResumeClaimType.SKILL
+        )
+        live_coding_count = self._live_coding_count(agent_session.id)
+        live_coding_allowed = (
+            question.kind
+            not in {QuestionKind.FOLLOW_UP, QuestionKind.LIVE_CODING}
+            and live_coding_count == 0
+            and bool(eligible_live_coding_claim_ids)
+            and any(
+                criterion.dimension is Dimension.TECHNICAL
+                for criterion in question.criteria
+            )
+        )
         context = {
             "schema_version": "answer_assessment_input_v1",
             "evidence_catalog_version": EVIDENCE_CATALOG_VERSION,
@@ -728,6 +897,33 @@ class MultiAgentHarness:
                 response.transcript_text,
                 f"answer:{response.id}",
             ),
+            "vacancy": {
+                "id": str(vacancy.id),
+                "title": vacancy.title,
+                "untrusted_text": vacancy.extracted_text,
+            },
+            "requirement_catalog": requirement_catalog,
+            "resume_relevance": resume_artifact.payload,
+            "follow_up_policy": {
+                "allowed": follow_up_allowed,
+                "confidence_threshold": confidence_threshold,
+                "remaining_in_session": follow_up_remaining,
+                "min_questions_when_triggered": 1,
+                "max_questions_this_answer": min(
+                    FOLLOW_UP_MAX_QUESTIONS,
+                    follow_up_remaining,
+                ),
+                "allowed_triggers": [
+                    FollowUpTrigger.LOW_CONFIDENCE.value,
+                    FollowUpTrigger.MISSING_DETAIL.value,
+                ],
+            },
+            "live_coding_policy": {
+                "allowed": live_coding_allowed,
+                "remaining_in_session": 1 if live_coding_allowed else 0,
+                "trigger": "claimed_technical_skill_not_demonstrated",
+                "eligible_resume_claim_ids": eligible_live_coding_claim_ids,
+            },
             "policy": self._agent_policy(),
         }
         return self._execute_agent(
@@ -740,6 +936,12 @@ class MultiAgentHarness:
                 response,
                 question,
                 context["answer_evidence_catalog"],
+                requirement_catalog,
+                resume_relevance,
+                follow_up_allowed,
+                follow_up_remaining,
+                confidence_threshold,
+                live_coding_allowed,
             ),
         )
 
@@ -762,6 +964,13 @@ class MultiAgentHarness:
         if not assessments:
             raise MultiAgentConflictError(
                 "at least one answer assessment is required before finalization"
+            )
+        plan = QuestionPlanOutput.model_validate(plan_artifact.payload)
+        if self._pending_conditional_questions(agent_session, plan):
+            raise MultiAgentConflictError(
+                "required follow-up and live-coding questions must be answered "
+                "and assessed "
+                "before finalization"
             )
         answer_context = self._integrity_answer_context(agent_session, assessments)
         integrity_context = {
@@ -1458,6 +1667,12 @@ class MultiAgentHarness:
         response: CandidateResponse,
         question: QuestionSelection,
         answer_evidence_catalog: list[dict[str, str]],
+        requirement_catalog: list[dict[str, str]],
+        resume: ResumeRelevanceOutput,
+        follow_up_allowed: bool,
+        follow_up_remaining: int,
+        confidence_threshold: float,
+        live_coding_allowed: bool,
     ) -> None:
         parsed = AnswerAssessmentOutput.model_validate(output)
         MultiAgentHarness._reject_sensitive_output(parsed)
@@ -1492,6 +1707,207 @@ class MultiAgentHarness:
                 raise MultiAgentOutputError(
                     "answer assessment references an unknown evidence id"
                 )
+        follow_ups = parsed.follow_up
+        if follow_ups is None:
+            MultiAgentHarness._validate_live_coding(
+                parsed,
+                question,
+                requirement_catalog,
+                resume,
+                live_coding_allowed,
+            )
+            return
+        if not follow_up_allowed:
+            raise MultiAgentOutputError(
+                "answer assessment cannot create a follow-up for this question"
+            )
+        if len(follow_ups) > min(FOLLOW_UP_MAX_QUESTIONS, follow_up_remaining):
+            raise MultiAgentOutputError(
+                "answer assessment exceeds the remaining follow-up limit"
+            )
+        low_confidence_criteria = {
+            observation.criterion_id
+            for observation in parsed.observations
+            if observation.confidence < confidence_threshold
+        }
+        missing_detail_criteria = {
+            observation.criterion_id
+            for observation in parsed.observations
+            if observation.label
+            in {
+                ObservationLabel.WEAK,
+                ObservationLabel.NEUTRAL,
+                ObservationLabel.INSUFFICIENT_INFORMATION,
+            }
+        }
+        expected_criteria = {item.criterion_id for item in question.criteria}
+        known_requirements = {
+            item["requirement_id"] for item in requirement_catalog
+        }
+        known_claims = {item.claim_id for item in resume.claims}
+        prompts: set[str] = set()
+        for follow_up in follow_ups:
+            if (
+                follow_up.trigger is FollowUpTrigger.LOW_CONFIDENCE
+                and not set(follow_up.criterion_ids).issubset(
+                    low_confidence_criteria
+                )
+            ):
+                raise MultiAgentOutputError(
+                    "follow-up low-confidence trigger is not supported by "
+                    "observations"
+                )
+            if (
+                follow_up.trigger is FollowUpTrigger.MISSING_DETAIL
+                and not set(follow_up.criterion_ids).issubset(
+                    missing_detail_criteria
+                )
+            ):
+                raise MultiAgentOutputError(
+                    "follow-up missing-detail trigger is not supported by "
+                    "observations"
+                )
+            if len(follow_up.criterion_ids) != len(
+                set(follow_up.criterion_ids)
+            ):
+                raise MultiAgentOutputError(
+                    "follow-up contains duplicate criterion ids"
+                )
+            if not set(follow_up.criterion_ids).issubset(expected_criteria):
+                raise MultiAgentOutputError(
+                    "follow-up references a criterion outside the source "
+                    "question"
+                )
+            if len(follow_up.requirement_ids) != len(
+                set(follow_up.requirement_ids)
+            ):
+                raise MultiAgentOutputError(
+                    "follow-up contains duplicate requirement ids"
+                )
+            if not set(follow_up.requirement_ids).issubset(known_requirements):
+                raise MultiAgentOutputError(
+                    "follow-up references an unknown vacancy requirement"
+                )
+            if len(follow_up.resume_claim_ids) != len(
+                set(follow_up.resume_claim_ids)
+            ):
+                raise MultiAgentOutputError(
+                    "follow-up contains duplicate resume claim ids"
+                )
+            if not set(follow_up.resume_claim_ids).issubset(known_claims):
+                raise MultiAgentOutputError(
+                    "follow-up references an unknown resume claim"
+                )
+            normalized_prompt = follow_up.prompt.strip()
+            if normalized_prompt == question.prompt.strip():
+                raise MultiAgentOutputError(
+                    "follow-up must not repeat the source question"
+                )
+            if normalized_prompt in prompts:
+                raise MultiAgentOutputError(
+                    "follow-up questions must not repeat each other"
+                )
+            prompts.add(normalized_prompt)
+            has_prior_sentence = re.search(
+                r"[.!?]\s+",
+                normalized_prompt[:-1],
+            )
+            if (
+                normalized_prompt.count("?") != 1
+                or not normalized_prompt.endswith("?")
+                or has_prior_sentence
+            ):
+                raise MultiAgentOutputError(
+                    "each follow-up item must be one question sentence"
+                )
+
+    @staticmethod
+    def _validate_live_coding(
+        parsed: AnswerAssessmentOutput,
+        question: QuestionSelection,
+        requirement_catalog: list[dict[str, str]],
+        resume: ResumeRelevanceOutput,
+        live_coding_allowed: bool,
+    ) -> None:
+        challenge = parsed.live_coding
+        if challenge is None:
+            return
+        if not live_coding_allowed:
+            raise MultiAgentOutputError(
+                "answer assessment cannot create live coding for this question"
+            )
+        eligible_criteria = {
+            observation.criterion_id
+            for observation in parsed.observations
+            if observation.dimension is Dimension.TECHNICAL
+            and observation.label
+            in {
+                ObservationLabel.WEAK,
+                ObservationLabel.INSUFFICIENT_INFORMATION,
+            }
+        }
+        if not set(challenge.criterion_ids).issubset(eligible_criteria):
+            raise MultiAgentOutputError(
+                "live coding requires an unanswered or weak technical criterion"
+            )
+        expected_technical_criteria = {
+            criterion.criterion_id
+            for criterion in question.criteria
+            if criterion.dimension is Dimension.TECHNICAL
+        }
+        if len(challenge.criterion_ids) != len(set(challenge.criterion_ids)):
+            raise MultiAgentOutputError(
+                "live coding contains duplicate criterion ids"
+            )
+        if not set(challenge.criterion_ids).issubset(expected_technical_criteria):
+            raise MultiAgentOutputError(
+                "live coding references a non-technical source criterion"
+            )
+        known_requirements = {
+            item["requirement_id"] for item in requirement_catalog
+        }
+        if len(challenge.requirement_ids) != len(set(challenge.requirement_ids)):
+            raise MultiAgentOutputError(
+                "live coding contains duplicate requirement ids"
+            )
+        if not set(challenge.requirement_ids).issubset(known_requirements):
+            raise MultiAgentOutputError(
+                "live coding references an unknown vacancy requirement"
+            )
+        skill_claim_ids = {
+            claim.claim_id
+            for claim in resume.claims
+            if claim.claim_type is ResumeClaimType.SKILL
+        }
+        if len(challenge.resume_claim_ids) != len(
+            set(challenge.resume_claim_ids)
+        ):
+            raise MultiAgentOutputError(
+                "live coding contains duplicate resume claim ids"
+            )
+        if not set(challenge.resume_claim_ids).issubset(skill_claim_ids):
+            raise MultiAgentOutputError(
+                "live coding requires an existing resume skill claim"
+            )
+        linked_claim_requirements = {
+            (claim_id, match.requirement_id)
+            for match in resume.experience_matches
+            for claim_id in match.claim_ids
+        }
+        if any(
+            not any(
+                (claim_id, requirement_id) in linked_claim_requirements
+                for requirement_id in challenge.requirement_ids
+            )
+            for claim_id in challenge.resume_claim_ids
+        ):
+            raise MultiAgentOutputError(
+                "live coding skill claim is not linked to its vacancy requirement"
+            )
+        if challenge.prompt.strip() == question.prompt.strip():
+            raise MultiAgentOutputError(
+                "live coding must contain a practical task, not repeat the question"
+            )
 
     @staticmethod
     def _validate_integrity_output(
@@ -2598,6 +3014,126 @@ class MultiAgentHarness:
             response_id = str(artifact.payload["response_id"])
             latest_by_response[response_id] = artifact
         return sorted(latest_by_response.values(), key=lambda item: str(item.id))
+
+    def _follow_up_count(self, agent_session_id: UUID) -> int:
+        return sum(
+            len(
+                AnswerAssessmentOutput.model_validate(artifact.payload).follow_up
+                or []
+            )
+            for artifact in self._assessment_artifacts(agent_session_id)
+        )
+
+    def _live_coding_count(self, agent_session_id: UUID) -> int:
+        return sum(
+            1
+            for artifact in self._assessment_artifacts(agent_session_id)
+            if AnswerAssessmentOutput.model_validate(artifact.payload).live_coding
+            is not None
+        )
+
+    def _session_questions(
+        self,
+        agent_session: AgentSession,
+        plan: QuestionPlanOutput,
+    ) -> list[QuestionSelection]:
+        """Combine the pinned plan with validated conditional questions."""
+
+        criteria = {
+            criterion.criterion_id: criterion
+            for question in plan.questions
+            for criterion in question.criteria
+        }
+        questions = list(plan.questions)
+        follow_up_artifacts = sorted(
+            self._assessment_artifacts(agent_session.id),
+            key=lambda item: (item.created_at, str(item.id)),
+        )
+        limit = min(
+            FOLLOW_UP_MAX_QUESTIONS,
+            int(
+                agent_session.policy_payload.get(
+                    "follow_up_max_per_session",
+                    FOLLOW_UP_MAX_QUESTIONS,
+                )
+            ),
+        )
+        appended = 0
+        live_coding_appended = False
+        for artifact in follow_up_artifacts:
+            assessment = AnswerAssessmentOutput.model_validate(artifact.payload)
+            if appended < limit:
+                for index, follow_up in enumerate(assessment.follow_up or []):
+                    selected_criteria = [
+                        criteria[criterion_id]
+                        for criterion_id in follow_up.criterion_ids
+                        if criterion_id in criteria
+                    ]
+                    if not selected_criteria:
+                        continue
+                    questions.append(
+                        QuestionSelection(
+                            question_id=uuid5(
+                                NAMESPACE_URL,
+                                (
+                                    f"{agent_session.id}:follow-up:"
+                                    f"{artifact.id}:{index}"
+                                ),
+                            ),
+                            prompt=follow_up.prompt,
+                            kind=QuestionKind.FOLLOW_UP,
+                            criteria=selected_criteria,
+                            source_claim_ids=follow_up.resume_claim_ids,
+                            source_manager_field_keys=[],
+                            selection_reason=follow_up.reason,
+                        )
+                    )
+                    appended += 1
+                    if appended >= limit:
+                        break
+            live_coding = assessment.live_coding
+            if live_coding is None or live_coding_appended:
+                continue
+            selected_criteria = [
+                criteria[criterion_id]
+                for criterion_id in live_coding.criterion_ids
+                if criterion_id in criteria
+            ]
+            if not selected_criteria:
+                continue
+            questions.append(
+                QuestionSelection(
+                    question_id=uuid5(
+                        NAMESPACE_URL,
+                        f"{agent_session.id}:live-coding:{artifact.id}",
+                    ),
+                    prompt=live_coding.prompt,
+                    kind=QuestionKind.LIVE_CODING,
+                    criteria=selected_criteria,
+                    source_claim_ids=live_coding.resume_claim_ids,
+                    source_manager_field_keys=[],
+                    selection_reason=live_coding.reason,
+                )
+            )
+            live_coding_appended = True
+        return questions
+
+    def _pending_conditional_questions(
+        self,
+        agent_session: AgentSession,
+        plan: QuestionPlanOutput,
+    ) -> list[QuestionSelection]:
+        assessments = self._assessment_artifacts(agent_session.id)
+        assessed_question_ids = {
+            AnswerAssessmentOutput.model_validate(artifact.payload).question_id
+            for artifact in assessments
+        }
+        return [
+            question
+            for question in self._session_questions(agent_session, plan)
+            if question.kind in {QuestionKind.FOLLOW_UP, QuestionKind.LIVE_CODING}
+            and question.question_id not in assessed_question_ids
+        ]
 
     def _session_view(self, model: AgentSession) -> AgentSessionView:
         artifacts = self.db.scalars(

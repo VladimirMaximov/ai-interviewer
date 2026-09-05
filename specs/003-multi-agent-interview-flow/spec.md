@@ -288,6 +288,21 @@ evidence, убедиться, что черновик скрыт, опублик
 - **FR-019a**: Harness MUST сохранять сырой LLM output без исправления цитат, идентификаторов,
   вопросов или оценок. Валидация и разрешение evidence ID MUST быть отдельными read-only слоями.
 - **FR-020**: Evidence одной dimension MUST NOT автоматически изменять score другой dimension.
+- **FR-020a**: Answer assessor MAY вернуть от одного до двух follow-up только при confidence ниже
+  закреплённого порога либо при `weak`, `neutral` или `insufficient_information`, когда уточнение
+  может устранить существенный пробел; без такого основания он MUST вернуть `null`.
+- **FR-020b**: Каждый follow-up MUST быть одним сфокусированным вопросом в одном предложении,
+  завершаться ровно одним знаком `?`, ссылаться на критерий исходного вопроса, разрешённое
+  требование вакансии и только существующие resume claims; уверенный `supported/strong` ответ
+  MUST NOT порождать follow-up.
+- **FR-020c**: Follow-up questions MUST иметь общий session cap в два вопроса, MUST NOT порождать
+  следующий follow-up, и все обязательные follow-up MUST быть оценены до финализации профиля.
+- **FR-020d**: Live-coding section MUST появляться только после `weak` или
+  `insufficient_information` technical observation, если кандидат не подтвердил связанный с
+  требованием вакансии skill-claim из резюме; она MUST запускаться не более одного раза за интервью.
+- **FR-020e**: Live-coding solution MUST сохраняться как отдельный завершённый ответ, проходить
+  evidence-first answer assessment и участвовать в technical score; до его оценки профиль MUST NOT
+  финализироваться. Live-coding answer MUST NOT порождать ещё один live-coding или follow-up.
 
 #### Profile and primary-vacancy ranking
 

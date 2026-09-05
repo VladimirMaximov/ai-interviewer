@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     alternative_vacancy_min_fit: float = Field(default=0.25, ge=-1, le=1)
     alternative_max_grade_distance: int = Field(default=1, ge=0, le=4)
     multi_agent_personalization_cap: int = Field(default=3, ge=0, le=8)
+    follow_up_confidence_threshold: float = Field(default=0.65, ge=0, le=1)
+    follow_up_max_per_session: int = Field(default=2, ge=1, le=2)
     manager_key: str | None = Field(
         default=None,
         validation_alias=AliasChoices("MANAGER_KEY", "INTERVIEW_MANAGER_KEY"),
