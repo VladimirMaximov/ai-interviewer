@@ -11,6 +11,10 @@ export function ConsentScreen({ onAccept, questions }: ConsentScreenProps) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     let active = true;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setStatus("Камера и микрофон доступны только в защищённом контексте HTTPS или на localhost.");
+      return () => { active = false; };
+    }
     void navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true })
       .then((value) => {
         // React Strict Mode mounts effects twice in development. A stream
