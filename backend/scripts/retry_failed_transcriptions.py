@@ -4,14 +4,14 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import workflow_factory
 from app.services.audio_processing import WhisperAudioProcessor
-from app.adapters.whisper_cpp import WhisperCppProvider
+from app.database import transcription_provider_factory
 from pathlib import Path
 import tempfile
 from app.models.interview import CandidateResponse, TranscriptionStatus
 
 engine = create_engine(settings.database_url)
 workflow = workflow_factory()
-processor = WhisperAudioProcessor(WhisperCppProvider(Path(settings.whisper_cpp_binary), Path(settings.whisper_cpp_model)), settings.ffmpeg_binary)
+processor = WhisperAudioProcessor(transcription_provider_factory(), settings.ffmpeg_binary)
 with Session(engine) as db:
     failed = db.scalars(select(CandidateResponse).where(CandidateResponse.transcription_status == TranscriptionStatus.FAILED)).all()
     for response in failed:

@@ -18,6 +18,13 @@ dist/
 *.egg-info/
 *.sqlite3
 *.tsbuildinfo
+backend/models/
 backend/models/*.bin
 backend/models/speechbrain*/
+backend/.venv-tts/
+backend/.venv-avatar/
+# Local, rights-managed source portraits for avatar rendering. Never commit faces.
+backend/assets/avatar/*.jpg
+backend/assets/avatar/*.jpeg
+backend/assets/avatar/*.png
 runs/

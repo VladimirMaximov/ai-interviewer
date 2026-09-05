@@ -4,30 +4,36 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from app.api.candidate import (
+    CandidateQuestion,
+    CodeAnswerRequest,
     ConfirmUploadRequest,
+    FollowUpQuestionView,
     InvitationView,
     MonitoringEvidenceGrant,
     MonitoringEventView,
+    ResponseSegmentView,
     TranscriptView,
     UploadGrant,
     UploadGrantRequest,
     get_workflow,
 )
+from app.interview_config import QuestionKind
 from app.main import app
 from app.domain.proctoring import MonitoringEventKind, MonitoringReviewStatus
-from app.models.interview import TranscriptionStatus
+from app.models.interview import FollowUpStatus, TranscriptionStatus
 
 
 class Workflow:
     def __init__(self) -> None:
         self.session_id = uuid4()
         self.response_id = uuid4()
+        self.follow_up_id = uuid4()
 
     def resolve(self, secret: str):
-        return InvitationView(session_id=self.session_id, consented=False) if secret == "valid" else None
+        return InvitationView(session_id=self.session_id, consented=False, questions=[CandidateQuestion(id=uuid4(), text="Синтетический вопрос", kind=QuestionKind.SPOKEN)]) if secret == "valid" else None
 
     def consent(self, secret: str):
-        return InvitationView(session_id=self.session_id, consented=True) if secret == "valid" else None
+        return InvitationView(session_id=self.session_id, consented=True, questions=[CandidateQuestion(id=uuid4(), text="Синтетический вопрос", kind=QuestionKind.SPOKEN)]) if secret == "valid" else None
 
     def create_upload_grant(self, secret: str, request: UploadGrantRequest):
         if secret != "valid":
@@ -59,6 +65,29 @@ class Workflow:
             started_at_ms=request.started_at_ms,
             ended_at_ms=request.ended_at_ms,
             review_status=MonitoringReviewStatus.PENDING,
+        )
+
+    def follow_up_questions(self, secret: str):
+        if secret != "valid":
+            return None
+        return [FollowUpQuestionView(
+            id=self.follow_up_id,
+            source_response_id=self.response_id,
+            text="Что было результатом проекта?",
+            status=FollowUpStatus.PRESENTED,
+        )]
+
+    def avatar_video_url(self, secret: str, question_id):
+        if secret != "valid":
+            return None
+        return "https://storage/private-avatar.mp4"
+
+    def save_code_answer(self, secret: str, request: CodeAnswerRequest):
+        if secret != "valid" or not request.source_code.strip():
+            return None
+        return ResponseSegmentView(
+            response_id=self.response_id,
+            status=TranscriptionStatus.COMPLETED,
         )
 
 
@@ -130,3 +159,36 @@ class CandidateApiTests(unittest.TestCase):
             },
         )
         self.assertEqual(response.status_code, 422)
+
+    def test_candidate_can_read_ready_follow_up_without_waiting(self) -> None:
+        response = self.client.get("/candidate/valid/follow-ups")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["source_response_id"], str(self.workflow.response_id))
+        self.assertEqual(response.json()[0]["status"], "presented")
+
+    def test_candidate_can_save_code_with_its_recording_offsets(self) -> None:
+        response = self.client.post("/candidate/valid/code-answers", json={
+            "question_id": str(uuid4()),
+            "language": "Python",
+            "source_code": "def solve():\n    return 42",
+            "start_offset_ms": 1_000,
+            "end_offset_ms": 8_000,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "completed")
+
+    def test_candidate_avatar_is_a_token_scoped_temporary_redirect(self) -> None:
+        question_id = uuid4()
+        response = self.client.get(
+            f"/candidate/valid/questions/{question_id}/avatar",
+            follow_redirects=False,
+        )
+        self.assertEqual(response.status_code, 307)
+        self.assertEqual(response.headers["location"], "https://storage/private-avatar.mp4")
+        self.assertEqual(
+            self.client.get(
+                f"/candidate/not-a-real-secret/questions/{question_id}/avatar",
+                follow_redirects=False,
+            ).status_code,
+            404,
+        )

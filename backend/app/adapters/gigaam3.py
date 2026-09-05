@@ -41,6 +41,10 @@ class GigaAm3Provider:
 
         result = self._model.transcribe(audio_path)
         transcript = getattr(result, "text", result)
-        if not isinstance(transcript, str) or not transcript.strip():
-            raise RuntimeError("GigaAM returned no transcription text")
+        if not isinstance(transcript, str):
+            raise RuntimeError("GigaAM returned an invalid transcription result")
+        # Silence, a microphone pause, or a coding answer without narration is
+        # a valid candidate response. The scheduler marks an empty string as a
+        # completed transcript; treating it as an infrastructure failure made
+        # otherwise saved coding answers look broken.
         return transcript.strip()

@@ -9,6 +9,7 @@ class PrivateObjectStorage(Protocol):
     def object_exists(self, key: str) -> bool: ...
     def object_size(self, key: str) -> int: ...
     def download_to(self, key: str, destination: Path) -> None: ...
+    def create_download_url(self, key: str) -> str: ...
 
 
 class S3ObjectStorage:
@@ -36,3 +37,8 @@ class S3ObjectStorage:
 
     def download_to(self, key: str, destination: Path) -> None:
         self._client.download_file(self._bucket, key, str(destination))
+
+    def create_download_url(self, key: str) -> str:
+        return self._client.generate_presigned_url(
+            "get_object", Params={"Bucket": self._bucket, "Key": key}, ExpiresIn=300
+        )
