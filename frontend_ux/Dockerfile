@@ -2,7 +2,9 @@ FROM node:22-alpine AS build
 WORKDIR /src
 COPY frontend_ux/package*.json ./
 COPY packages /packages
-RUN npm ci
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+RUN --mount=type=cache,target=/root/.npm npm config set registry "$NPM_REGISTRY" \
+    && npm ci --prefer-offline --no-audit --fetch-retries=10 --fetch-timeout=600000
 COPY frontend_ux .
 ENV REACT_APP_API_URL=/api
 RUN npm run build
