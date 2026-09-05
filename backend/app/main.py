@@ -16,6 +16,7 @@ from app.database import (
     hiring_context_service_factory,
     manager_brief_service_factory,
     multi_agent_harness_factory,
+    question_speech_provider_factory,
     workflow_factory,
 )
 from app.domain.hiring_context import HiringContextError
@@ -24,6 +25,7 @@ from app.domain.multi_agent import MultiAgentError
 
 app = FastAPI(title="AI Interviewer API", version="0.5.0")
 app.state.workflow_factory = workflow_factory
+app.state.question_speech_provider_factory = question_speech_provider_factory
 app.state.manager_brief_service_factory = manager_brief_service_factory
 app.state.hiring_context_service_factory = hiring_context_service_factory
 app.state.multi_agent_harness_factory = multi_agent_harness_factory

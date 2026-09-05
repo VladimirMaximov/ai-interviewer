@@ -14,6 +14,10 @@ depends_on = None
 
 
 def upgrade() -> None:
+    if op.get_bind().dialect.name != "postgresql":
+        # SQLite represents the enum as a string in migration tests; it has no
+        # ALTER TYPE operation and needs no schema change for these values.
+        return
     for value in ("page_hidden", "page_visible", "window_blurred", "window_focused", "page_copy"):
         op.execute(f"ALTER TYPE timelineeventtype ADD VALUE IF NOT EXISTS '{value}'")
 

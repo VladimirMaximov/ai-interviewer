@@ -2,32 +2,33 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CandidateApi } from "./candidate";
 
-describe("CandidateApi questions", () => {
+describe("CandidateApi invitation", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("loads the token-scoped safe LLM question plan", async () => {
+  it("loads the token-scoped candidate-safe invitation", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
-        agent_session_id: "00000000-0000-0000-0000-000000000010",
+        session_id: "00000000-0000-0000-0000-000000000010",
+        consented: false,
         questions: [
           {
-            question_id: "00000000-0000-0000-0000-000000000011",
-            prompt: "Расскажите о технической задаче.",
-            kind: "baseline",
+            id: "00000000-0000-0000-0000-000000000011",
+            text: "Расскажите о технической задаче.",
+            kind: "spoken",
           },
         ],
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const plan = await new CandidateApi().questions("token with spaces");
+    const invitation = await new CandidateApi().resolve("token with spaces");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/candidate/token%20with%20spaces/questions",
+      "/candidate/token%20with%20spaces",
       undefined,
     );
-    expect(plan.questions[0].kind).toBe("baseline");
+    expect(invitation.questions[0].kind).toBe("spoken");
   });
 
   it("loads only the published candidate feedback projection", async () => {

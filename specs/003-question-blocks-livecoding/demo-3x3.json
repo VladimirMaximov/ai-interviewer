@@ -1,0 +1,21 @@
+{
+  "live_coding_enabled": true,
+  "blocks": [
+    {"id":"10000000-0000-4000-8000-000000000001","key":"hard_skills","title":"Hard skills","topic":"hard_skills","questions":[
+      {"id":"11000000-0000-4000-8000-000000000001","text":"Как устроен индекс в PostgreSQL?","kind":"spoken","time_limit_seconds":60},
+      {"id":"11000000-0000-4000-8000-000000000002","text":"Как найти причину деградации API?","kind":"spoken","time_limit_seconds":60},
+      {"id":"11000000-0000-4000-8000-000000000003","text":"Реализуйте очередь с enqueue и dequeue.","kind":"coding","time_limit_seconds":180}
+    ]},
+    {"id":"20000000-0000-4000-8000-000000000001","key":"soft_skills","title":"Soft skills","topic":"soft_skills","questions":[
+      {"id":"21000000-0000-4000-8000-000000000001","text":"Как вы принимаете обратную связь?","kind":"spoken","time_limit_seconds":60},
+      {"id":"21000000-0000-4000-8000-000000000002","text":"Как действуете в ситуации неопределённости?","kind":"spoken","time_limit_seconds":60},
+      {"id":"21000000-0000-4000-8000-000000000003","text":"Расскажите о сложном командном решении.","kind":"spoken","time_limit_seconds":60}
+    ]},
+    {"id":"30000000-0000-4000-8000-000000000001","key":"work_experience","title":"Опыт работы","topic":"work_experience","questions":[
+      {"id":"31000000-0000-4000-8000-000000000001","text":"Расскажите о последнем проекте.","kind":"spoken","time_limit_seconds":60},
+      {"id":"31000000-0000-4000-8000-000000000002","text":"Каким результатом вы особенно гордитесь?","kind":"spoken","time_limit_seconds":60},
+      {"id":"31000000-0000-4000-8000-000000000003","text":"Почему вы рассматриваете новую роль?","kind":"spoken","time_limit_seconds":60}
+    ]}
+  ],
+  "follow_up_after_all_answers": false
+}

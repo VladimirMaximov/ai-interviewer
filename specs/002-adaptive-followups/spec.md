@@ -28,6 +28,9 @@ it, the transcript version used, the agent decision and the candidate's resultin
 
 ## Functional Requirements
 
+- **FR-000**: The interview input MUST contain an ordered base-question list. Each question MUST
+  provide stable identity, candidate-visible text and a binary `follow_up_after_answer` policy;
+  the input MUST also provide the binary `follow_up_after_all_answers` policy.
 - **FR-001**: The system MUST persist the approved base question sequence independently of the
   browser interface.
 - **FR-002**: The system MUST persist an agent follow-up with its source response, question text,
@@ -71,3 +74,36 @@ it, the transcript version used, the agent decision and the candidate's resultin
 - The provider that decides whether a clarification is useful is pluggable and disabled by default
   until a model and prompt policy are selected.
 - Follow-ups are short factual clarifications, not behavioural or appearance-based assessments.
+
+## Input Format
+
+The interview creator supplies this JSON before an invitation is generated. `true` and `false`
+are the canonical values; `1` and `0` are accepted by the input validator as boolean equivalents.
+
+```json
+{
+  "questions": [
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "text": "Какой у вас опыт?",
+      "follow_up_after_answer": false
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "text": "Сколько вы хотите получать?",
+      "follow_up_after_answer": false
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "text": "Расскажите про ваш проект.",
+      "follow_up_after_answer": true
+    }
+  ],
+  "follow_up_after_all_answers": true
+}
+```
+
+The candidate receives only question `id` and `text`; the policy flags stay server-side. A future
+agent may enqueue one clarification for a response only if its question flag is enabled. It may
+enqueue one whole-interview clarification only if `follow_up_after_all_answers` is enabled and the
+base sequence is complete.

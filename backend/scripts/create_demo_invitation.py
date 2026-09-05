@@ -1,13 +1,22 @@
 """Create a synthetic local invitation and the private MinIO bucket."""
-
 from uuid import uuid4
-
+from datetime import datetime, timedelta, timezone
+import argparse
+import json
+from pathlib import Path
 import boto3
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.interview_config import InterviewInput, default_interview_input
+from app.models.interview import InterviewInvitation
 from app.services.hiring_context import HiringContextService
+
+parser = argparse.ArgumentParser(description="Create a synthetic invitation from a question-set JSON file.")
+parser.add_argument("--input", type=str, help="Path to InterviewInput JSON; defaults to the local demo questions.")
+args = parser.parse_args()
+interview_input = InterviewInput.model_validate(json.loads(Path(args.input).read_text())) if args.input else default_interview_input()
 
 engine = create_engine(settings.database_url)
 client = boto3.client(
@@ -39,5 +48,15 @@ with Session(engine) as db:
         candidate_alias="synthetic-candidate",
         expires_in_hours=24,
     )
+    stored_invitation = db.get(InterviewInvitation, invitation.invitation_id)
+    if stored_invitation is None:
+        raise RuntimeError("created invitation was not found")
+    stored_invitation.question_config = interview_input.model_dump(
+        mode="json", exclude={"follow_up_after_all_answers"}
+    )
+    stored_invitation.follow_up_after_all_answers = (
+        interview_input.follow_up_after_all_answers
+    )
+    db.commit()
 print(f"vacancy_id={vacancy.id}")
 print(f"http://localhost:5173/?token={invitation.candidate_token}")

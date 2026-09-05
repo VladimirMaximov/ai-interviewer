@@ -1,13 +1,15 @@
 # Data Model: Asynchronous AI Interview
 
-- **InterviewTemplate / InterviewQuestion**: approved, versioned six-question sequence; each
-  question has text, order, required flag, and avatar asset reference.
+- **Interview input**: a server-owned ordered list of base questions. Each item has stable `id`,
+  `text`, and `follow_up_after_answer` boolean; the whole set has the
+  `follow_up_after_all_answers` boolean. These flags constrain a future agent, not the candidate.
 - **InterviewInvitation**: candidate and template reference, one-way digest of the URL secret,
   expiry/revocation/submission timestamps, and status. The URL never contains candidate identity.
 - **InterviewSession**: one per invitation; records consent, current question, and state
   `not_started → in_progress → submitted` (or expired/revoked). Submission is immutable.
 - **InterviewRecording**: one logical private continuous video-with-audio recording per session;
-  it records media metadata, a manifest checksum, start/end timestamps, and is never public.
+  it records media metadata, a manifest checksum, UTC start/end timestamps, and media-derived
+  `duration_ms`; it is never public.
 - **InterviewRecordingChunk**: an ordered private 10-second video fragment belonging to one
   recording. It records sequence, time bounds, storage key, checksum, and upload confirmation;
   only a fragment is held in browser memory at a time.

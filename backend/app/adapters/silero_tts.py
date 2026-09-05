@@ -1,6 +1,7 @@
 """Local Russian question-speech generation through a configured Silero helper."""
 
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -15,8 +16,11 @@ class SileroTtsProvider:
         if not self._helper.is_file():
             raise RuntimeError("Local Silero TTS helper is not installed")
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        command = [str(self._helper)]
+        if self._helper.suffix == ".py":
+            command = [sys.executable, str(self._helper)]
         subprocess.run(
-            [str(self._helper), "--voice", self._voice, "--output", str(output_path), "--text", text],
+            [*command, "--voice", self._voice, "--output", str(output_path), "--text", text],
             check=True, capture_output=True, text=True,
         )
         if not output_path.is_file():

@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",
+    "@monaco-editor/react": "^4.7.0",
     "@vitejs/plugin-react": "latest",
+    "monaco-editor": "^0.56.0",
     "react": "latest",
     "react-dom": "latest",
     "vite": "latest"

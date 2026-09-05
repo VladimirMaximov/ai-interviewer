@@ -9,7 +9,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.adapters.openai_manager_brief import OpenAIManagerBriefAgent
 from app.adapters.openai_interview_agents import build_openai_interview_agents
+from app.adapters.silero_tts import SileroTtsProvider
+from app.adapters.xtts_http import XttsHttpProvider
 from app.adapters.storage import S3ObjectStorage
+from app.adapters.gigaam3 import GigaAm3Provider
 from app.adapters.whisper_cpp import WhisperCppProvider
 from app.config import settings
 from app.services.audio_processing import WhisperAudioProcessor
@@ -19,6 +22,7 @@ from app.services.manager_brief import ManagerBriefService
 from app.services.multi_agent_harness import MultiAgentHarness
 from app.services.transcription_scheduler import TranscriptionScheduler
 from app.services.voice_proctoring import VoiceProctoringScheduler
+from app.services.runtime_evaluation import RuntimeEvaluationService
 
 
 _voice_executor = ThreadPoolExecutor(
@@ -45,6 +49,22 @@ def _voice_analyzer():
         ),
         speaker_similarity_threshold=settings.proctoring_speaker_similarity,
     )
+def transcription_provider_factory():
+    """Build the configured local STT backend without changing worker code."""
+    if settings.transcription_provider == "gigaam3":
+        return GigaAm3Provider(settings.gigaam_model)
+    return WhisperCppProvider(
+        Path(settings.whisper_cpp_binary), Path(settings.whisper_cpp_model)
+    )
+
+
+def question_speech_provider_factory() -> SileroTtsProvider | XttsHttpProvider | None:
+    """Return local question TTS, or let the browser use its own fallback."""
+    if settings.question_speech_provider == "browser":
+        return None
+    if settings.question_speech_provider == "xtts":
+        return XttsHttpProvider(settings.xtts_endpoint, settings.xtts_voice)
+    return SileroTtsProvider(Path(settings.silero_helper), settings.silero_voice)
 
 
 def workflow_factory() -> SqlCandidateWorkflow:
@@ -61,9 +81,7 @@ def workflow_factory() -> SqlCandidateWorkflow:
     )
     storage = S3ObjectStorage(client, settings.s3_bucket)
     processor = WhisperAudioProcessor(
-        WhisperCppProvider(
-            Path(settings.whisper_cpp_binary), Path(settings.whisper_cpp_model)
-        ),
+        transcription_provider_factory(),
         settings.ffmpeg_binary,
     )
     voice_scheduler = None
@@ -77,7 +95,7 @@ def workflow_factory() -> SqlCandidateWorkflow:
     return SqlCandidateWorkflow(
         session,
         storage,
-        TranscriptionScheduler(sessions, storage, processor),
+        TranscriptionScheduler(sessions, storage, processor, RuntimeEvaluationService(sessions)),
         voice_scheduler,
     )
 

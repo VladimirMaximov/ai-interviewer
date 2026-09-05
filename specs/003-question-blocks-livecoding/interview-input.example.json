@@ -1,0 +1,51 @@
+{
+  "live_coding_enabled": true,
+  "blocks": [
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "key": "hard_skills",
+      "title": "Hard skills",
+      "topic": "hard_skills",
+      "questions": [
+        {
+          "id": "21111111-1111-4111-8111-111111111111",
+          "text": "Реализуйте очередь с операциями enqueue и dequeue.",
+          "kind": "coding",
+          "follow_up_after_answer": true,
+          "time_limit_seconds": 60
+        }
+      ]
+    },
+    {
+      "id": "31111111-1111-4111-8111-111111111111",
+      "key": "soft_skills",
+      "title": "Soft skills",
+      "topic": "soft_skills",
+      "questions": [
+        {
+          "id": "41111111-1111-4111-8111-111111111111",
+          "text": "Как вы действуете в ситуации неопределённости?",
+          "kind": "spoken",
+          "follow_up_after_answer": true,
+          "time_limit_seconds": 60
+        }
+      ]
+    },
+    {
+      "id": "51111111-1111-4111-8111-111111111111",
+      "key": "work_experience",
+      "title": "Опыт работы",
+      "topic": "work_experience",
+      "questions": [
+        {
+          "id": "61111111-1111-4111-8111-111111111111",
+          "text": "Расскажите о вашем последнем проекте.",
+          "kind": "spoken",
+          "follow_up_after_answer": true,
+          "time_limit_seconds": 60
+        }
+      ]
+    }
+  ],
+  "follow_up_after_all_answers": false
+}

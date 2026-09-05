@@ -7,8 +7,8 @@ from app.adapters.storage import PrivateObjectStorage
 from app.models.interview import CandidateResponse, TranscriptionStatus
 
 class TranscriptionScheduler:
-    def __init__(self, sessions: sessionmaker, storage: PrivateObjectStorage, processor) -> None:
-        self.sessions, self.storage, self.processor = sessions, storage, processor
+    def __init__(self, sessions: sessionmaker, storage: PrivateObjectStorage, processor, runtime_evaluation=None) -> None:
+        self.sessions, self.storage, self.processor, self.runtime_evaluation = sessions, storage, processor, runtime_evaluation
         self.executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="asr")
     def schedule(self, response_id, key: str) -> None:
         self.executor.submit(self._run, response_id, key)
@@ -16,6 +16,10 @@ class TranscriptionScheduler:
         self.executor.submit(self._run_segment, response_id, key, start_offset_ms, end_offset_ms)
     def schedule_segment_chunks(self, response_id, chunks, start_offset_ms: int, end_offset_ms: int) -> None:
         self.executor.submit(self._run_chunk_segment, response_id, chunks, start_offset_ms, end_offset_ms)
+    def schedule_runtime_evaluation(self, response_id) -> None:
+        """Evaluate non-ASR answers, such as a saved coding solution, off-request."""
+        if self.runtime_evaluation:
+            self.executor.submit(self.runtime_evaluation.evaluate_completed_response, response_id)
     def _run(self, response_id, key: str) -> None:
         import tempfile
         try:
@@ -28,6 +32,8 @@ class TranscriptionScheduler:
         with self.sessions() as db:
             response = db.get(CandidateResponse, response_id)
             if response: response.transcription_status, response.transcript_text = status, text; db.commit()
+        if status is TranscriptionStatus.COMPLETED and self.runtime_evaluation:
+            self.runtime_evaluation.evaluate_completed_response(response_id)
 
     def _run_segment(self, response_id, key: str, start_offset_ms: int, end_offset_ms: int) -> None:
         import tempfile
@@ -46,6 +52,8 @@ class TranscriptionScheduler:
             if response:
                 response.transcription_status, response.transcript_text = status, text
                 db.commit()
+        if status is TranscriptionStatus.COMPLETED and self.runtime_evaluation:
+            self.runtime_evaluation.evaluate_completed_response(response_id)
 
     def _run_chunk_segment(self, response_id, chunks, start_offset_ms: int, end_offset_ms: int) -> None:
         """Build a temporary byte stream from uploaded chunks and transcribe one interval.
@@ -74,3 +82,5 @@ class TranscriptionScheduler:
             if response:
                 response.transcription_status, response.transcript_text = status, text
                 db.commit()
+        if status is TranscriptionStatus.COMPLETED and self.runtime_evaluation:
+            self.runtime_evaluation.evaluate_completed_response(response_id)

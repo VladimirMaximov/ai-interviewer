@@ -5,6 +5,7 @@ Revises: 002_continuous_recording
 """
 
 from alembic import op
+import sqlalchemy as sa
 
 
 revision = "003_response_segments"
@@ -14,8 +15,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.alter_column("candidate_responses", "storage_key", nullable=True)
+    with op.batch_alter_table("candidate_responses") as batch_op:
+        batch_op.alter_column("storage_key", existing_type=sa.String(length=512), nullable=True)
 
 
 def downgrade() -> None:
-    op.alter_column("candidate_responses", "storage_key", nullable=False)
+    with op.batch_alter_table("candidate_responses") as batch_op:
+        batch_op.alter_column("storage_key", existing_type=sa.String(length=512), nullable=False)

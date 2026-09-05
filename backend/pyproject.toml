@@ -21,6 +21,12 @@ proctoring = [
     "torch>=2.5",
     "torchaudio>=2.5",
 ]
+# GigaAM v3 is currently released from the official repository rather than the
+# older PyPI package. Keep it optional: the default developer setup uses
+# whisper.cpp and must not download model frameworks unexpectedly.
+local-speech = [
+    "gigaam @ git+https://github.com/salute-developers/GigaAM.git@7447938d791c4f3e643386ee22c33777004293a5",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

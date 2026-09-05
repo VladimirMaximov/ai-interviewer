@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from app.adapters.gigaam3 import GigaAm3Provider
@@ -21,6 +22,13 @@ class LocalMediaTests(unittest.TestCase):
         provider = GigaAm3Provider()
         with self.assertRaisesRegex(ValueError, "only Russian"):
             provider.transcribe(Path("response.wav"), language="en")
+
+    def test_gigaam_accepts_silence_as_completed_empty_transcript(self) -> None:
+        provider = GigaAm3Provider()
+        model = SimpleNamespace(transcribe=lambda _: "   ")
+        with tempfile.NamedTemporaryFile(suffix=".wav") as audio:
+            with patch("app.adapters.gigaam3.importlib.import_module", return_value=SimpleNamespace(load_model=lambda _: model)):
+                self.assertEqual(provider.transcribe(Path(audio.name)), "")
 
     def test_whisper_requires_installed_binary_and_model(self) -> None:
         provider = WhisperCppProvider(Path("/missing/whisper-cli"), Path("/missing/small.bin"))

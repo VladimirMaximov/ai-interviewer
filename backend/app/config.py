@@ -4,13 +4,12 @@ from typing import Literal
 
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
 class Settings(BaseSettings):
     """Configuration shared by API and provider adapters."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    transcription_provider: str = "whisper_cpp"
+    # Whisper is the multilingual baseline; GigaAM is the local Russian-first option.
+    transcription_provider: Literal["whisper_cpp", "gigaam3"] = "whisper_cpp"
     proctoring_provider: Literal["disabled", "pyannote"] = "disabled"
     huggingface_token: str | None = None
     proctoring_diarization_model: str = (
@@ -56,7 +55,11 @@ class Settings(BaseSettings):
     whisper_cpp_binary: str = "whisper-cli"
     whisper_cpp_model: str = "backend/models/ggml-small.bin"
     ffmpeg_binary: str = "ffmpeg"
-    silero_helper: str = "scripts/silero_tts.py"
+    question_speech_provider: Literal["browser", "silero", "xtts"] = "silero"
+    silero_voice: str = "kseniya"
+    silero_helper: str = "backend/scripts/silero_tts.py"
+    xtts_endpoint: str = "http://127.0.0.1:8001"
+    xtts_voice: str = "Claribel Dervla"
     database_url: str = (
         "postgresql+psycopg://ai_interviewer:local_dev_only@localhost:5433/ai_interviewer"
     )
