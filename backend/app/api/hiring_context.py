@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.api.errors import invalid_invitation
 from app.application.document_extraction import MAX_DOCUMENT_BYTES
 from app.config import settings
+from app.interview_config import InterviewInput
 from app.domain.hiring_context import (
     ApplicationView,
     CandidateConsentRequiredError,
@@ -26,6 +27,7 @@ from app.domain.hiring_context import (
     ResumeView,
     VacancyView,
 )
+from app.services.interview_results import InterviewResultDetail, InterviewResultSummary
 
 
 recruiter_router = APIRouter(prefix="/recruiter", tags=["hiring-context"])
@@ -70,6 +72,10 @@ class ApplicationList(BaseModel):
     applications: list[ApplicationView]
 
 
+class InterviewResultList(BaseModel):
+    interviews: list[InterviewResultSummary]
+
+
 class HiringContextWorkflow(Protocol):
     def close(self) -> None: ...
 
@@ -87,6 +93,12 @@ class HiringContextWorkflow(Protocol):
     def list_vacancies(self) -> list[VacancyView]: ...
 
     def get_vacancy(self, vacancy_id: UUID) -> VacancyView: ...
+
+    def get_interview_configuration(self, vacancy_id: UUID) -> InterviewInput: ...
+
+    def set_interview_configuration(
+        self, vacancy_id: UUID, configuration: InterviewInput
+    ) -> InterviewInput: ...
 
     def create_invitation(
         self,
@@ -165,6 +177,14 @@ def get_hiring_context_service(request: Request) -> Iterator[HiringContextWorkfl
         service.close()
 
 
+def get_interview_results_service(request: Request) -> Iterator[object]:
+    service = request.app.state.interview_results_service_factory()
+    try:
+        yield service
+    finally:
+        service.close()
+
+
 async def _document_bytes(request: Request) -> bytes:
     content_length = request.headers.get("content-length")
     if content_length:
@@ -235,6 +255,31 @@ def get_vacancy(
     return service.get_vacancy(vacancy_id)
 
 
+@recruiter_router.get(
+    "/vacancies/{vacancy_id}/interview-configuration",
+    response_model=InterviewInput,
+)
+def get_interview_configuration(
+    vacancy_id: UUID,
+    _: str = Depends(require_recruiter),
+    service: HiringContextWorkflow = Depends(get_hiring_context_service),
+) -> InterviewInput:
+    return service.get_interview_configuration(vacancy_id)
+
+
+@recruiter_router.put(
+    "/vacancies/{vacancy_id}/interview-configuration",
+    response_model=InterviewInput,
+)
+def set_interview_configuration(
+    vacancy_id: UUID,
+    payload: InterviewInput,
+    _: str = Depends(require_recruiter),
+    service: HiringContextWorkflow = Depends(get_hiring_context_service),
+) -> InterviewInput:
+    return service.set_interview_configuration(vacancy_id, payload)
+
+
 @recruiter_router.post(
     "/vacancies/{vacancy_id}/invitations",
     response_model=InvitationCreated,
@@ -252,6 +297,34 @@ def create_invitation(
         candidate_alias=payload.candidate_alias,
         expires_in_hours=payload.expires_in_hours,
     )
+
+
+@recruiter_router.get(
+    "/vacancies/{vacancy_id}/interviews", response_model=InterviewResultList,
+)
+def list_interview_results(
+    vacancy_id: UUID, _: str = Depends(require_recruiter),
+    service: object = Depends(get_interview_results_service),
+) -> InterviewResultList:
+    try:
+        return InterviewResultList(interviews=service.list_for_vacancy(vacancy_id))
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail="Vacancy was not found") from error
+
+
+@recruiter_router.get(
+    "/vacancies/{vacancy_id}/interviews/{session_id}",
+    response_model=InterviewResultDetail,
+)
+def get_interview_result(
+    vacancy_id: UUID, session_id: UUID,
+    _: str = Depends(require_recruiter),
+    service: object = Depends(get_interview_results_service),
+) -> InterviewResultDetail:
+    try:
+        return service.detail(vacancy_id, session_id)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail="Interview was not found") from error
 
 
 @recruiter_router.get(

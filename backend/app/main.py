@@ -12,8 +12,10 @@ from app.api.manager import router as manager_router
 from app.api.multi_agent import candidate_router as candidate_question_router
 from app.api.multi_agent import multi_agent_exception_handler
 from app.api.multi_agent import router as multi_agent_router
+from app.api.health import router as health_router
 from app.database import (
     hiring_context_service_factory,
+    interview_results_service_factory,
     manager_brief_service_factory,
     multi_agent_harness_factory,
     question_speech_provider_factory,
@@ -28,6 +30,7 @@ app.state.workflow_factory = workflow_factory
 app.state.question_speech_provider_factory = question_speech_provider_factory
 app.state.manager_brief_service_factory = manager_brief_service_factory
 app.state.hiring_context_service_factory = hiring_context_service_factory
+app.state.interview_results_service_factory = interview_results_service_factory
 app.state.multi_agent_harness_factory = multi_agent_harness_factory
 app.add_middleware(
     CORSMiddleware,
@@ -42,12 +45,7 @@ app.include_router(candidate_question_router)
 app.include_router(recruiter_router)
 app.include_router(manager_router)
 app.include_router(multi_agent_router)
+app.include_router(health_router)
 app.add_exception_handler(HiringContextError, hiring_context_exception_handler)
 app.add_exception_handler(ManagerBriefError, manager_brief_exception_handler)
 app.add_exception_handler(MultiAgentError, multi_agent_exception_handler)
-
-
-@app.get("/health")
-def health() -> dict[str, str]:
-    """Return a dependency-free liveness response."""
-    return {"status": "ok"}

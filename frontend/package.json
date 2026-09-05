@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ai-interviewer/brand-tokens": "file:../packages/brand-tokens",
     "@mediapipe/tasks-vision": "^1.0.1",
     "@monaco-editor/react": "^4.7.0",
     "@vitejs/plugin-react": "latest",
@@ -22,5 +23,8 @@
     "@types/react-dom": "^19.2.2",
     "typescript": "latest",
     "vitest": "latest"
+  },
+  "overrides": {
+    "dompurify": "3.4.14"
   }
 }

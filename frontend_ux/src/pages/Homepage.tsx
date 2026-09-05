@@ -1,108 +1,61 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import api from '../api';
+import { Link, useLocation } from 'react-router-dom';
+import { createInvitation, listVacancies } from '../api';
+import { Vacancy } from '../types';
 
 const Homepage: React.FC = () => {
-  const [user, setUser] = useState<any>(null);
-  const [vacancies, setVacancies] = useState<any[]>([]);
-  const [loadError, setLoadError] = useState('');
-  const navigate = useNavigate();
   const location = useLocation();
-  const createdVacancy = location.state?.createdVacancy;
+  const createdVacancy = location.state?.createdVacancy as Vacancy | undefined;
+  const [vacancies, setVacancies] = useState<Vacancy[]>(createdVacancy ? [createdVacancy] : []);
+  const [loadError, setLoadError] = useState('');
+  const [creatingFor, setCreatingFor] = useState<string | null>(null);
+  const [invitationUrls, setInvitationUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const data = localStorage.getItem('user');
-    if (!data) { navigate('/login'); return; }
-    setUser(JSON.parse(data));
-    if (createdVacancy) setVacancies([createdVacancy]);
-    api.get('/vacancies')
-      .then(res => {
-        const loadedVacancies = res.data || [];
-        setVacancies(current => {
-          if (!createdVacancy) return loadedVacancies;
-          const withoutDuplicate = loadedVacancies.filter(
-            (vacancy: any) => vacancy.id !== createdVacancy.id
-          );
-          return [createdVacancy, ...withoutDuplicate];
-        });
-        setLoadError('');
-      })
-      .catch(() => {
-        setLoadError('Не удалось обновить список вакансий. Только что созданная вакансия показана ниже.');
-      });
-  }, [createdVacancy, navigate]);
+    listVacancies().then((loaded) => {
+      setVacancies(loaded);
+      setLoadError('');
+    }).catch(() => setLoadError('Не удалось загрузить вакансии из основного сервиса.'));
+  }, []);
 
-  const logout = () => {
-    localStorage.clear();
-    navigate('/login');
+  const issueInvitation = async (vacancyId: string) => {
+    try {
+      setCreatingFor(vacancyId);
+      const invitation = await createInvitation(vacancyId);
+      setInvitationUrls((current) => ({ ...current, [vacancyId]: invitation.candidate_url }));
+    } catch {
+      setLoadError('Не удалось создать ссылку. Проверьте конфигурацию интервью.');
+    } finally {
+      setCreatingFor(null);
+    }
   };
 
-  const copyLink = (link: string) => {
-    navigator.clipboard.writeText(link);
-    alert('Ссылка скопирована!');
+  const copyLink = async (url: string) => {
+    await navigator.clipboard.writeText(url);
   };
-
-  if (!user) return null;
 
   return (
     <>
       <nav className="navbar navbar-light bg-white shadow-sm">
-        <div className="container">
-          <span className="navbar-brand">AI Интервьюер</span>
-          <div>
-            <span className="badge bg-secondary me-2">{user.role}</span>
-            <button className="btn btn-sm btn-outline-danger" onClick={logout}>Выйти</button>
-          </div>
-        </div>
+        <div className="container"><span className="navbar-brand">AI Интервьюер</span><span className="badge bg-secondary">Демо-кабинет</span></div>
       </nav>
-
-      <div className="container mt-4">
-        {user.role === 'candidate' ? (
-          // Для кандидата - показываем персональную ссылку
-          <div className="card">
-            <div className="card-body text-center">
-              <h5>Ваша персональная ссылка для интервью</h5>
-              <div className="mt-3 p-3 bg-light rounded">
-                <code className="text-break">
-                  https://your-interview-service.com/interview/{user.id}
-                </code>
+      <main className="container my-4" style={{ maxWidth: 980 }}>
+        {createdVacancy && <div className="alert alert-success">Вакансия «{createdVacancy.title}» сохранена.</div>}
+        {loadError && <div className="alert alert-warning">{loadError}</div>}
+        <div className="d-flex justify-content-between align-items-center mb-3"><h1 className="h4 mb-0">Вакансии</h1><Link to="/vacancy/new" className="btn btn-primary">Новая вакансия</Link></div>
+        {!vacancies.length && !loadError && <div className="card p-4 text-center text-muted">Пока нет вакансий.</div>}
+        {vacancies.map((vacancy) => (
+          <section key={vacancy.id} className="card shadow-sm mb-3">
+            <div className="card-body">
+              <div className="d-flex flex-wrap justify-content-between gap-3">
+                <div><h2 className="h5 mb-1">{vacancy.title}</h2><small className="text-muted">{vacancy.status === 'active' ? 'Активна' : 'Закрыта'}</small></div>
+                <div className="d-flex gap-2"><Link to={`/vacancy/${vacancy.id}`} className="btn btn-outline-secondary">Вопросы</Link><Link to={`/leaderboard/${vacancy.id}`} className="btn btn-outline-primary">Результаты</Link><button className="btn btn-primary" disabled={creatingFor === vacancy.id} onClick={() => issueInvitation(vacancy.id)}>{creatingFor === vacancy.id ? 'Создаём…' : 'Создать ссылку'}</button></div>
               </div>
-              <button 
-                className="btn btn-primary mt-3"
-                onClick={() => copyLink(`https://your-interview-service.com/interview/${user.id}`)}
-              >
-                Скопировать ссылку
-              </button>
-              <p className="text-muted mt-3 small">
-                Перейдите по ссылке, чтобы начать интервью
-              </p>
+              {invitationUrls[vacancy.id] && <div className="input-group mt-3"><input className="form-control" readOnly value={invitationUrls[vacancy.id]} aria-label="Ссылка кандидата" /><button className="btn btn-outline-primary" onClick={() => copyLink(invitationUrls[vacancy.id])}>Копировать</button></div>}
             </div>
-          </div>
-        ) : (
-          // Для интервьюера - список вакансий
-          <>
-            {createdVacancy && (
-              <div className="alert alert-success" role="status">
-                Вакансия «{createdVacancy.title}» сохранена и добавлена в список.
-              </div>
-            )}
-            <h5 className="mb-3">Список вакансий</h5>
-            {loadError && <div className="alert alert-warning">{loadError}</div>}
-            {vacancies.map((v: any) => (
-              <div key={v.id} className="card mb-2 p-3">
-                <b>{v.title}</b>
-                <small className="text-muted d-block">{v.description}</small>
-                <Link to={`/leaderboard/${v.id}`} className="btn btn-sm btn-outline-primary mt-2">
-                  Лидерборд
-                </Link>
-              </div>
-            ))}
-            <Link to="/vacancy/new" className="btn btn-outline-primary w-100 py-2">
-              Новая вакансия
-            </Link>
-          </>
-        )}
-      </div>
+          </section>
+        ))}
+      </main>
     </>
   );
 };

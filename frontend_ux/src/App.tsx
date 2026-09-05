@@ -1,6 +1,5 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
 import Homepage from './pages/Homepage';
 import Vacancy from './pages/Vacancy';
 import Leaderboard from './pages/Leaderboard';
@@ -11,8 +10,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Navigate to="/homepage" />} />
+        <Route path="/login" element={<Navigate to="/homepage" />} />
         <Route path="/homepage" element={<Homepage />} />
         <Route path="/vacancy/:id" element={<Vacancy />} />
         <Route path="/vacancy/new" element={<Vacancy />} />

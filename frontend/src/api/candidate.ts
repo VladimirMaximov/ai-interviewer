@@ -6,6 +6,14 @@ export type RecordingGrant = { recording_id: string; storage_key: string; upload
 export type ResponseSegment = { response_id: string; status: Transcript["status"] };
 export type RecordingChunkGrant = { chunk_id: string; upload_url: string; content_type: string };
 export type FollowUpQuestion = { id: string; source_response_id: string | null; text: string; status: "ready" | "presented" | "answered" };
+export type PresenterState = {
+  question_id: string;
+  status: "queued" | "audio_processing" | "audio_ready" | "avatar_processing" | "ready" | "failed";
+  audio_url: string | null;
+  avatar_url: string | null;
+  static_portrait_url: string;
+  fallback: "none" | "static_portrait" | "browser_speech";
+};
 export type InterviewQuestion = { question_id: string; prompt: string; kind: "baseline" | "personalized" | "follow_up" | "live_coding" };
 export type InterviewQuestionPlan = { agent_session_id: string; questions: InterviewQuestion[] };
 export type LiveCodingSubmission = { response_id: string; question_id: string; status: "completed" };
@@ -85,6 +93,18 @@ export class CandidateApi {
     return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/code-answers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question_id: questionId, language, source_code: sourceCode, start_offset_ms: startOffsetMs, end_offset_ms: endOffsetMs, timed_out: timedOut }) });
   }
   async followUps(secret: string): Promise<FollowUpQuestion[]> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/follow-ups`); }
+  async presenter(secret: string, questionId: string): Promise<PresenterState> {
+    return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/questions/${encodeURIComponent(questionId)}/presenter`);
+  }
+  async waitForPresenter(secret: string, questionId: string, timeoutMs = 12_000): Promise<PresenterState> {
+    const deadline = Date.now() + timeoutMs;
+    let state = await this.presenter(secret, questionId);
+    while (!state.audio_url && state.status !== "failed" && Date.now() < deadline) {
+      await new Promise((resolve) => window.setTimeout(resolve, 500));
+      state = await this.presenter(secret, questionId);
+    }
+    return state;
+  }
   questionSpeechUrl(secret: string, questionId: string): string {
     return `${this.baseUrl}/${encodeURIComponent(secret)}/questions/${encodeURIComponent(questionId)}/speech`;
   }

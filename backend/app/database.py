@@ -23,6 +23,10 @@ from app.services.multi_agent_harness import MultiAgentHarness
 from app.services.transcription_scheduler import TranscriptionScheduler
 from app.services.voice_proctoring import VoiceProctoringScheduler
 from app.services.runtime_evaluation import RuntimeEvaluationService
+from app.adapters.xtts_runtime import XttsRuntime
+from app.adapters.musetalk_runtime import MuseTalkRuntime
+from app.services.presenter_assets import CeleryPresenterDispatcher, PresenterAssetService
+from app.services.interview_results import InterviewResultsService
 
 
 _voice_executor = ThreadPoolExecutor(
@@ -79,7 +83,12 @@ def workflow_factory() -> SqlCandidateWorkflow:
         aws_access_key_id=settings.s3_access_key,
         aws_secret_access_key=settings.s3_secret_key,
     )
-    storage = S3ObjectStorage(client, settings.s3_bucket)
+    public_client = boto3.client(
+        "s3", endpoint_url=settings.s3_public_endpoint_url or settings.s3_endpoint_url,
+        aws_access_key_id=settings.s3_access_key,
+        aws_secret_access_key=settings.s3_secret_key,
+    )
+    storage = S3ObjectStorage(client, settings.s3_bucket, public_client)
     processor = WhisperAudioProcessor(
         transcription_provider_factory(),
         settings.ffmpeg_binary,
@@ -95,7 +104,10 @@ def workflow_factory() -> SqlCandidateWorkflow:
     return SqlCandidateWorkflow(
         session,
         storage,
-        TranscriptionScheduler(sessions, storage, processor, RuntimeEvaluationService(sessions)),
+        TranscriptionScheduler(
+            sessions, storage, processor,
+            RuntimeEvaluationService(sessions, presenter_dispatcher=presenter_dispatcher_factory()),
+        ),
         voice_scheduler,
     )
 
@@ -120,7 +132,26 @@ def hiring_context_service_factory() -> HiringContextService:
     """Build a request-scoped vacancy/resume context service."""
     engine = create_engine(settings.database_url, pool_pre_ping=True)
     session = sessionmaker(engine, expire_on_commit=False)()
-    return HiringContextService(session)
+    return HiringContextService(session, presenter_dispatcher_factory())
+
+
+def interview_results_service_factory() -> InterviewResultsService:
+    """Build a recruiter-scoped read model with private signed media URLs."""
+    import boto3
+
+    engine = create_engine(settings.database_url, pool_pre_ping=True)
+    session = sessionmaker(engine, expire_on_commit=False)()
+    client = boto3.client(
+        "s3", endpoint_url=settings.s3_endpoint_url,
+        aws_access_key_id=settings.s3_access_key,
+        aws_secret_access_key=settings.s3_secret_key,
+    )
+    public_client = boto3.client(
+        "s3", endpoint_url=settings.s3_public_endpoint_url or settings.s3_endpoint_url,
+        aws_access_key_id=settings.s3_access_key,
+        aws_secret_access_key=settings.s3_secret_key,
+    )
+    return InterviewResultsService(session, S3ObjectStorage(client, settings.s3_bucket, public_client))
 
 
 def multi_agent_harness_factory() -> MultiAgentHarness:
@@ -146,4 +177,39 @@ def multi_agent_harness_factory() -> MultiAgentHarness:
         personalization_cap=settings.multi_agent_personalization_cap,
         follow_up_confidence_threshold=settings.follow_up_confidence_threshold,
         follow_up_max_per_session=settings.follow_up_max_per_session,
+    )
+
+
+@lru_cache(maxsize=1)
+def presenter_asset_service_factory() -> PresenterAssetService:
+    """Build the isolated GPU worker service; models load lazily and persist."""
+    import boto3
+
+    engine = create_engine(settings.database_url, pool_pre_ping=True)
+    sessions = sessionmaker(engine, expire_on_commit=False)
+    client = boto3.client(
+        "s3", endpoint_url=settings.s3_endpoint_url,
+        aws_access_key_id=settings.s3_access_key,
+        aws_secret_access_key=settings.s3_secret_key,
+    )
+    public_client = boto3.client(
+        "s3", endpoint_url=settings.s3_public_endpoint_url or settings.s3_endpoint_url,
+        aws_access_key_id=settings.s3_access_key,
+        aws_secret_access_key=settings.s3_secret_key,
+    )
+    return PresenterAssetService(
+        sessions,
+        S3ObjectStorage(client, settings.s3_bucket, public_client),
+        XttsRuntime(),
+        MuseTalkRuntime(Path(settings.presenter_musetalk_root)),
+    )
+
+
+def presenter_dispatcher_factory() -> CeleryPresenterDispatcher | None:
+    if not settings.presenter_enabled:
+        return None
+    return CeleryPresenterDispatcher(
+        presenter_asset_service_factory(),
+        voice_id=settings.xtts_voice,
+        renderer_version=settings.presenter_model_version,
     )

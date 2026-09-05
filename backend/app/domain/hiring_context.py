@@ -55,6 +55,7 @@ class InvitationCreated(BaseModel):
     invitation_id: UUID
     vacancy_id: UUID
     candidate_token: str
+    candidate_url: str
     expires_at: datetime
 
 

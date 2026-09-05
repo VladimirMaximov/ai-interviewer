@@ -1,0 +1,133 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ai_interviewer
+      POSTGRES_USER: ai_interviewer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local_dev_only}
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    restart: unless-stopped
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U ai_interviewer"], interval: 10s, timeout: 5s, retries: 10}
+    mem_limit: 1g
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes: [minio_data:/data]
+    ports: ["${MINIO_PUBLIC_PORT:-9002}:9000"]
+    restart: unless-stopped
+    healthcheck: {test: ["CMD", "mc", "ready", "local"], interval: 10s, timeout: 5s, retries: 10}
+    mem_limit: 1g
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes: [redis_data:/data]
+    restart: unless-stopped
+    healthcheck: {test: ["CMD", "redis-cli", "ping"], interval: 10s, timeout: 5s, retries: 10}
+    mem_limit: 512m
+
+  api:
+    build: {context: .., dockerfile: deploy/images/backend.Dockerfile}
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    env_file:
+      - path: ../.env
+        required: false
+    environment: &backend_environment
+      DATABASE_URL: postgresql+psycopg://ai_interviewer:${POSTGRES_PASSWORD:-local_dev_only}@postgres:5432/ai_interviewer
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_PUBLIC_ENDPOINT_URL: http://${PUBLIC_HOST:-localhost}:${MINIO_PUBLIC_PORT:-9002}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      REDIS_URL: redis://redis:6379/0
+      PRESENTER_ENABLED: "false"
+      PUBLIC_BASE_URL: http://${PUBLIC_HOST:-localhost}
+      RECRUITER_KEY: ${RECRUITER_KEY:-local-recruiter-key}
+    depends_on:
+      postgres: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+    mem_limit: 2g
+    healthcheck: {test: ["CMD", "curl", "-f", "http://localhost:8000/health"], interval: 10s, timeout: 5s, retries: 10}
+
+  worker-cpu:
+    build: {context: .., dockerfile: deploy/images/backend.Dockerfile}
+    command: celery -A app.workers.celery_app worker -Q interview-cpu --concurrency=1
+    env_file:
+      - path: ../.env
+        required: false
+    environment: *backend_environment
+    depends_on:
+      postgres: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+    mem_limit: 4g
+
+  worker-presenter:
+    build: {context: .., dockerfile: deploy/images/presenter.Dockerfile}
+    command: celery -A app.workers.celery_app worker -Q interview-presenter-gpu --concurrency=1
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      <<: *backend_environment
+      PRESENTER_ENABLED: "true"
+      PRESENTER_MUSETALK_ROOT: /opt/MuseTalk
+      PRESENTER_PORTRAIT_PATH: /models/interviewer-cutout.png
+      COQUI_TOS_AGREED: "1"
+      HF_HOME: /models/huggingface
+    depends_on:
+      postgres: {condition: service_healthy}
+      minio-init: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+    mem_limit: 12g
+    volumes:
+      - ${PRESENTER_MODELS_PATH:-../backend/models}:/models
+      - ${MUSETALK_ROOT:-../runtime/MuseTalk}:/opt/MuseTalk:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nvidia-smi >/dev/null && python3.10 -c 'import TTS' && test -d /opt/MuseTalk && test -f /models/interviewer-cutout.png"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio: {condition: service_healthy}
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin} && mc mb --ignore-existing local/interview-audio"]
+    restart: "no"
+
+  candidate-ui:
+    build: {context: .., dockerfile: frontend/Dockerfile}
+    restart: unless-stopped
+    mem_limit: 128m
+
+  cabinet-ui:
+    build: {context: .., dockerfile: frontend_ux/Dockerfile}
+    restart: unless-stopped
+    mem_limit: 128m
+
+  gateway:
+    image: nginx:1.27-alpine
+    ports: ["80:80"]
+    volumes: ["./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro"]
+    depends_on: [api, candidate-ui, cabinet-ui]
+    restart: unless-stopped
+    mem_limit: 128m
+
+volumes:
+  postgres_data:
+  minio_data:
+  redis_data:

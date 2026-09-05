@@ -1,5 +1,7 @@
 """Validated, invitation-scoped question blocks and candidate-safe projections."""
 
+import hashlib
+import json
 from enum import StrEnum
 from uuid import UUID
 
@@ -30,16 +32,28 @@ class InterviewQuestionInput(BaseModel):
     kind: QuestionKind = QuestionKind.SPOKEN
     follow_up_after_answer: bool = False
     time_limit_seconds: int | None = Field(default=None, ge=30, le=7200)
+    position: int | None = Field(default=None, ge=0)
+    language: str | None = Field(default=None, min_length=1, max_length=64)
+
+    @model_validator(mode="after")
+    def coding_language(self) -> "InterviewQuestionInput":
+        if self.kind is QuestionKind.CODING and not self.language:
+            self.language = "python"
+        if self.kind is QuestionKind.SPOKEN and self.language is not None:
+            raise ValueError("spoken questions cannot define a coding language")
+        return self
 
 class InterviewQuestionBlockInput(BaseModel):
     id: UUID
     title: str = Field(min_length=1, max_length=160)
     topic: str = Field(min_length=1, max_length=160)
     key: QuestionBlockKey | None = None
-    questions: list[InterviewQuestionInput] = Field(min_length=1, max_length=50)
+    position: int | None = Field(default=None, ge=0)
+    questions: list[InterviewQuestionInput] = Field(max_length=50)
 
 
 class InterviewInput(BaseModel):
+    schema_version: int = Field(default=1, ge=1)
     blocks: list[InterviewQuestionBlockInput] = Field(min_length=1, max_length=20)
     follow_up_after_all_answers: bool = False
     live_coding_enabled: bool = False
@@ -62,6 +76,8 @@ class InterviewInput(BaseModel):
     @model_validator(mode="after")
     def unique_question_ids(self) -> "InterviewInput":
         question_ids = [question.id for block in self.blocks for question in block.questions]
+        if not question_ids:
+            raise ValueError("an interview must contain at least one question")
         if len(set(question_ids)) != len(question_ids):
             raise ValueError("question ids must be unique across blocks")
         coding_blocks = [block for block in self.blocks if any(question.kind is QuestionKind.CODING for question in block.questions)]
@@ -92,3 +108,24 @@ def invitation_input(question_config: object, follow_up_after_all_answers: bool)
     else:
         payload = {"questions": question_config, "follow_up_after_all_answers": follow_up_after_all_answers}
     return InterviewInput.model_validate(payload)
+
+
+def normalized_snapshot(interview_input: InterviewInput) -> dict:
+    """Return deterministic JSON suitable for an immutable invitation snapshot."""
+
+    payload = interview_input.model_dump(mode="json", exclude_none=True)
+    for block_index, block in enumerate(payload["blocks"]):
+        block["position"] = block_index
+        for question_index, question in enumerate(block["questions"]):
+            question["position"] = question_index
+    return payload
+
+
+def configuration_digest(interview_input: InterviewInput) -> str:
+    canonical = json.dumps(
+        normalized_snapshot(interview_input),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

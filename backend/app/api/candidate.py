@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse, Response
+from app.domain.interview_runtime import PresenterState
 from pydantic import BaseModel, Field, model_validator
 
 from app.api.errors import invalid_invitation
@@ -191,6 +192,7 @@ class CandidateWorkflow(Protocol):
     def follow_up_questions(self, secret: str) -> list[FollowUpQuestionView] | None: ...
     def question_speech_text(self, secret: str, question_id: UUID) -> str | None: ...
     def avatar_video_url(self, secret: str, question_id: UUID) -> str | None: ...
+    def presenter_state(self, secret: str, question_id: UUID) -> PresenterState | None: ...
     def create_monitoring_evidence_grant(self, secret: str, request: MonitoringEvidenceGrantRequest) -> MonitoringEvidenceGrant | None: ...
     def record_monitoring_event(self, secret: str, request: MonitoringEventRequest) -> MonitoringEventView | None: ...
 
@@ -244,6 +246,17 @@ def question_avatar(
     if url is None:
         raise HTTPException(status_code=404, detail="Avatar video is not ready")
     return RedirectResponse(url=url, status_code=307)
+
+
+@router.get("/{secret}/questions/{question_id}/presenter", response_model=PresenterState)
+def question_presenter(
+    secret: str, question_id: UUID, workflow: CandidateWorkflow = Depends(get_workflow)
+) -> PresenterState:
+    """Expose only short-lived media URLs authorized by the invitation token."""
+    state = workflow.presenter_state(secret, question_id)
+    if state is None:
+        raise invalid_invitation()
+    return state
 
 
 @router.get("/{secret}/questions/{question_id}/avatar-frame/{frame}")

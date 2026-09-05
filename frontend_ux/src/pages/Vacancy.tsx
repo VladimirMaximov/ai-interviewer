@@ -1,166 +1,133 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '../api';
+import {
+  createDefaultConfiguration,
+  createVacancy,
+  getConfiguration,
+  getVacancy,
+  newQuestion,
+  saveConfiguration,
+} from '../api';
+import { ConfiguredQuestion, InterviewConfiguration } from '../types';
 
 const Vacancy: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isNew = id === 'new';
-  
-  const [user, setUser] = useState<any>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [questions, setQuestions] = useState<string[]>([]);
+  const [configuration, setConfiguration] = useState<InterviewConfiguration>(
+    createDefaultConfiguration,
+  );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
-    const data = localStorage.getItem('user');
-    if (!data) { navigate('/login'); return; }
-    setUser(JSON.parse(data));
+    if (isNew || !id) return;
+    Promise.all([getVacancy(id), getConfiguration(id)])
+      .then(([vacancy, value]) => {
+        setTitle(vacancy.title);
+        setConfiguration(value);
+      })
+      .catch(() => setSaveError('Не удалось загрузить конфигурацию вакансии.'));
+  }, [id, isNew]);
 
-    if (!isNew && id) {
-      api.get(`/vacancies/${id}`).then(res => {
-        const data = res.data;
-        setTitle(data.title || '');
-        setDescription(data.description || '');
-        setQuestions(data.questions?.map((q: any) => q.question_text || q.text || q) || []);
-      });
-    }
-  }, []);
+  const changeQuestions = (
+    blockIndex: number,
+    updater: (current: ConfiguredQuestion[]) => ConfiguredQuestion[],
+  ) => setConfiguration((current) => ({
+    ...current,
+    blocks: current.blocks.map((block, index) => index === blockIndex
+      ? { ...block, questions: updater(block.questions) }
+      : block),
+  }));
 
-  const addQuestion = () => setQuestions([...questions, '']);
-  const removeQuestion = (index: number) => setQuestions(questions.filter((_, i) => i !== index));
-  const updateQuestion = (index: number, value: string) => {
-    const updated = [...questions];
-    updated[index] = value;
-    setQuestions(updated);
-  };
+  const updateQuestion = (
+    blockIndex: number,
+    questionIndex: number,
+    patch: Partial<ConfiguredQuestion>,
+  ) => changeQuestions(blockIndex, (questions) => questions.map((question, index) => {
+    if (index !== questionIndex) return question;
+    const next = { ...question, ...patch };
+    if (patch.kind === 'spoken') delete next.language;
+    if (patch.kind === 'coding') next.language = next.language || 'python';
+    return next;
+  }));
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setSaveError('');
-    
-    if (!title.trim()) {
-      setSaveError('Введите название вакансии');
-      return;
+    if (!title.trim()) return setSaveError('Введите название вакансии.');
+    if (!configuration.blocks.some((block) => block.questions.some((q) => q.text.trim()))) {
+      return setSaveError('Добавьте хотя бы один вопрос.');
     }
-
-    const data = {
-      title: title.trim(),
-      description: description.trim(),
-      recruiter_id: user?.id || '1',
-      manager_id: '3',
-      questions: questions.filter(q => q.trim())
+    const cleaned = {
+      ...configuration,
+      live_coding_enabled: configuration.blocks.some((block) =>
+        block.questions.some((question) => question.kind === 'coding')),
+      blocks: configuration.blocks.map((block) => ({
+        ...block,
+        questions: block.questions
+          .filter((question) => question.text.trim())
+          .map((question) => ({ ...question, text: question.text.trim() })),
+      })),
     };
-
-    console.log('Отправка:', data);
-
     try {
       setSaving(true);
-      if (isNew) {
-        const response = await api.post('/vacancies', data);
-        if (!response.data?.id) throw new Error('Backend did not return a vacancy id');
-        navigate('/homepage', {
-          replace: true,
-          state: {
-            createdVacancy: {
-              ...data,
-              ...response.data
-            }
-          }
-        });
-        return;
-      } else if (id) {
-        await api.put(`/vacancies/${id}`, data);
-      }
-      navigate('/homepage');
+      const vacancy = isNew
+        ? await createVacancy(title.trim(), description.trim())
+        : await getVacancy(id!);
+      await saveConfiguration(vacancy.id, cleaned);
+      navigate('/homepage', { replace: true, state: { createdVacancy: vacancy } });
     } catch (error: any) {
-      console.error('Ошибка:', error);
-      setSaveError(error.response?.data?.detail || 'Не удалось сохранить вакансию. Проверьте, что backend запущен на порту 8000.');
+      setSaveError(error.response?.data?.error?.message
+        || 'Не удалось сохранить вакансию и вопросы.');
     } finally {
       setSaving(false);
     }
   };
-
-  if (!user) return null;
 
   return (
     <>
       <nav className="navbar navbar-light bg-white shadow-sm">
         <div className="container">
           <span className="navbar-brand">AI Интервьюер</span>
-          <button className="btn btn-sm btn-outline-secondary" onClick={() => navigate('/homepage')}>
-            ← На главную
-          </button>
+          <button className="btn btn-sm btn-outline-secondary" onClick={() => navigate('/homepage')}>← На главную</button>
         </div>
       </nav>
+      <main className="container my-4" style={{ maxWidth: 920 }}>
+        <form className="card shadow-sm" onSubmit={submit}>
+          <div className="card-body p-4">
+            <h2 className="h4 mb-4">Настройка интервью</h2>
+            {saveError && <div className="alert alert-danger">{saveError}</div>}
+            <label className="form-label">Название вакансии</label>
+            <input className="form-control mb-3" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <label className="form-label">Описание вакансии</label>
+            <textarea className="form-control mb-4" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
 
-      <div className="container mt-4" style={{ maxWidth: 700 }}>
-        <div className="card">
-          <div className="card-body">
-            <form onSubmit={handleSubmit}>
-              {saveError && <div className="alert alert-danger">{saveError}</div>}
-              <div className="text-center mb-4">
-                <h5>Название вакансии</h5>
-                <input
-                  className="form-control text-center"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Введите название вакансии"
-                  required
-                />
-              </div>
-
-              <div className="text-center mb-4">
-                <h5>Описание вакансии</h5>
-                <textarea
-                  className="form-control text-center"
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Введите описание вакансии"
-                />
-              </div>
-
-              <div className="mb-3">
-                <h5>Вопросы к вакансии</h5>
-                {questions.map((q, i) => (
-                  <div key={i} className="input-group mb-2">
-                    <input
-                      className="form-control"
-                      value={q}
-                      onChange={(e) => updateQuestion(i, e.target.value)}
-                      placeholder={`Вопрос ${i + 1}`}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger"
-                      onClick={() => removeQuestion(i)}
-                    >
-                      ×
-                    </button>
+            {configuration.blocks.map((block, blockIndex) => (
+              <section className="border rounded-3 p-3 mb-3" key={block.id}>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <div><small className="text-muted">Блок {blockIndex + 1}</small><h3 className="h5 mb-0">{block.title}</h3></div>
+                  <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => changeQuestions(blockIndex, (items) => [...items, newQuestion()])}>Добавить вопрос</button>
+                </div>
+                {block.questions.map((question, questionIndex) => (
+                  <div className="bg-light rounded-3 p-3 mb-2" key={question.id}>
+                    <textarea className="form-control mb-2" rows={2} value={question.text} onChange={(e) => updateQuestion(blockIndex, questionIndex, { text: e.target.value })} placeholder={`Вопрос ${questionIndex + 1}`} />
+                    <div className="row g-2 align-items-center">
+                      <div className="col-md-3"><select className="form-select" value={question.kind} onChange={(e) => updateQuestion(blockIndex, questionIndex, { kind: e.target.value as 'spoken' | 'coding' })} disabled={block.key !== 'hard_skills'}><option value="spoken">Устный ответ</option>{block.key === 'hard_skills' && <option value="coding">Live coding + голос</option>}</select></div>
+                      <div className="col-md-3"><input className="form-control" type="number" min="1" max="120" placeholder="Лимит, минут" value={question.time_limit_seconds ? question.time_limit_seconds / 60 : ''} onChange={(e) => updateQuestion(blockIndex, questionIndex, { time_limit_seconds: e.target.value ? Number(e.target.value) * 60 : null })} /></div>
+                      <div className="col-md-4 form-check ms-2"><input className="form-check-input" type="checkbox" checked={question.follow_up_after_answer} onChange={(e) => updateQuestion(blockIndex, questionIndex, { follow_up_after_answer: e.target.checked })} /><label className="form-check-label">Разрешить уточнения</label></div>
+                      <div className="col text-end"><button type="button" className="btn btn-sm btn-outline-danger" aria-label="Удалить вопрос" onClick={() => changeQuestions(blockIndex, (items) => items.filter((_, index) => index !== questionIndex))}>×</button></div>
+                    </div>
                   </div>
                 ))}
-                <button type="button" className="btn btn-outline-primary btn-sm" onClick={addQuestion}>
-                  Добавить вопрос
-                </button>
-              </div>
-
-              <div className="text-end">
-                <button
-                  type="button"
-                  className="btn btn-primary px-5"
-                  disabled={saving}
-                  onClick={() => handleSubmit()}
-                >
-                  {saving ? 'Сохраняем…' : 'Сохранить'}
-                </button>
-              </div>
-            </form>
+              </section>
+            ))}
+            <div className="text-end"><button className="btn btn-primary px-5" disabled={saving}>{saving ? 'Сохраняем…' : 'Сохранить'}</button></div>
           </div>
-        </div>
-      </div>
+        </form>
+      </main>
     </>
   );
 };

@@ -31,6 +31,7 @@ from app.api.candidate import (
     UploadGrantRequest,
 )
 from app.interview_config import InterviewInput, invitation_input
+from app.domain.interview_runtime import PresenterFallback, PresenterState, PresenterStatus
 from app.models.hiring_context import CandidateResume, Vacancy
 from app.models.interview import (
     AvatarAssetStatus,
@@ -135,7 +136,49 @@ class SqlCandidateWorkflow:
             for question in block.questions:
                 if question.id == question_id:
                     return question.text
+        follow_up = self.db.get(InterviewFollowUpQuestion, question_id)
+        if follow_up and follow_up.session_id == session.id:
+            return follow_up.text
         return None
+
+    def presenter_state(self, secret: str, question_id: UUID) -> PresenterState | None:
+        session = self._session(secret)
+        if not session or self.question_speech_text(secret, question_id) is None:
+            return None
+        asset = self.db.scalar(
+            select(QuestionAvatarAsset).where(
+                QuestionAvatarAsset.invitation_id == session.invitation_id,
+                QuestionAvatarAsset.question_id == question_id,
+            ).order_by(QuestionAvatarAsset.created_at.desc())
+        )
+        static_url = f"/candidate/{secret}/questions/{question_id}/avatar-frame/idle"
+        if not asset:
+            return PresenterState(
+                question_id=question_id, status=PresenterStatus.QUEUED,
+                static_portrait_url=static_url,
+                fallback=PresenterFallback.BROWSER_SPEECH,
+            )
+        status = {
+            AvatarAssetStatus.PENDING: PresenterStatus.QUEUED,
+            AvatarAssetStatus.PROCESSING: PresenterStatus.QUEUED,
+        }.get(asset.status, PresenterStatus(asset.status.value))
+        audio_url = (
+            self.storage.create_download_url(asset.audio_storage_key)
+            if asset.audio_storage_key and self.storage.object_exists(asset.audio_storage_key)
+            else None
+        )
+        avatar_url = (
+            self.storage.create_download_url(asset.video_storage_key)
+            if asset.video_storage_key and self.storage.object_exists(asset.video_storage_key)
+            else None
+        )
+        fallback = PresenterFallback.NONE
+        if not avatar_url:
+            fallback = PresenterFallback.STATIC_PORTRAIT if audio_url else PresenterFallback.BROWSER_SPEECH
+        return PresenterState(
+            question_id=question_id, status=status, audio_url=audio_url,
+            avatar_url=avatar_url, static_portrait_url=static_url, fallback=fallback,
+        )
 
     def avatar_video_url(self, secret: str, question_id: UUID) -> str | None:
         session = self._session(secret)

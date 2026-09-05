@@ -10,17 +10,19 @@ class PrivateObjectStorage(Protocol):
     def object_size(self, key: str) -> int: ...
     def download_to(self, key: str, destination: Path) -> None: ...
     def create_download_url(self, key: str) -> str: ...
+    def put_file(self, key: str, source: Path, content_type: str) -> None: ...
 
 
 class S3ObjectStorage:
     """Thin adapter around a provided S3-compatible client."""
 
-    def __init__(self, client: object, bucket: str) -> None:
+    def __init__(self, client: object, bucket: str, public_client: object | None = None) -> None:
         self._client = client
+        self._public_client = public_client or client
         self._bucket = bucket
 
     def create_upload_url(self, key: str, content_type: str) -> str:
-        return self._client.generate_presigned_url(
+        return self._public_client.generate_presigned_url(
             "put_object", Params={"Bucket": self._bucket, "Key": key, "ContentType": content_type}, ExpiresIn=300
         )
 
@@ -39,6 +41,12 @@ class S3ObjectStorage:
         self._client.download_file(self._bucket, key, str(destination))
 
     def create_download_url(self, key: str) -> str:
-        return self._client.generate_presigned_url(
+        return self._public_client.generate_presigned_url(
             "get_object", Params={"Bucket": self._bucket, "Key": key}, ExpiresIn=300
+        )
+
+    def put_file(self, key: str, source: Path, content_type: str) -> None:
+        self._client.upload_file(
+            str(source), self._bucket, key,
+            ExtraArgs={"ContentType": content_type},
         )

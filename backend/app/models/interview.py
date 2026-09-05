@@ -45,8 +45,28 @@ class RuntimeEvaluationStatus(StrEnum):
 class AvatarAssetStatus(StrEnum):
     PENDING = "pending"
     PROCESSING = "processing"
+    QUEUED = "queued"
+    AUDIO_PROCESSING = "audio_processing"
+    AUDIO_READY = "audio_ready"
+    AVATAR_PROCESSING = "avatar_processing"
     READY = "ready"
     FAILED = "failed"
+
+
+class ProcessingJobKind(StrEnum):
+    TRANSCRIPTION = "transcription"
+    RUNTIME_ASSESSMENT = "runtime_assessment"
+    PRESENTER_AUDIO = "presenter_audio"
+    PRESENTER_AVATAR = "presenter_avatar"
+    FINAL_ASSESSMENT = "final_assessment"
+
+
+class ProcessingJobStatus(StrEnum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    RETRYABLE_FAILED = "retryable_failed"
+    TERMINAL_FAILED = "terminal_failed"
 
 
 class TimelineEventType(StrEnum):
@@ -175,12 +195,23 @@ class QuestionAvatarAsset(Base):
     """A private pre-rendered talking-head video for one interview question."""
 
     __tablename__ = "question_avatar_assets"
-    __table_args__ = (UniqueConstraint("invitation_id", "question_id", name="uq_avatar_question"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "invitation_id", "question_id", "content_hash",
+            name="uq_presenter_asset_content",
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     invitation_id: Mapped[UUID] = mapped_column(ForeignKey("interview_invitations.id"), index=True)
     question_id: Mapped[UUID] = mapped_column(index=True)
     renderer: Mapped[str] = mapped_column(String(64))
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    question_text_snapshot: Mapped[str | None] = mapped_column(Text, nullable=True)
+    voice_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    tts_version: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    portrait_version: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    renderer_version: Mapped[str | None] = mapped_column(String(120), nullable=True)
     status: Mapped[AvatarAssetStatus] = mapped_column(
         Enum(AvatarAssetStatus, values_callable=lambda values: [value.value for value in values]),
         default=AvatarAssetStatus.PENDING,
@@ -189,7 +220,36 @@ class QuestionAvatarAsset(Base):
     video_storage_key: Mapped[str | None] = mapped_column(String(512), unique=True, nullable=True)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    failure_stage: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ProcessingJob(Base):
+    """Durable, idempotent work item; Redis contains delivery state only."""
+
+    __tablename__ = "processing_jobs"
+    __table_args__ = (
+        UniqueConstraint("idempotency_key", name="uq_processing_job_idempotency"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    kind: Mapped[ProcessingJobKind] = mapped_column(
+        Enum(ProcessingJobKind, values_callable=lambda items: [item.value for item in items])
+    )
+    entity_id: Mapped[UUID] = mapped_column(index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(180))
+    status: Mapped[ProcessingJobStatus] = mapped_column(
+        Enum(ProcessingJobStatus, values_callable=lambda items: [item.value for item in items]),
+        default=ProcessingJobStatus.PENDING,
+    )
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error_code: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
 
 class InterviewRecording(Base):

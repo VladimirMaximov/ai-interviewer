@@ -1,0 +1,27 @@
+:root {
+  --nit-color-ink: #101317;
+  --nit-color-surface: #ffffff;
+  --nit-color-surface-subtle: #f5f7f8;
+  --nit-color-border: #dde2e6;
+  --nit-color-muted: #68727c;
+  --nit-color-brand: #e75932;
+  --nit-color-brand-hover: #cf4522;
+  --nit-color-success: #16835f;
+  --nit-color-danger: #c23b36;
+  --nit-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --nit-radius-sm: 8px;
+  --nit-radius-md: 14px;
+  --nit-radius-lg: 20px;
+  --nit-shadow-card: 0 14px 40px rgb(16 19 23 / 10%);
+  --nit-space-1: 4px;
+  --nit-space-2: 8px;
+  --nit-space-3: 12px;
+  --nit-space-4: 16px;
+  --nit-space-6: 24px;
+  --nit-space-8: 32px;
+}
+
+.nit-focus-ring:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--nit-color-brand) 45%, transparent);
+  outline-offset: 2px;
+}

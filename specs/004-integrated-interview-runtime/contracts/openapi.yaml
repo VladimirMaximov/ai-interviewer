@@ -1,0 +1,93 @@
+openapi: 3.1.0
+info:
+  title: Integrated Interview Prototype Contract
+  version: 0.1.0
+paths:
+  /recruiter/vacancies/{vacancy_id}/interview-configuration:
+    put:
+      summary: Replace the editable interview configuration
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/RecruiterKey'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/InterviewConfiguration'}
+      responses:
+        '200': {description: Validated configuration}
+        '422': {description: Malformed block or question configuration}
+  /recruiter/vacancies/{vacancy_id}/invitations:
+    post:
+      summary: Create an invitation and immutable question snapshot
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/RecruiterKey'}
+      responses:
+        '201': {description: Candidate secret and URL returned once}
+  /recruiter/vacancies/{vacancy_id}/interviews:
+    get:
+      summary: List real interview result summaries
+      parameters:
+        - {$ref: '#/components/parameters/VacancyId'}
+        - {$ref: '#/components/parameters/RecruiterKey'}
+      responses:
+        '200': {description: Interview summaries; never mock data}
+  /recruiter/interviews/{session_id}:
+    get:
+      summary: Get question-aligned transcript, code and processing states
+      responses:
+        '200': {description: Real interview result detail}
+        '404': {description: Session not found}
+  /candidate/{secret}/questions/{question_id}/presenter:
+    get:
+      summary: Read presenter generation state and token-scoped media URLs
+      responses:
+        '200':
+          description: Presenter state
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PresenterState'}
+        '404': {description: Invitation or question unavailable}
+components:
+  parameters:
+    VacancyId:
+      name: vacancy_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    RecruiterKey:
+      name: X-Recruiter-Key
+      in: header
+      required: true
+      schema: {type: string}
+  schemas:
+    InterviewConfiguration:
+      type: object
+      additionalProperties: false
+      required: [schema_version, live_coding_enabled, blocks]
+      properties:
+        schema_version: {type: integer, minimum: 1}
+        live_coding_enabled: {type: boolean}
+        blocks:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            type: object
+            required: [key, title, position, questions]
+            properties:
+              key: {enum: [hard_skills, soft_skills, experience]}
+              title: {type: string, minLength: 1, maxLength: 80}
+              position: {type: integer, minimum: 0}
+              questions: {type: array}
+    PresenterState:
+      type: object
+      required: [question_id, status, fallback]
+      properties:
+        question_id: {type: string, format: uuid}
+        status: {enum: [queued, audio_processing, audio_ready, avatar_processing, ready, failed]}
+        audio_url: {type: [string, 'null'], format: uri}
+        avatar_url: {type: [string, 'null'], format: uri}
+        static_portrait_url: {type: string, format: uri}
+        fallback: {enum: [none, static_portrait, browser_speech]}

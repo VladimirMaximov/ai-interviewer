@@ -9,6 +9,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    JSON,
     String,
     Text,
 )
@@ -47,6 +48,8 @@ class Vacancy(Base):
     created_by: Mapped[str] = mapped_column(String(120))
     idempotency_key: Mapped[str] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    interview_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    interview_config_revision: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class CandidateResume(Base):

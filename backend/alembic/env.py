@@ -1,5 +1,7 @@
 """Alembic environment for the interview persistence schema."""
 
+import os
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
@@ -9,6 +11,8 @@ import app.models.multi_agent  # noqa: F401
 from app.models.interview import Base
 
 config = context.config
+if database_url := os.environ.get("DATABASE_URL"):
+    config.set_main_option("sqlalchemy.url", database_url)
 target_metadata = Base.metadata
 
 

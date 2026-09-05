@@ -3,6 +3,7 @@ type InterviewerAvatarProps = {
   compact?: boolean;
   idleSrc?: string;
   speakingSrc?: string;
+  videoSrc?: string | null;
 };
 
 export function InterviewerAvatar({
@@ -10,7 +11,14 @@ export function InterviewerAvatar({
   compact = false,
   idleSrc,
   speakingSrc,
+  videoSrc,
 }: InterviewerAvatarProps) {
+  if (videoSrc) {
+    return <div className={`interviewer-avatar interviewer-avatar--frames ${compact ? "interviewer-avatar--compact" : ""}`} aria-label="Аватар озвучивает вопрос">
+      <video className="interviewer-avatar-frame" src={videoSrc} autoPlay muted playsInline />
+      <span className="avatar-status">Интервьюер</span>
+    </div>;
+  }
   if (idleSrc && speakingSrc) {
     return <div className={`interviewer-avatar interviewer-avatar--frames ${compact ? "interviewer-avatar--compact" : ""} ${speaking ? "interviewer-avatar--speaking" : ""}`} aria-label={speaking ? "Аватар озвучивает вопрос" : "Аватар интервьюера"}>
       <img className="interviewer-avatar-frame interviewer-avatar-frame--idle" src={idleSrc} alt="" />

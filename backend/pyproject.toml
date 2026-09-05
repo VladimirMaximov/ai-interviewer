@@ -27,6 +27,16 @@ proctoring = [
 local-speech = [
     "gigaam @ git+https://github.com/salute-developers/GigaAM.git@7447938d791c4f3e643386ee22c33777004293a5",
 ]
+workers = [
+    "celery[redis]==5.5.3",
+    "redis==5.2.1",
+]
+# GPU models are isolated in the presenter worker image. Keeping its queue
+# client here lets the API enqueue work without importing CUDA or model code.
+presenter = [
+    "celery[redis]==5.5.3",
+    "redis==5.2.1",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

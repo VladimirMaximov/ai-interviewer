@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { stopMediaTracks } from "./recordingPolicy";
 
 export function useInterviewMediaStream(enabled: boolean, initialStream: MediaStream | null = null) {
   const [stream, setStream] = useState<MediaStream | null>(initialStream);
   const [error, setError] = useState<string | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const stop = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
+    stopMediaTracks(streamRef.current);
     streamRef.current = null;
     setStream(null);
   };

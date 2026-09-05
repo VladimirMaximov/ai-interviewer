@@ -55,8 +55,9 @@ class ZeroFollowUpStub:
 
 
 class RuntimeEvaluationService:
-    def __init__(self, sessions: sessionmaker, evaluator: RuntimeEvaluator | None = None) -> None:
+    def __init__(self, sessions: sessionmaker, evaluator: RuntimeEvaluator | None = None, presenter_dispatcher: object | None = None) -> None:
         self.sessions, self.evaluator = sessions, evaluator or ZeroFollowUpStub()
+        self.presenter_dispatcher = presenter_dispatcher
 
     def evaluate_completed_response(self, response_id: UUID) -> None:
         with self.sessions() as db:
@@ -119,17 +120,28 @@ class RuntimeEvaluationService:
                 ))
                 # A source answer has a lifetime budget of two clarifications.
                 # The candidate never sees confidence or this internal decision.
+                created_follow_ups = []
                 for text in decision.follow_up_questions[:max(0, 2 - len(existing))]:
-                    db.add(InterviewFollowUpQuestion(
+                    follow_up = InterviewFollowUpQuestion(
                         session_id=session.id,
                         source_response_id=response.id,
                         text=text.strip(),
                         status=FollowUpStatus.READY,
                         transcript_snapshot=spoken_text,
                         created_at=datetime.now(timezone.utc),
-                    ))
+                    )
+                    db.add(follow_up)
+                    created_follow_ups.append(follow_up)
                 job.status = RuntimeEvaluationStatus.COMPLETED
             except Exception:
                 job.status = RuntimeEvaluationStatus.FAILED
             job.completed_at = datetime.now(timezone.utc)
             db.commit()
+            if job.status is RuntimeEvaluationStatus.COMPLETED and self.presenter_dispatcher:
+                for follow_up in created_follow_ups:
+                    try:
+                        self.presenter_dispatcher.enqueue(
+                            invitation.id, follow_up.id, follow_up.text
+                        )
+                    except Exception:
+                        pass

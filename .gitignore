@@ -17,6 +17,7 @@ build/
 dist/
 *.egg-info/
 *.sqlite3
+*.db
 *.tsbuildinfo
 backend/models/
 backend/models/*.bin
@@ -28,3 +29,11 @@ backend/assets/avatar/*.jpg
 backend/assets/avatar/*.jpeg
 backend/assets/avatar/*.png
 runs/
+notebooks/
+runtime/
+generated-media/
+recordings/
+transcripts/
+deploy/secrets/
+*.key
+*.pem

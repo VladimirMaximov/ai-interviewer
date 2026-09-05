@@ -1,0 +1,7 @@
+{
+  "name": "@ai-interviewer/brand-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "style": "src/tokens.css",
+  "files": ["src/tokens.css"]
+}

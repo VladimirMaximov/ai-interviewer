@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 from typing import Any
+from urllib.parse import quote
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -13,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.application.document_extraction import extract_document_text
+from app.config import settings
 from app.domain.hiring_context import (
     AgentAnswerContext,
     AgentDocumentContext,
@@ -39,6 +41,12 @@ from app.models.interview import (
     TranscriptionStatus,
 )
 from app.models.manager_brief import ManagerBriefDraft
+from app.interview_config import InterviewInput
+from app.services.interview_configuration import (
+    invitation_snapshot,
+    read_configuration,
+    save_configuration,
+)
 from app.security.invitations import create_invitation_secret, digest_invitation_secret
 
 
@@ -79,8 +87,9 @@ def _is_expired(value: datetime) -> bool:
 class HiringContextService:
     """Own document records and expose only candidate-scoped downstream context."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, presenter_dispatcher: object | None = None) -> None:
         self.db = session
+        self.presenter_dispatcher = presenter_dispatcher
 
     def close(self) -> None:
         self.db.close()
@@ -195,6 +204,14 @@ class HiringContextService:
             raise HiringContextNotFoundError("vacancy was not found")
         return self._vacancy_view(vacancy)
 
+    def get_interview_configuration(self, vacancy_id: UUID) -> InterviewInput:
+        return read_configuration(self.db, vacancy_id)
+
+    def set_interview_configuration(
+        self, vacancy_id: UUID, configuration: InterviewInput
+    ) -> InterviewInput:
+        return save_configuration(self.db, vacancy_id, configuration)
+
     def create_invitation(
         self,
         *,
@@ -227,14 +244,26 @@ class HiringContextService:
             created_by=actor,
             expires_at=_now() + timedelta(hours=expires_in_hours),
             status=InvitationStatus.ACTIVE,
+            question_config=invitation_snapshot(vacancy),
+            follow_up_after_all_answers=False,
         )
         self.db.add(invitation)
         self.db.commit()
         self.db.refresh(invitation)
+        if self.presenter_dispatcher is not None:
+            try:
+                self.presenter_dispatcher.prewarm(invitation)
+            except Exception:
+                # Presenter media is an enhancement; invitation creation is authoritative.
+                pass
         return InvitationCreated(
             invitation_id=invitation.id,
             vacancy_id=vacancy.id,
             candidate_token=secret,
+            candidate_url=(
+                f"{settings.public_base_url.rstrip('/')}/interview"
+                f"?token={quote(secret, safe='')}"
+            ),
             expires_at=invitation.expires_at,
         )
 

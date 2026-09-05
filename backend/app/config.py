@@ -62,10 +62,21 @@ class Settings(BaseSettings):
     silero_helper: str = "backend/scripts/silero_tts.py"
     xtts_endpoint: str = "http://127.0.0.1:8001"
     xtts_voice: str = "Claribel Dervla"
+    redis_url: str = "redis://localhost:6379/0"
+    celery_cpu_queue: str = "interview-cpu"
+    celery_gpu_queue: str = "interview-presenter-gpu"
+    public_base_url: str = "http://localhost:5173"
+    presenter_enabled: bool = False
+    presenter_poll_timeout_seconds: float = Field(default=12.0, ge=1, le=60)
+    presenter_max_attempts: int = Field(default=3, ge=1, le=10)
+    presenter_portrait_path: str = "backend/assets/avatar/interviewer-cutout.png"
+    presenter_musetalk_root: str = "/opt/MuseTalk"
+    presenter_model_version: str = "musetalk-v1.5"
     database_url: str = (
         "postgresql+psycopg://ai_interviewer:local_dev_only@localhost:5433/ai_interviewer"
     )
     s3_endpoint_url: str = "http://localhost:9000"
+    s3_public_endpoint_url: str | None = None
     s3_bucket: str = "interview-audio"
     s3_access_key: str = "minioadmin"
     s3_secret_key: str = "minioadmin"

@@ -11,3 +11,29 @@
 .block-progress { display:flex; gap:10px; margin:0 0 16px; }.block-progress__item { flex:1; display:grid; grid-template-columns:1fr auto; gap:5px 8px; color:#c7cdd4; font-size:12px; }.block-progress__item small { color:#9ca6b1; }.block-progress__item i { grid-column:1 / -1; height:4px; overflow:hidden; background:#2d333b; border-radius:99px; }.block-progress__item i::before { content:""; display:block; width:100%; height:100%; background:#e75932; }
 .preflight { width:min(760px, calc(100% - 32px)); margin:0 auto; padding:48px 0; }.preflight h1 { margin:8px 0; font-size:32px; }.preflight > p { color:#b7c0c9; line-height:1.5; }.preflight video { display:block; width:100%; max-height:430px; margin:24px 0 14px; border:1px solid #30363d; border-radius:16px; background:#050607; object-fit:cover; transform:scaleX(-1); }.preflight__note { font-size:12px; }
 .interview-stage--coding { background:#0b1010; }.interview-stage--coding .camera-preview { right:52%; }.interview-stage--coding .stage-topline { right:54%; }.interview-stage--coding .question-overlay { left:16px; right:54%; bottom:16px; }.interview-stage--coding .code-editor { top:0; right:0; bottom:0; width:50%; padding:16px; border:0; border-left:1px solid #294036; border-radius:0; background:#111a17; box-shadow:none; backdrop-filter:none; }.interview-stage--coding .code-editor header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; color:#e6fff0; }.interview-stage--coding .code-editor footer { padding-top:9px; color:#9ab5a5; font-size:11px; }.interview-stage--coding .monaco-editor { border:1px solid #294036; border-radius:8px; overflow:hidden; }
+
+/* Shared Napoleon IT product language: light workspace around the dark media stage. */
+:root { color:var(--nit-color-ink); background:var(--nit-color-surface-subtle); font-family:var(--nit-font-sans); }
+body { background:var(--nit-color-surface-subtle); }
+button { border:1px solid var(--nit-color-ink); border-radius:0; color:var(--nit-color-surface); background:var(--nit-color-ink); box-shadow:none; font-family:var(--nit-font-sans); }
+button:hover:not(:disabled) { background:#333; }
+button:focus-visible { outline:3px solid rgb(231 89 50 / 35%); outline-offset:2px; }
+.interview-header h1 { color:var(--nit-color-ink); font-weight:700; }
+.interview-header__eyebrow { color:var(--nit-color-brand); font-weight:800; }
+.interview-header__recording { border-color:var(--nit-color-ink); border-radius:0; color:var(--nit-color-ink); background:var(--nit-color-surface); }
+.interview-stage { border-color:var(--nit-color-ink); border-radius:0; box-shadow:var(--nit-shadow-card); }
+.recording-controls { border-color:var(--nit-color-ink); border-radius:0; background:var(--nit-color-surface); }
+.recording-controls p { color:var(--nit-color-ink); }
+.recording-controls__status { color:var(--nit-color-muted); }
+.block-progress__item { color:var(--nit-color-ink); }
+.block-progress__item small { color:var(--nit-color-muted); }
+.block-progress__item i { border-radius:0; background:var(--nit-color-border); }
+.block-progress__item i::before { background:var(--nit-color-brand); }
+.debug-panel { border-color:var(--nit-color-border); border-radius:0; color:var(--nit-color-muted); background:var(--nit-color-surface); }
+.debug-panel h2 { color:var(--nit-color-ink); }
+.preflight { width:min(760px, calc(100% - 32px)); margin:40px auto; padding:40px; border:1px solid var(--nit-color-ink); background:var(--nit-color-surface); }
+.preflight h1 { color:var(--nit-color-ink); letter-spacing:-.04em; }
+.preflight > p,.preflight li { color:var(--nit-color-muted); }
+.preflight video { border-color:var(--nit-color-ink); border-radius:0; }
+.preflight--complete { min-height:480px; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; }
+.completion-mark { display:grid; place-items:center; width:56px; height:56px; margin:22px 0 8px; color:var(--nit-color-surface); background:var(--nit-color-ink); font-size:26px; }

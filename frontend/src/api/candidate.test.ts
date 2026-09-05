@@ -117,4 +117,19 @@ describe("CandidateApi invitation", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  it("loads token-scoped presenter media", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ question_id: "question-1", status: "ready", audio_url: "https://storage/audio", avatar_url: "https://storage/video", static_portrait_url: "/portrait", fallback: "none" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const state = await new CandidateApi().presenter("token value", "question-1");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/candidate/token%20value/questions/question-1/presenter", undefined,
+    );
+    expect(state.avatar_url).toBe("https://storage/video");
+  });
 });

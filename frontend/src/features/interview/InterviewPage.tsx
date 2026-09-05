@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CandidateApi, CandidateQuestion, FollowUpQuestion, RecordingGrant, Transcript } from "../../api/candidate";
+import { CandidateApi, CandidateQuestion, FollowUpQuestion, PresenterState, RecordingGrant, Transcript } from "../../api/candidate";
 import { CameraPreview } from "./CameraPreview";
 import { CodeEditor } from "./CodeEditor";
 import { QuestionPlayer } from "./QuestionPlayer";
@@ -7,6 +7,14 @@ import { RecordingChunk, useContinuousRecorder } from "./useContinuousRecorder";
 import { useInterviewMediaStream } from "./useInterviewMediaStream";
 import { InterviewerAvatar } from "./InterviewerAvatar";
 import { useQuestionSpeech } from "./useQuestionSpeech";
+import { codingAnswerIsReady, hasRecordedInterval, shouldAutoSubmit } from "./recordingPolicy";
+import {
+  COMPLETION_BODY,
+  COMPLETION_NEXT_STEP,
+  COMPLETION_TITLE,
+  initialInterviewMessage,
+  shouldShowQuestion,
+} from "./interviewPresentation";
 
 type SavedAnswer = { responseId: string; startOffsetMs: number; endOffsetMs: number; transcript: Transcript };
 type InterviewQuestion = CandidateQuestion & { isFollowUp?: boolean };
@@ -59,9 +67,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
   // The stream is normally granted on the preflight screen and handed over to
   // this component. Do not show a stale permission prompt while recording is
   // being started in the background.
-  const [message, setMessage] = useState(initialStream
-    ? "Подготавливаем защищённую запись и первый вопрос…"
-    : "Подготавливаем камеру и микрофон…");
+  const [message, setMessage] = useState(initialInterviewMessage(Boolean(initialStream)));
   const [submitting, setSubmitting] = useState(false);
   const [finished, setFinished] = useState(false);
   const [recordedDurationMs, setRecordedDurationMs] = useState<number | null>(null);
@@ -69,6 +75,9 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
   const [language, setLanguage] = useState("Python");
   const [timerOffsetMs, setTimerOffsetMs] = useState(0);
   const timedOutQuestions = useRef(new Set<string>());
+  const spokenQuestions = useRef(new Set<string>());
+  const presenterRequest = useRef(0);
+  const [presenter, setPresenter] = useState<PresenterState | null>(null);
   const autoStarted = useRef(false);
   const question = questions[index];
   const allSaved = questions.every(({ id }) => answers[id]);
@@ -83,13 +92,23 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
     void api.timeline(token, "question_shown", continuous.offset(), question.id);
   }, [api, continuous.recording, index, question.id, token]);
 
-  const speakQuestion = () => speech.speak(
-    question.text,
-    token ? api.questionSpeechUrl(token, question.id) : undefined,
-  );
+  const speakQuestion = async () => {
+    const requestId = ++presenterRequest.current;
+    let state: PresenterState | null = null;
+    if (token) {
+      try { state = await api.waitForPresenter(token, question.id); } catch { /* use legacy TTS */ }
+    }
+    if (requestId !== presenterRequest.current) return;
+    setPresenter(state);
+    await speech.speak(question.text, state?.audio_url ?? (token ? api.questionSpeechUrl(token, question.id) : undefined));
+  };
 
   useEffect(() => {
-    if (continuous.recording) void speakQuestion();
+    setPresenter(null);
+    if (continuous.recording && !spokenQuestions.current.has(question.id)) {
+      spokenQuestions.current.add(question.id);
+      void speakQuestion();
+    }
   }, [continuous.recording, question.id]);
 
   const refreshFollowUps = async (): Promise<InterviewQuestion[]> => {
@@ -160,8 +179,8 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
   const saveAndContinue = async (timedOut = false) => {
     if (!token || !continuous.recording || submitting) return;
     const endOffsetMs = continuous.offset();
-    if (endOffsetMs <= answerStartedAt) { setMessage("Запишите хотя бы несколько секунд ответа."); return; }
-    if (!timedOut && question.kind === "coding" && !code.trim()) { setMessage("Добавьте кодовое решение перед сохранением ответа."); return; }
+    if (!hasRecordedInterval(answerStartedAt, endOffsetMs)) { setMessage("Запишите хотя бы несколько секунд ответа."); return; }
+    if (!timedOut && !codingAnswerIsReady(question.kind, code)) { setMessage("Добавьте кодовое решение перед сохранением ответа."); return; }
     setSubmitting(true);
     try {
       const segment = question.kind === "coding"
@@ -198,7 +217,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
     const tick = () => {
       const offset = continuous.offset();
       setTimerOffsetMs(offset);
-      if (offset - answerStartedAt >= limit * 1000 && !timedOutQuestions.current.has(question.id)) {
+      if (shouldAutoSubmit(limit, answerStartedAt, offset, timedOutQuestions.current.has(question.id))) {
         timedOutQuestions.current.add(question.id);
         void saveAndContinue(true);
       }
@@ -243,7 +262,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
     }
   };
 
-  if (finished) return <main className="preflight"><span className="interview-header__eyebrow">NAPOLEON [IT] · ASYNC INTERVIEW</span><h1>Интервью записано</h1><p>Спасибо за ответы. Видео, аудио и материалы coding-задач сохранены.</p><p>Ожидайте дальнейшей информации от рекрутера.</p></main>;
+  if (finished) return <main className="preflight preflight--complete"><span className="interview-header__eyebrow">NAPOLEON [IT] · ASYNC INTERVIEW</span><span className="completion-mark" aria-hidden="true">✓</span><h1>{COMPLETION_TITLE}</h1><p>{COMPLETION_BODY}</p><p>{COMPLETION_NEXT_STEP}</p></main>;
   return <main className="interview-shell">
     <header className="interview-header"><div><span className="interview-header__eyebrow">NAPOLEON IT · ASYNC INTERVIEW</span><h1>Техническое интервью</h1></div><span className="interview-header__recording">{continuous.recording ? "● Запись идёт" : finished ? "✓ Интервью завершено" : "Камера готова"}</span></header>
     {mediaError && <p role="alert">{mediaError}</p>}
@@ -251,8 +270,8 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
     <section className={`interview-stage ${question.kind === "coding" ? "interview-stage--coding" : ""}`}>
       <CameraPreview stream={stream} />
       <div className="stage-topline"><span>ВАША КАМЕРА</span><span>{question.time_limit_seconds ? `Осталось ${Math.max(0, Math.ceil(question.time_limit_seconds - (timerOffsetMs - answerStartedAt) / 1000))} с · ` : ""}Вопрос {index + 1} / {questions.length}</span></div>
-      {continuous.recording && <div className="question-overlay"><InterviewerAvatar compact speaking={speech.speaking} idleSrc={token ? api.questionAvatarFrameUrl(token, question.id, "idle") : undefined} speakingSrc={token ? api.questionAvatarFrameUrl(token, question.id, "speaking") : undefined} /><QuestionPlayer index={index} total={questions.length} text={question.text} isFollowUp={question.isFollowUp} onSpeak={() => void speakQuestion()} speaking={speech.speaking} /></div>}
-      {continuous.recording && question.kind === "coding" && <CodeEditor language={language} source={code} onLanguage={setLanguage} onSource={setCode} />}
+      {shouldShowQuestion(continuous.recording) && <div className="question-overlay"><InterviewerAvatar compact speaking={speech.speaking} videoSrc={presenter?.avatar_url} idleSrc={presenter?.static_portrait_url ?? (token ? api.questionAvatarFrameUrl(token, question.id, "idle") : undefined)} speakingSrc={token ? api.questionAvatarFrameUrl(token, question.id, "speaking") : undefined} /><QuestionPlayer index={index} total={questions.length} text={question.text} isFollowUp={question.isFollowUp} onSpeak={() => void speakQuestion()} speaking={speech.speaking} /></div>}
+      {shouldShowQuestion(continuous.recording) && question.kind === "coding" && <CodeEditor language={language} source={code} onLanguage={setLanguage} onSource={setCode} />}
     </section>
     <section className="recording-controls"><div><p role="status">{message}</p>{continuous.recording && <span className="recording-controls__status">{Math.round(continuous.offset() / 1000)} с · сохранено фрагментов: {continuous.uploadedChunks}</span>}</div>{!continuous.recording && !finished && <button disabled={!stream || submitting} onClick={() => void start()}>Начать интервью</button>}{continuous.recording && !answers[question.id] && <button disabled={submitting} onClick={() => void saveAndContinue()}>{index === questions.length - 1 ? "Сохранить ответ" : "Сохранить и продолжить"}</button>}{continuous.recording && index === questions.length - 1 && allSaved && <button disabled={submitting} onClick={() => void finish()}>Завершить интервью</button>}</section>
     {debug && <section className="debug-panel" aria-label="Отладочная расшифровка"><h2>Отладка: расшифровка</h2><p>Буфер чанков в приложении: {(continuous.bufferedBytes / 1024 / 1024).toFixed(1)} MiB; пик: {(continuous.peakBufferedBytes / 1024 / 1024).toFixed(1)} MiB.</p><p>Время записи: {recordedDurationMs === null ? (continuous.recording ? formatDuration(continuous.offset()) : "ещё не завершена") : formatDuration(recordedDurationMs)}.</p>{questions.map((item, itemIndex) => <p key={item.id}>Вопрос {itemIndex + 1}: {debugTranscript(answers[item.id], finished, item)}</p>)}</section>}

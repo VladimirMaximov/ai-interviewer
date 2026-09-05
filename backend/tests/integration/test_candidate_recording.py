@@ -20,6 +20,7 @@ from app.api.candidate import (
 from app.interview_config import QuestionKind
 from app.main import app
 from app.domain.proctoring import MonitoringEventKind, MonitoringReviewStatus
+from app.domain.interview_runtime import PresenterFallback, PresenterState, PresenterStatus
 from app.models.interview import FollowUpStatus, TranscriptionStatus
 
 
@@ -81,6 +82,18 @@ class Workflow:
         if secret != "valid":
             return None
         return "https://storage/private-avatar.mp4"
+
+    def presenter_state(self, secret: str, question_id):
+        if secret != "valid":
+            return None
+        return PresenterState(
+            question_id=question_id,
+            status=PresenterStatus.READY,
+            audio_url="https://storage/private-question.wav",
+            avatar_url="https://storage/private-avatar.mp4",
+            static_portrait_url="/candidate/valid/avatar-frame/idle",
+            fallback=PresenterFallback.NONE,
+        )
 
     def save_code_answer(self, secret: str, request: CodeAnswerRequest):
         if secret != "valid" or not request.source_code.strip():
@@ -189,6 +202,21 @@ class CandidateApiTests(unittest.TestCase):
             self.client.get(
                 f"/candidate/not-a-real-secret/questions/{question_id}/avatar",
                 follow_redirects=False,
+            ).status_code,
+            404,
+        )
+
+    def test_candidate_presenter_state_contains_only_scoped_media(self) -> None:
+        question_id = uuid4()
+        response = self.client.get(
+            f"/candidate/valid/questions/{question_id}/presenter"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ready")
+        self.assertEqual(response.json()["question_id"], str(question_id))
+        self.assertEqual(
+            self.client.get(
+                f"/candidate/not-a-real-secret/questions/{question_id}/presenter"
             ).status_code,
             404,
         )

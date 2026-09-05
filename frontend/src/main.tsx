@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ConsentScreen } from "./features/interview/ConsentScreen";
 import { InterviewPage } from "./features/interview/InterviewPage";
 import { CandidateApi, CandidateQuestion, Invitation } from "./api/candidate";
+import "@ai-interviewer/brand-tokens/src/tokens.css";
 import "./styles.css";
 
 const App = () => {

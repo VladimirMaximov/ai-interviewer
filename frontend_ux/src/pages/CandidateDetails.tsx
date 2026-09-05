@@ -1,78 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import api from '../api';
-import { CandidateResult, MOCK_CANDIDATES } from './Leaderboard';
-
-const MOCK_TRANSCRIPT = [
-  ['ИИ-интервьюер', 'Расскажите о вашем опыте разработки на Python.'],
-  ['Кандидат', 'Последние четыре года я разрабатываю backend-сервисы на Python. Работала с FastAPI, Django, PostgreSQL и Redis.'],
-  ['ИИ-интервьюер', 'Как вы обеспечиваете качество и надёжность кода?'],
-  ['Кандидат', 'Пишу unit- и интеграционные тесты, использую type hints, линтеры и обязательный code review. Для критичных сценариев добавляю метрики и алерты.'],
-  ['ИИ-интервьюер', 'Как бы вы диагностировали медленный API endpoint?'],
-  ['Кандидат', 'Начала бы с метрик времени ответа и трассировки, затем проверила запросы к базе, внешние вызовы и профилирование CPU. После этого сравнила бы результат до и после оптимизации.'],
-];
+import { useNavigate, useParams } from 'react-router-dom';
+import { getInterviewResult } from '../api';
+import { InterviewResultDetail } from '../types';
 
 const CandidateDetails: React.FC = () => {
-  const { vacancyId, candidateId } = useParams();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const candidate = (location.state as { candidate?: CandidateResult } | null)?.candidate
-    || MOCK_CANDIDATES.find((item) => item.id === candidateId)
-    || MOCK_CANDIDATES[0];
-  const [vacancyTitle, setVacancyTitle] = useState('Middle Python разработчик');
-
-  useEffect(() => {
-    if (!localStorage.getItem('user')) { navigate('/login'); return; }
-    api.get(`/vacancies/${vacancyId}`)
-      .then((response) => setVacancyTitle(response.data?.title || 'Middle Python разработчик'))
-      .catch(() => undefined);
-  }, [navigate, vacancyId]);
-
-  return (
-    <>
-      <nav className="navbar navbar-light bg-white shadow-sm">
-        <div className="container">
-          <span className="navbar-brand">AI Интервьюер</span>
-          <button className="btn btn-sm btn-outline-secondary" onClick={() => navigate(`/leaderboard/${vacancyId}`)}>← К лидерборду</button>
-        </div>
-      </nav>
-      <main className="container my-4" style={{ maxWidth: 1150 }}>
-        <section className="card shadow-sm mb-4">
-          <div className="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div><div className="text-muted small">Кандидат</div><h4 className="mb-0">{candidate.name}</h4></div>
-            <div><div className="text-muted small">Вакансия</div><strong>{vacancyTitle}</strong></div>
-            <span className="badge bg-primary fs-6">Оценка: {candidate.score}%</span>
-          </div>
-        </section>
-        <section className="card shadow-sm mb-4">
-          <div className="card-body">
-            <p className="mb-2">Кандидат показал уверенное владение Python и практический опыт разработки backend-сервисов. Ответы структурированы, технические решения объясняет через измеримые сигналы и проверяемые гипотезы.</p>
-            <p className="mb-0 text-muted">Сильные стороны: архитектурное мышление, тестирование и диагностика производительности. На следующем этапе рекомендуется уточнить опыт проектирования высоконагруженных систем.</p>
-          </div>
-        </section>
-        <div className="row g-4">
-          <div className="col-lg-5">
-            <section className="card shadow-sm h-100"><div className="card-body">
-              <h5>Видеозапись интервью</h5>
-              <div className="bg-dark text-white rounded d-flex flex-column align-items-center justify-content-center" style={{ aspectRatio: '16 / 9', minHeight: 220 }}>
-                <div style={{ fontSize: 52 }}>▶</div><div>Демо-видео интервью</div><small className="text-white-50">00:34:18</small>
-              </div>
-            </div></section>
-          </div>
-          <div className="col-lg-7">
-            <section className="card shadow-sm h-100"><div className="card-body">
-              <h5>Полный транскрипт интервью</h5>
-              <div className="overflow-auto pe-2" style={{ maxHeight: 430 }}>
-                {MOCK_TRANSCRIPT.map(([speaker, text], index) => (
-                  <div className="mb-3" key={index}><strong className={speaker === 'Кандидат' ? 'text-primary' : 'text-secondary'}>{speaker}</strong><div>{text}</div></div>
-                ))}
-              </div>
-            </div></section>
-          </div>
-        </div>
-      </main>
-    </>
-  );
+  const { vacancyId = '', candidateId = '' } = useParams(); const navigate = useNavigate();
+  const [result, setResult] = useState<InterviewResultDetail | null>(null); const [error, setError] = useState('');
+  useEffect(() => { getInterviewResult(vacancyId, candidateId).then(setResult).catch(() => setError('Не удалось загрузить сохранённые результаты интервью.')); }, [vacancyId, candidateId]);
+  return <><nav className="navbar navbar-light bg-white shadow-sm"><div className="container"><span className="navbar-brand">AI Интервьюер</span><button className="btn btn-sm btn-outline-secondary" onClick={() => navigate(`/leaderboard/${vacancyId}`)}>← К интервью</button></div></nav><main className="container my-4" style={{ maxWidth: 1180 }}>
+    {error && <div className="alert alert-danger">{error}</div>}{!result && !error && <p className="text-muted">Загружаем материалы…</p>}
+    {result && <><section className="card shadow-sm mb-4"><div className="card-body d-flex flex-wrap justify-content-between gap-3"><div><small className="text-muted">Кандидат</small><h4>{result.summary.candidate_alias || 'Кандидат без имени'}</h4></div><div><small className="text-muted">Вакансия</small><h5>{result.vacancy_title}</h5></div><div><small className="text-muted">Оценка</small><h5>{result.summary.score === null ? 'Не рассчитана' : `${result.summary.score}%`}</h5></div></div></section><div className="row g-4">
+      <div className="col-lg-5"><section className="card shadow-sm h-100"><div className="card-body"><h5>Запись интервью</h5><p className="text-muted">{result.recording_duration_ms ? `${Math.round(result.recording_duration_ms / 1000)} с` : 'Длительность уточняется'} · {result.media.length} фрагментов</p>{result.media.length ? result.media.map((clip) => <video key={clip.sequence} className="w-100 rounded mb-2 bg-dark" controls preload="metadata" src={clip.url} />) : <div className="alert alert-light">Подтверждённых видеофрагментов пока нет.</div>}<h6 className="mt-4">События проверки</h6>{result.monitoring_events.length ? result.monitoring_events.map((event) => <div className="small border rounded p-2 mb-2" key={event.id}>{event.kind}: {event.started_at_ms / 1000}–{event.ended_at_ms / 1000} с · {event.review_status}{event.evidence_url && <> · <a href={event.evidence_url}>фрагмент</a></>}</div>) : <p className="text-muted small">Событий нет.</p>}</div></section></div>
+      <div className="col-lg-7"><section className="card shadow-sm h-100"><div className="card-body"><h5>Ответы и расшифровка</h5>{result.answers.length ? result.answers.map((answer, index) => <article className="border-bottom py-3" key={answer.response_id}><small className="text-muted">Вопрос {index + 1}{answer.is_follow_up ? ' · уточнение' : ''} · {answer.start_offset_ms === null ? 'нет временной отметки' : `${answer.start_offset_ms / 1000}–${(answer.end_offset_ms || 0) / 1000} с`}</small><h6 className="mt-1">{answer.question_text}</h6>{answer.transcription_status === 'completed' ? <p>{answer.transcript_text || 'Речь не обнаружена.'}</p> : <p className={answer.transcription_status === 'failed' ? 'text-danger' : 'text-muted'}>Расшифровка: {answer.transcription_status}</p>}{answer.timed_out && <span className="badge bg-warning text-dark mb-2">Завершено по таймеру</span>}{answer.code && <><div className="small text-muted">Код · {answer.code.language}</div><pre className="bg-dark text-light rounded p-3 overflow-auto"><code>{answer.code.source_code}</code></pre></>}</article>) : <p className="text-muted">Ответов пока нет.</p>}</div></section></div>
+    </div></>}
+  </main></>;
 };
-
 export default CandidateDetails;
