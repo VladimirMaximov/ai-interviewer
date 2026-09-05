@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   createDefaultConfiguration,
   createVacancy,
@@ -12,8 +12,10 @@ import { ConfiguredQuestion, InterviewConfiguration } from '../types';
 
 const Vacancy: React.FC = () => {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const isNew = id === 'new';
+  // The explicit `/vacancy/new` route has no `:id` param.
+  const isNew = id === 'new' || location.pathname.endsWith('/vacancy/new');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [configuration, setConfiguration] = useState<InterviewConfiguration>(

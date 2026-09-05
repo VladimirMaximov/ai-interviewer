@@ -163,6 +163,9 @@ stub оставлен только как явный offline/test provider. Ни
 
 ## Локальная проверка
 
+Production backlog и безопасные параметры подключения к текущему серверу находятся в
+[`docs/production-backlog.md`](docs/production-backlog.md).
+
 Требуется Python 3.12+.
 
 ```bash
