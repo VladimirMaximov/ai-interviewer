@@ -3,10 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('candidate');
+  const [username, setUsername] = useState('interviewer');
   const [password, setPassword] = useState('1234');
-  const [isRegister, setIsRegister] = useState(false);
-  const [role, setRole] = useState('candidate');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -15,37 +13,34 @@ const Login: React.FC = () => {
     setError('');
     
     try {
-      const response = await api.post('/login', { username, password });
-      if (response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Отправляем JSON вместо FormData
+      const response = await api.post('/login', {
+        username,
+        password
+      });
+
+      if (response.data) {
+        localStorage.setItem('user', JSON.stringify(response.data));
         navigate('/homepage');
       }
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Ошибка входа');
-    }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    try {
-      await api.post('/register', { username, password, role });
-      alert('Регистрация успешна! Теперь войдите.');
-      setIsRegister(false);
-    } catch (error: any) {
-      setError(error.response?.data?.detail || 'Ошибка регистрации');
+      console.error('Ошибка:', error);
+      if (!error.response) {
+        setError('Нет соединения с сервером. Запустите backend на порту 8000.');
+      } else {
+        setError(error.response.data?.detail || 'Не удалось войти. Проверьте логин и пароль.');
+      }
     }
   };
 
   return (
     <div className="container" style={{ maxWidth: 400, marginTop: 80 }}>
       <div className="card p-4 shadow">
-        <h3 className="text-center">🤖 AI Интервьюер</h3>
+        <h3 className="text-center">AI Интервьюер</h3>
         
         {error && <div className="alert alert-danger">{error}</div>}
         
-        <form onSubmit={isRegister ? handleRegister : handleLogin}>
+        <form onSubmit={handleLogin}>
           <input
             className="form-control mb-2"
             placeholder="Логин"
@@ -62,36 +57,15 @@ const Login: React.FC = () => {
             required
           />
           
-          {isRegister && (
-            <select 
-              className="form-select mb-2"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="candidate">Кандидат</option>
-              <option value="interviewer">Интервьюер</option>
-              <option value="hiring_manager">Нанимающий менеджер</option>
-            </select>
-          )}
-          
           <button type="submit" className="btn btn-primary w-100">
-            {isRegister ? 'Зарегистрироваться' : 'Войти'}
+            Войти
           </button>
         </form>
         
         <div className="text-center mt-2">
-          <button 
-            className="btn btn-link btn-sm"
-            onClick={() => setIsRegister(!isRegister)}
-          >
-            {isRegister ? 'Уже есть аккаунт?' : 'Нет аккаунта?'}
-          </button>
-          <div className="text-muted small mt-1">
-            <span className="badge bg-secondary me-1">candidate</span>
-            <span className="badge bg-secondary me-1">interviewer</span>
-            <span className="badge bg-secondary">manager</span>
-            <div>Пароль: 1234</div>
-          </div>
+          <small className="text-muted">
+            interviewer / 1234 &nbsp;|&nbsp; candidate / 1234 &nbsp;|&nbsp; manager / 1234
+          </small>
         </div>
       </div>
     </div>

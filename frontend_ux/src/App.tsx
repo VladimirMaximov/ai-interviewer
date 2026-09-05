@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Homepage from './pages/Homepage';
 import Vacancy from './pages/Vacancy';
 import Leaderboard from './pages/Leaderboard';
+import CandidateDetails from './pages/CandidateDetails';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="/vacancy/:id" element={<Vacancy />} />
         <Route path="/vacancy/new" element={<Vacancy />} />
         <Route path="/leaderboard/:vacancyId" element={<Leaderboard />} />
+        <Route path="/leaderboard/:vacancyId/candidate/:candidateId" element={<CandidateDetails />} />
       </Routes>
     </BrowserRouter>
   );
