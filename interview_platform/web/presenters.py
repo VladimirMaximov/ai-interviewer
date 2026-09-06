@@ -137,6 +137,24 @@ def _layout(*, title: str, portal: str, content: str) -> str:
         if portal == "recruiter"
         else ""
     )
+    public_navigation = (
+        '<nav aria-label="Основная навигация"><a href="/">Главная</a>'
+        '<a href="/product"'
+        + (' aria-current="page"' if portal == "research" else '')
+        + '>Продукт и исследования</a></nav>'
+        if portal in {"public", "research"}
+        else ""
+    )
+    product_styles = (
+        '<link rel="stylesheet" href="/static/product.css">'
+        if portal in {"public", "research"}
+        else ""
+    )
+    footer = (
+        "Napoleon IT · Продуктовое исследование · 6 сентября 2026"
+        if portal == "research"
+        else "POC архитектуры · только synthetic-данные · без автоматических кадровых решений"
+    )
     home = {"manager": "/manager", "recruiter": "/recruiter"}.get(portal, "/")
     return f"""<!doctype html>
 <html lang="ru">
@@ -145,15 +163,16 @@ def _layout(*, title: str, portal: str, content: str) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{escape(title)} · AI Interviewer</title>
   <link rel="stylesheet" href="/static/styles.css">
+  {product_styles}
 </head>
 <body class="portal-{escape(portal)}">
   <header class="topbar">
     <a class="brand" href="{home}">AI Interviewer</a>
-    {manager_navigation}{recruiter_navigation}
+    {manager_navigation}{recruiter_navigation}{public_navigation}
     <span class="portal-pill">{escape(portal)}</span>
   </header>
   <main class="shell">{content}</main>
-  <footer>POC архитектуры · только synthetic-данные · без автоматических кадровых решений</footer>
+  <footer>{footer}</footer>
 </body>
 </html>"""
 
@@ -705,6 +724,178 @@ def portal_landing_page() -> str:
 <p>Только назначенные кандидаты и отдельное решение менеджера.</p>
 <a class="button" href="/manager">В кабинет менеджера</a></article></section>"""
     return _layout(title="Выбор роли", portal="public", content=content)
+
+
+def product_overview_page() -> str:
+    content = """<div class="product-overview">
+<nav class="product-index" aria-label="Разделы страницы">
+  <a href="#product"><span>01</span> Ценность и метрики</a>
+  <a href="#research"><span>02</span> Интервью и опрос</a>
+  <span class="product-index-date">06 сентября 2026</span>
+</nav>
+<section id="product" class="product-section" aria-labelledby="product-title">
+  <header class="product-section-heading">
+    <div><p class="product-kicker">Napoleon IT / Продуктовая гипотеза</p>
+      <h1 id="product-title">Сильные кандидаты.<br><span>Понятные основания.</span></h1></div>
+    <div class="product-heading-aside">
+      <p>Shortlist с проверяемыми оценками для команды найма.
+      Содержательная обратная связь для кандидата.</p>
+      <p class="product-pilot"><span class="product-pilot-marker" aria-hidden="true"></span>
+      Первый пилот — Python-вакансия</p>
+    </div>
+  </header>
+  <div class="product-offers">
+    <article class="product-offer product-offer-primary">
+      <div class="product-offer-copy">
+        <p class="product-label"><span class="product-order">01</span> Команде найма</p>
+        <h2>Shortlist под требования<br>нанимающего менеджера</h2>
+        <p>Вакансия, резюме и пожелания менеджера задают контекст.
+        Каждый вывод связан с ответами кандидата и доступен для проверки.</p>
+        <div class="product-hypothesis"><span>Гипотеза</span>
+          <p>ИИ-интервью даёт пригодную первичную оценку
+          и сокращает время проверки кандидата.</p></div>
+      </div>
+      <div class="product-primary-metrics">
+        <p class="product-label">Критерии успешного пилота</p>
+        <dl>
+          <div><dt>Совпадение с независимой оценкой экспертов</dt>
+            <dd>≥80<span>%</span></dd></div>
+          <div><dt>Среднее время проверки отчёта рекрутером</dt>
+            <dd>≤5<span> мин</span></dd></div>
+        </dl>
+        <p class="product-metric-note">Цели пилота · ещё не измерены</p>
+      </div>
+    </article>
+    <article class="product-offer">
+      <div class="product-offer-copy">
+        <p class="product-label"><span class="product-order">02</span> Кандидату после отбора</p>
+        <h2>Обратная связь,<br>которой можно воспользоваться</h2>
+        <p>Персональный разбор сильных сторон и ошибок.
+        Рекомендации с примерами из собственных ответов.</p>
+        <div class="product-hypothesis"><span>Гипотеза</span>
+          <p>Полезный разбор повышает готовность рекомендовать
+          Napoleon IT как работодателя.</p></div>
+      </div>
+      <div class="product-target"><strong>+10<span> п.п.</span></strong>
+        <p>Цель: рост доли готовых рекомендовать компанию<br>
+        относительно контрольной группы</p></div>
+    </article>
+    <article class="product-offer">
+      <div class="product-offer-copy">
+        <p class="product-label"><span class="product-order">03</span> Соискателю в активном поиске</p>
+        <h2>Пробное интервью.<br>В удобное время.</h2>
+        <p>Бесплатный чат на 20 минут, без камеры и микрофона.
+        Практика технического интервью и разбор ответов.</p>
+        <div class="product-hypothesis"><span>Гипотеза</span>
+          <p>Возможность потренироваться и получить разбор
+          мотивирует попробовать ИИ-интервью.</p></div>
+      </div>
+      <div class="product-target"><strong>≥80<span>%</span></strong>
+        <p>Цель: доля приглашённых,<br>согласившихся участвовать</p></div>
+    </article>
+  </div>
+  <div class="product-disclosure">
+    <p><strong>Все метрики — цели пилота.</strong> Обратная связь и пробное интервью —
+    гипотезы развития продукта.</p>
+    <p>Кадровое решение<br><strong>принимает человек.</strong></p>
+  </div>
+  <details class="product-details">
+    <summary><span>Как будем измерять результат</span><span class="product-expand" aria-hidden="true"></span></summary>
+    <div class="product-details-content"><dl class="product-methods">
+      <div><dt>Качество оценки</dt><dd>Сравним рекомендации ИИ с независимой
+      оценкой экспертов по тем же интервью: «подходит», «не подходит»,
+      «нужна дополнительная проверка». Отдельно проверим ошибки по сильным
+      и слабым кандидатам. Вклад пожеланий менеджера в точность ещё не измерен.</dd></div>
+      <div><dt>Время проверки</dt><dd>Среднее активное время рекрутера на один отчёт.
+      Настройка вакансии и дополнительные экспертные проверки учитываются отдельно.
+      Исходное время ещё предстоит измерить.</dd></div>
+      <div><dt>Лояльность к работодателю</dt><dd>Доля ответов 9–10 из 10 на вопрос
+      о готовности рекомендовать Napoleon IT. Сравним с контрольной группой,
+      учитывая также получивших отказ и выбывших. Исходный уровень не измерен;
+      нужен отдельный эксперимент с достаточной выборкой.</dd></div>
+      <div><dt>Согласие участвовать</dt><dd>Явное согласие среди всех приглашённых
+      в добровольный эксперимент с одинаковым окном в 7 дней, включая не ответивших.
+      Старт и завершение считаем отдельно от согласия.</dd></div>
+    </dl>
+    <p class="product-source">Основание целей: продуктовые гипотезы команды и аудит
+    метрик от 05.09.2026. Порог 80% совпадений задан заказчиком; остальные пороги
+    предложены командой. Цель 80% согласия предлагается проверить в пробном формате.</p></div>
+  </details>
+</section>
+<section id="research" class="product-section product-research" aria-labelledby="research-title">
+  <header class="product-section-heading">
+    <div><p class="product-kicker">02 / Интервью и опрос</p>
+      <h2 id="research-title">Что мы уже знаем.<br><span>И что ещё проверим.</span></h2></div>
+    <div class="product-heading-aside">
+      <p>Опрос разработчиков · 5–6 сентября 2026.<br>Все респонденты активно ищут работу.</p>
+      <p class="product-sample-note">От начинающих разработчиков<br>до специалистов с опытом 3+ лет.</p>
+    </div>
+  </header>
+  <div class="product-findings">
+    <article>
+      <p class="product-label">Интерес к формату</p>
+      <div class="product-donut product-donut--100" role="img"
+        aria-label="100% опрошенных готовы попробовать пробное ИИ-интервью">
+        <span aria-hidden="true">100<small>%</small></span></div>
+      <h3>Готовы попробовать</h3>
+      <p>Ответили «точно» или «скорее» пройдут пробное ИИ-интервью.</p>
+      <p class="product-source">Вопрос 3 · заявленное намерение</p>
+    </article>
+    <article>
+      <p class="product-label">Ценность обратной связи</p>
+      <div class="product-donut product-donut--83" role="img"
+        aria-label="83% опрошенных предпочли подробный разбор ответов">
+        <span aria-hidden="true">83<small>%</small></span></div>
+      <h3>Выбрали подробный разбор</h3>
+      <p>Примеры из ответов, сильные стороны, ошибки и рекомендации.</p>
+      <p class="product-source">Вопрос 5 · предпочтение</p>
+    </article>
+    <article>
+      <p class="product-label">Опыт работы с критикой</p>
+      <div class="product-donut product-donut--50" role="img"
+        aria-label="50% опрошенных сообщили, что применили рекомендации после прошлой критики">
+        <span aria-hidden="true">50<small>%</small></span></div>
+      <h3>Применили рекомендации</h3>
+      <p>По их словам, после прошлой критики. Остальные начали разбирать замечания.</p>
+      <p class="product-source">Вопрос 6 · самоотчёт о прошлом опыте</p>
+    </article>
+  </div>
+  <div class="product-interview">
+    <div class="product-interview-evidence"><p class="product-label">Интервью с рекрутером</p>
+      <h3>Оценку нужно сохранять и объяснять</h3>
+      <ul><li>Оценку не сохранили — интервью проводят повторно.</li>
+        <li>Субъективное заключение менеджера трудно объяснить кандидату.</li></ul>
+      <p class="product-source">Пересказ заметок; частота и стоимость проблем не измерены.</p>
+    </div>
+    <div class="product-interview-decision"><p class="product-label">Наш продуктовый вывод</p>
+      <p class="product-interview-conclusion">Оценка + ответы.<br>Сохранить. Проверить.<br>Объяснить кандидату.</p>
+      <p>Основание для проверяемого отчёта и персональной обратной связи.</p>
+    </div>
+  </div>
+  <div class="product-research-limit">
+    <p class="product-label">Граница подтверждения</p>
+    <p><strong>Поддержан интерес к формату и подробному разбору.</strong>
+    Фактическое прохождение, качество ИИ и рост лояльности ещё не подтверждены.</p>
+    <p class="product-source">Небольшая исследовательская выборка; проценты округлены.
+    Сценарий опроса — бесплатный добровольный чат на 20 минут без камеры и микрофона.</p>
+  </div>
+  <details class="product-details">
+    <summary><span>Источники, барьеры и границы выводов</span><span class="product-expand" aria-hidden="true"></span></summary>
+    <div class="product-details-content"><p>CSV «ИИ-собеседование и обратная связь — опрос разработчиков.csv»,
+    вопросы 2, 3, 5, 6. Выборка мала и не представляет
+    всех разработчиков. Готовность к добровольной тренировке нельзя переносить
+    на обязательное видеоинтервью при найме.</p>
+    <p>Среди барьеров отмечены страх низкой оценки, сомнение в правильности оценки ИИ
+    и отсутствие пользы для поиска работы. Есть и ответы без перечисленных барьеров.</p>
+    <p>Заметки интервью: interview/recruiter_keynotes.md. Суждение «инженеры плохо
+    воспринимают критику» не является общим установленным фактом: в опросе есть
+    примеры работы с замечаниями. Это не наблюдение за использованием нашего продукта.</p>
+    <p>Сценарии будущих интервью и synthetic-прогоны не использованы
+    как клиентское подтверждение. Данные опроса представлены только в агрегированном виде.</p></div>
+  </details>
+</section>
+</div>"""
+    return _layout(title="Продукт и исследования", portal="research", content=content)
 
 
 def recruiter_list_page(interviews: list[Interview], reviews: dict[str, object]) -> str:

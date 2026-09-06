@@ -45,6 +45,7 @@ from .presenters import (
     manager_list_page,
     manager_review_dict,
     portal_landing_page,
+    product_overview_page,
     recruiter_detail_page,
     recruiter_list_page,
     recruiter_review_dict,
@@ -146,8 +147,16 @@ class InterviewWebApp:
             return self._json(200, {"status": "ok"})
         if method == "GET" and path == "/static/styles.css":
             return Response(200, self.styles_path.read_bytes(), "text/css; charset=utf-8")
+        if method == "GET" and path == "/static/product.css":
+            return Response(
+                200,
+                self.styles_path.with_name("product.css").read_bytes(),
+                "text/css; charset=utf-8",
+            )
         if method == "GET" and path == "/":
             return self._html(200, portal_landing_page())
+        if method == "GET" and path in {"/product", "/product/"}:
+            return self._html(200, product_overview_page())
 
         if path.startswith("/api/recruiter/"):
             if self.recruiter_key is None or not recruiter_api_authorized(
