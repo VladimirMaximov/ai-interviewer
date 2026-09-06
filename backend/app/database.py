@@ -15,14 +15,12 @@ from app.adapters.storage import S3ObjectStorage
 from app.adapters.gigaam3 import GigaAm3Provider
 from app.adapters.whisper_cpp import WhisperCppProvider
 from app.config import settings
-from app.services.audio_processing import WhisperAudioProcessor
 from app.services.candidate_workflow import SqlCandidateWorkflow
 from app.services.hiring_context import HiringContextService
 from app.services.manager_brief import ManagerBriefService
 from app.services.multi_agent_harness import MultiAgentHarness
-from app.services.transcription_scheduler import TranscriptionScheduler
+from app.services.transcription_scheduler import CeleryTranscriptionDispatcher
 from app.services.voice_proctoring import VoiceProctoringScheduler
-from app.services.runtime_evaluation import RuntimeEvaluationService
 from app.adapters.xtts_runtime import XttsRuntime
 from app.adapters.musetalk_runtime import MuseTalkRuntime
 from app.services.presenter_assets import CeleryPresenterDispatcher, PresenterAssetService
@@ -89,10 +87,7 @@ def workflow_factory() -> SqlCandidateWorkflow:
         aws_secret_access_key=settings.s3_secret_key,
     )
     storage = S3ObjectStorage(client, settings.s3_bucket, public_client)
-    processor = WhisperAudioProcessor(
-        transcription_provider_factory(),
-        settings.ffmpeg_binary,
-    )
+    from app.workers.celery_app import celery_app
     voice_scheduler = None
     if settings.proctoring_provider == "pyannote":
         voice_scheduler = VoiceProctoringScheduler(
@@ -104,10 +99,7 @@ def workflow_factory() -> SqlCandidateWorkflow:
     return SqlCandidateWorkflow(
         session,
         storage,
-        TranscriptionScheduler(
-            sessions, storage, processor,
-            RuntimeEvaluationService(sessions, presenter_dispatcher=presenter_dispatcher_factory()),
-        ),
+        CeleryTranscriptionDispatcher(celery_app, settings.celery_cpu_queue),
         voice_scheduler,
     )
 

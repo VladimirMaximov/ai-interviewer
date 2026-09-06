@@ -11,6 +11,8 @@ class PrivateObjectStorage(Protocol):
     def download_to(self, key: str, destination: Path) -> None: ...
     def create_download_url(self, key: str) -> str: ...
     def put_file(self, key: str, source: Path, content_type: str) -> None: ...
+    def put_bytes(self, key: str, content: bytes, content_type: str) -> None: ...
+    def open_download(self, key: str, byte_range: str | None = None) -> object: ...
 
 
 class S3ObjectStorage:
@@ -50,3 +52,17 @@ class S3ObjectStorage:
             str(source), self._bucket, key,
             ExtraArgs={"ContentType": content_type},
         )
+
+    def put_bytes(self, key: str, content: bytes, content_type: str) -> None:
+        self._client.put_object(
+            Bucket=self._bucket,
+            Key=key,
+            Body=content,
+            ContentType=content_type,
+        )
+
+    def open_download(self, key: str, byte_range: str | None = None) -> object:
+        params = {"Bucket": self._bucket, "Key": key}
+        if byte_range:
+            params["Range"] = byte_range
+        return self._client.get_object(**params)

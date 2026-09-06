@@ -39,8 +39,15 @@ class GigaAm3Provider:
                 ) from error
             self._model = gigaam.load_model(self._model_name)
 
-        result = self._model.transcribe(audio_path)
-        transcript = getattr(result, "text", result)
+        result = self._model.transcribe_longform(audio_path)
+        parts: list[str] = []
+        for segment in result:
+            text = getattr(segment, "text", None)
+            if text is None and isinstance(segment, dict):
+                text = segment.get("text", segment.get("transcription"))
+            if isinstance(text, str) and text.strip():
+                parts.append(text.strip())
+        transcript = " ".join(parts)
         if not isinstance(transcript, str):
             raise RuntimeError("GigaAM returned an invalid transcription result")
         # Silence, a microphone pause, or a coding answer without narration is

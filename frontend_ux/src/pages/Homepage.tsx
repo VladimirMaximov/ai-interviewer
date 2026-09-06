@@ -49,7 +49,7 @@ const Homepage: React.FC = () => {
             <div className="card-body">
               <div className="d-flex flex-wrap justify-content-between gap-3">
                 <div><h2 className="h5 mb-1">{vacancy.title}</h2><small className="text-muted">{vacancy.status === 'active' ? 'Активна' : 'Закрыта'}</small></div>
-                <div className="d-flex gap-2"><Link to={`/vacancy/${vacancy.id}`} className="btn btn-outline-secondary">Вопросы</Link><Link to={`/leaderboard/${vacancy.id}`} className="btn btn-outline-primary">Результаты</Link><button className="btn btn-primary" disabled={creatingFor === vacancy.id} onClick={() => issueInvitation(vacancy.id)}>{creatingFor === vacancy.id ? 'Создаём…' : 'Создать ссылку'}</button></div>
+                <div className="d-flex gap-2"><Link to={`/vacancy/${vacancy.id}`} className="btn btn-outline-secondary">Редактировать</Link><Link to={`/leaderboard/${vacancy.id}`} className="btn btn-outline-primary">Результаты</Link><button className="btn btn-primary" disabled={creatingFor === vacancy.id} onClick={() => issueInvitation(vacancy.id)}>{creatingFor === vacancy.id ? 'Создаём…' : 'Создать ссылку'}</button></div>
               </div>
               {invitationUrls[vacancy.id] && <div className="input-group mt-3"><input className="form-control" readOnly value={invitationUrls[vacancy.id]} aria-label="Ссылка кандидата" /><button className="btn btn-outline-primary" onClick={() => copyLink(invitationUrls[vacancy.id])}>Копировать</button></div>}
             </div>

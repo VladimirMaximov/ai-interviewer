@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "live_coding_enabled": true,
+  "follow_up_after_all_answers": false,
+  "blocks": [
+    {
+      "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "title": "Hard skills",
+      "topic": "technical",
+      "key": "hard_skills",
+      "position": 0,
+      "questions": [
+        {"id": "10000000-0000-4000-8000-000000000001", "text": "Как устроен жизненный цикл HTTP-запроса в FastAPI?", "kind": "spoken", "position": 0},
+        {"id": "10000000-0000-4000-8000-000000000002", "text": "Реализуйте функцию, которая возвращает первый неповторяющийся символ строки.", "kind": "coding", "language": "python", "position": 1},
+        {"id": "10000000-0000-4000-8000-000000000003", "text": "Как вы диагностируете медленный запрос к PostgreSQL?", "kind": "spoken", "position": 2}
+      ]
+    },
+    {
+      "id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "title": "Soft skills",
+      "topic": "collaboration",
+      "key": "soft_skills",
+      "position": 1,
+      "questions": [
+        {"id": "20000000-0000-4000-8000-000000000001", "text": "Расскажите о случае, когда вы разрешили разногласие в команде.", "kind": "spoken", "position": 0},
+        {"id": "20000000-0000-4000-8000-000000000002", "text": "Как вы объясняете сложное техническое решение человеку без инженерного бэкграунда?", "kind": "spoken", "position": 1},
+        {"id": "20000000-0000-4000-8000-000000000003", "text": "Как вы планируете работу, если приоритеты меняются в середине спринта?", "kind": "spoken", "position": 2}
+      ]
+    },
+    {
+      "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "title": "Work experience",
+      "topic": "experience",
+      "key": "work_experience",
+      "position": 2,
+      "questions": [
+        {"id": "30000000-0000-4000-8000-000000000001", "text": "Расскажите о проекте, которым вы особенно гордитесь.", "kind": "spoken", "position": 0},
+        {"id": "30000000-0000-4000-8000-000000000002", "text": "Какой технический компромисс в вашем проекте оказался самым значимым?", "kind": "spoken", "position": 1},
+        {"id": "30000000-0000-4000-8000-000000000003", "text": "Что бы вы изменили в последнем проекте, если бы начинали его сегодня?", "kind": "spoken", "position": 2}
+      ]
+    }
+  ]
+}

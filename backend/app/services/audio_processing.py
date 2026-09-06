@@ -13,6 +13,31 @@ class AudioProcessingError(RuntimeError):
     """Raised when an uploaded response cannot be safely prepared for ASR."""
 
 
+def normalize_media_stream(
+    source_path: Path,
+    destination: Path,
+    ffmpeg_binary: str = "ffmpeg",
+) -> None:
+    """Remux a concatenated browser recording into one playable media file."""
+    if not source_path.is_file() or source_path.stat().st_size == 0:
+        raise AudioProcessingError("Media source is empty")
+    try:
+        subprocess.run(
+            [ffmpeg_binary, "-nostdin", "-y", "-i", str(source_path), "-map", "0", "-c", "copy", str(destination)],
+            check=True, capture_output=True, text=True, timeout=180,
+        )
+    except (OSError, subprocess.SubprocessError):
+        try:
+            subprocess.run(
+                [ffmpeg_binary, "-nostdin", "-y", "-i", str(source_path), "-map", "0", "-c:v", "libvpx-vp9", "-c:a", "libopus", str(destination)],
+                check=True, capture_output=True, text=True, timeout=300,
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            raise AudioProcessingError("Media could not be normalized") from error
+    if not destination.is_file() or destination.stat().st_size == 0:
+        raise AudioProcessingError("Media normalization produced no usable file")
+
+
 class WhisperAudioProcessor:
     """Convert arbitrary browser media to Whisper-compatible audio then transcribe it.
 

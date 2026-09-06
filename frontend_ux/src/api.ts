@@ -105,7 +105,17 @@ export async function listInterviewResults(vacancyId: string): Promise<Interview
 }
 
 export async function getInterviewResult(vacancyId: string, sessionId: string): Promise<InterviewResultDetail> {
-  return (await api.get<InterviewResultDetail>(`/recruiter/vacancies/${vacancyId}/interviews/${sessionId}`)).data;
+  const result = (await api.get<InterviewResultDetail>(`/recruiter/vacancies/${vacancyId}/interviews/${sessionId}`)).data;
+  if (process.env.NODE_ENV !== 'development') return result;
+  return {
+    ...result,
+    media: result.media.map((item) => ({
+      ...item,
+      url: item.url.startsWith('/api/')
+        ? `${API_URL}${item.url.slice('/api'.length)}`
+        : item.url,
+    })),
+  };
 }
 
 export default api;

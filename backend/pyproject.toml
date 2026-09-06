@@ -25,7 +25,7 @@ proctoring = [
 # older PyPI package. Keep it optional: the default developer setup uses
 # whisper.cpp and must not download model frameworks unexpectedly.
 local-speech = [
-    "gigaam @ git+https://github.com/salute-developers/GigaAM.git@7447938d791c4f3e643386ee22c33777004293a5",
+    "gigaam[longform] @ git+https://github.com/salute-developers/GigaAM.git@7447938d791c4f3e643386ee22c33777004293a5",
 ]
 workers = [
     "celery[redis]==5.5.3",

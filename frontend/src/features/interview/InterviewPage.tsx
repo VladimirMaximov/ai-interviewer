@@ -63,6 +63,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
   const [questions, setQuestions] = useState<InterviewQuestion[]>(baseQuestions);
   const [recordingGrant, setRecordingGrant] = useState<RecordingGrant | null>(null);
   const [answerStartedAt, setAnswerStartedAt] = useState(0);
+  const [answerReadyQuestionId, setAnswerReadyQuestionId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, SavedAnswer>>({});
   // The stream is normally granted on the preflight screen and handed over to
   // this component. Do not show a stale permission prompt while recording is
@@ -70,6 +71,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
   const [message, setMessage] = useState(initialInterviewMessage(Boolean(initialStream)));
   const [submitting, setSubmitting] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [finishChecksum, setFinishChecksum] = useState<string | null>(null);
   const [recordedDurationMs, setRecordedDurationMs] = useState<number | null>(null);
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("Python");
@@ -92,8 +94,9 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
     void api.timeline(token, "question_shown", continuous.offset(), question.id);
   }, [api, continuous.recording, index, question.id, token]);
 
-  const speakQuestion = async () => {
+  const speakQuestion = async (markAnswerStart = false) => {
     const requestId = ++presenterRequest.current;
+    if (markAnswerStart) setAnswerReadyQuestionId(null);
     let state: PresenterState | null = null;
     if (token) {
       try { state = await api.waitForPresenter(token, question.id); } catch { /* use legacy TTS */ }
@@ -101,13 +104,18 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
     if (requestId !== presenterRequest.current) return;
     setPresenter(state);
     await speech.speak(question.text, state?.audio_url ?? (token ? api.questionSpeechUrl(token, question.id) : undefined));
+    if (requestId !== presenterRequest.current || !markAnswerStart) return;
+    const offset = continuous.offset();
+    setAnswerStartedAt(offset);
+    setTimerOffsetMs(offset);
+    setAnswerReadyQuestionId(question.id);
   };
 
   useEffect(() => {
     setPresenter(null);
     if (continuous.recording && !spokenQuestions.current.has(question.id)) {
       spokenQuestions.current.add(question.id);
-      void speakQuestion();
+      void speakQuestion(true);
     }
   }, [continuous.recording, question.id]);
 
@@ -162,6 +170,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
       continuous.start(uploadChunk);
       setRecordingGrant(grant);
       setAnswerStartedAt(0);
+      setAnswerReadyQuestionId(null);
       setRecordedDurationMs(null);
       await api.timeline(token, "recording_started", 0);
       setMessage("Идёт непрерывная запись 720p. Каждые 10 секунд видео отправляется в защищённое хранилище.");
@@ -178,6 +187,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
 
   const saveAndContinue = async (timedOut = false) => {
     if (!token || !continuous.recording || submitting) return;
+    if (answerReadyQuestionId !== question.id) { setMessage("Дождитесь окончания вопроса."); return; }
     const endOffsetMs = continuous.offset();
     if (!hasRecordedInterval(answerStartedAt, endOffsetMs)) { setMessage("Запишите хотя бы несколько секунд ответа."); return; }
     if (!timedOut && !codingAnswerIsReady(question.kind, code)) { setMessage("Добавьте кодовое решение перед сохранением ответа."); return; }
@@ -198,6 +208,9 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
       }
       if (index < updatedQuestions.length - 1) {
         await api.timeline(token, "next_question_clicked", endOffsetMs, question.id);
+        setAnswerReadyQuestionId(null);
+        setAnswerStartedAt(endOffsetMs);
+        setTimerOffsetMs(endOffsetMs);
         setIndex((current) => current + 1);
         setCode("");
         setMessage(timedOut ? "Время вопроса закончилось. Черновик сохранён, показан следующий вопрос." : "Следующий вопрос показан. Запись не прерывалась.");
@@ -212,20 +225,21 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
   };
 
   useEffect(() => {
-    const limit = question.time_limit_seconds;
-    if (!continuous.recording || !limit || answers[question.id]) return;
-    const tick = () => {
-      const offset = continuous.offset();
-      setTimerOffsetMs(offset);
-      if (shouldAutoSubmit(limit, answerStartedAt, offset, timedOutQuestions.current.has(question.id))) {
-        timedOutQuestions.current.add(question.id);
-        void saveAndContinue(true);
-      }
-    };
+    if (!continuous.recording) return;
+    const tick = () => setTimerOffsetMs(continuous.offset());
     tick();
     const interval = window.setInterval(tick, 250);
     return () => window.clearInterval(interval);
-  }, [answerStartedAt, answers, continuous, question, saveAndContinue]);
+  }, [continuous.recording]);
+
+  useEffect(() => {
+    const limit = question.time_limit_seconds;
+    if (!continuous.recording || !limit || answers[question.id] || answerReadyQuestionId !== question.id) return;
+    if (shouldAutoSubmit(limit, answerStartedAt, timerOffsetMs, timedOutQuestions.current.has(question.id))) {
+      timedOutQuestions.current.add(question.id);
+      void saveAndContinue(true);
+    }
+  }, [answerReadyQuestionId, answerStartedAt, answers, continuous.recording, question, saveAndContinue, timerOffsetMs]);
 
   const pollTranscripts = (saved: Record<string, SavedAnswer>) => {
     if (!token || !debug) return;
@@ -245,9 +259,13 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
     setSubmitting(true);
     try {
       const endOffsetMs = continuous.offset();
-      await api.timeline(token, "interview_submitted", endOffsetMs, question.id);
-      setMessage("Догружаем последний фрагмент и завершаем интервью…");
-      const manifestChecksum = await continuous.finish();
+      let manifestChecksum = finishChecksum;
+      if (!manifestChecksum) {
+        await api.timeline(token, "interview_submitted", endOffsetMs, question.id);
+        setMessage("Догружаем последний фрагмент и завершаем интервью…");
+        manifestChecksum = await continuous.finish();
+        setFinishChecksum(manifestChecksum);
+      }
       await api.finishRecording(token, recordingGrant.recording_id, manifestChecksum);
       setRecordedDurationMs(endOffsetMs);
       stopMedia();
@@ -256,7 +274,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
       setMessage("Интервью сохранено. Расшифровка выполняется в фоне.");
       pollTranscripts(answers);
     } catch {
-      setMessage("Не удалось завершить интервью. Не закрывайте страницу и повторите отправку.");
+      setMessage("Не удалось завершить интервью. Проверьте соединение и нажмите «Завершить интервью» ещё раз.");
     } finally {
       setSubmitting(false);
     }
@@ -266,14 +284,15 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
   return <main className="interview-shell">
     <header className="interview-header"><div><span className="interview-header__eyebrow">NAPOLEON IT · ASYNC INTERVIEW</span><h1>Техническое интервью</h1></div><span className="interview-header__recording">{continuous.recording ? "● Запись идёт" : finished ? "✓ Интервью завершено" : "Камера готова"}</span></header>
     {mediaError && <p role="alert">{mediaError}</p>}
+    {continuous.uploadError && <p role="alert">{continuous.uploadError}</p>}
     <nav className="block-progress" aria-label="Прогресс интервью">{Object.entries(blocks).map(([key, items]) => <div className="block-progress__item" key={key}><span>{items[0].block_title ?? key}</span><small>{items.filter((item) => answers[item.id]).length} / {items.length}</small><i style={{ width: `${items.filter((item) => answers[item.id]).length / items.length * 100}%` }} /></div>)}</nav>
     <section className={`interview-stage ${question.kind === "coding" ? "interview-stage--coding" : ""}`}>
       <CameraPreview stream={stream} />
-      <div className="stage-topline"><span>ВАША КАМЕРА</span><span>{question.time_limit_seconds ? `Осталось ${Math.max(0, Math.ceil(question.time_limit_seconds - (timerOffsetMs - answerStartedAt) / 1000))} с · ` : ""}Вопрос {index + 1} / {questions.length}</span></div>
+      <div className="stage-topline"><span>ВАША КАМЕРА</span><span>{question.time_limit_seconds ? (answerReadyQuestionId === question.id ? `На ответ: ${Math.max(0, Math.ceil(question.time_limit_seconds - (timerOffsetMs - answerStartedAt) / 1000))} с · ` : "Таймер начнётся после озвучивания · ") : ""}Вопрос {index + 1} / {questions.length}</span></div>
       {shouldShowQuestion(continuous.recording) && <div className="question-overlay"><InterviewerAvatar compact speaking={speech.speaking} videoSrc={presenter?.avatar_url} idleSrc={presenter?.static_portrait_url ?? (token ? api.questionAvatarFrameUrl(token, question.id, "idle") : undefined)} speakingSrc={token ? api.questionAvatarFrameUrl(token, question.id, "speaking") : undefined} /><QuestionPlayer index={index} total={questions.length} text={question.text} isFollowUp={question.isFollowUp} onSpeak={() => void speakQuestion()} speaking={speech.speaking} /></div>}
       {shouldShowQuestion(continuous.recording) && question.kind === "coding" && <CodeEditor language={language} source={code} onLanguage={setLanguage} onSource={setCode} />}
     </section>
-    <section className="recording-controls"><div><p role="status">{message}</p>{continuous.recording && <span className="recording-controls__status">{Math.round(continuous.offset() / 1000)} с · сохранено фрагментов: {continuous.uploadedChunks}</span>}</div>{!continuous.recording && !finished && <button disabled={!stream || submitting} onClick={() => void start()}>Начать интервью</button>}{continuous.recording && !answers[question.id] && <button disabled={submitting} onClick={() => void saveAndContinue()}>{index === questions.length - 1 ? "Сохранить ответ" : "Сохранить и продолжить"}</button>}{continuous.recording && index === questions.length - 1 && allSaved && <button disabled={submitting} onClick={() => void finish()}>Завершить интервью</button>}</section>
-    {debug && <section className="debug-panel" aria-label="Отладочная расшифровка"><h2>Отладка: расшифровка</h2><p>Буфер чанков в приложении: {(continuous.bufferedBytes / 1024 / 1024).toFixed(1)} MiB; пик: {(continuous.peakBufferedBytes / 1024 / 1024).toFixed(1)} MiB.</p><p>Время записи: {recordedDurationMs === null ? (continuous.recording ? formatDuration(continuous.offset()) : "ещё не завершена") : formatDuration(recordedDurationMs)}.</p>{questions.map((item, itemIndex) => <p key={item.id}>Вопрос {itemIndex + 1}: {debugTranscript(answers[item.id], finished, item)}</p>)}</section>}
+    <section className="recording-controls"><div><p role="status">{message}</p>{continuous.recording && <span className="recording-controls__status">Общая запись: {Math.round(timerOffsetMs / 1000)} с</span>}</div>{!continuous.recording && !finished && !finishChecksum && <button disabled={!stream || submitting} onClick={() => void start()}>Начать интервью</button>}{continuous.recording && !answers[question.id] && <button disabled={submitting || answerReadyQuestionId !== question.id} onClick={() => void saveAndContinue()}>{index === questions.length - 1 ? "Сохранить ответ" : "Сохранить и продолжить"}</button>}{continuous.recording && index === questions.length - 1 && allSaved && <button disabled={submitting} onClick={() => void finish()}>Завершить интервью</button>}{finishChecksum && !finished && <button disabled={submitting} onClick={() => void finish()}>Повторить завершение</button>}</section>
+    {debug && <section className="debug-panel" aria-label="Отладочная расшифровка"><h2>Отладка: расшифровка</h2><p>Буфер чанков: {(continuous.bufferedBytes / 1024 / 1024).toFixed(1)} MiB; пик: {(continuous.peakBufferedBytes / 1024 / 1024).toFixed(1)} MiB.</p><p>Время записи: {recordedDurationMs === null ? (continuous.recording ? formatDuration(continuous.offset()) : "ещё не завершена") : formatDuration(recordedDurationMs)}.</p>{questions.map((item, itemIndex) => <p key={item.id}>Вопрос {itemIndex + 1}: {debugTranscript(answers[item.id], finished, item)}</p>)}</section>}
   </main>;
 }

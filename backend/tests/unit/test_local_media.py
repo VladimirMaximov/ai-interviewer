@@ -25,10 +25,20 @@ class LocalMediaTests(unittest.TestCase):
 
     def test_gigaam_accepts_silence_as_completed_empty_transcript(self) -> None:
         provider = GigaAm3Provider()
-        model = SimpleNamespace(transcribe=lambda _: "   ")
+        model = SimpleNamespace(transcribe_longform=lambda _: [SimpleNamespace(text="   ")])
         with tempfile.NamedTemporaryFile(suffix=".wav") as audio:
             with patch("app.adapters.gigaam3.importlib.import_module", return_value=SimpleNamespace(load_model=lambda _: model)):
                 self.assertEqual(provider.transcribe(Path(audio.name)), "")
+
+    def test_gigaam_joins_longform_segments(self) -> None:
+        provider = GigaAm3Provider()
+        model = SimpleNamespace(transcribe_longform=lambda _: [
+            SimpleNamespace(text="Первый фрагмент"),
+            {"transcription": "второй фрагмент"},
+        ])
+        with tempfile.NamedTemporaryFile(suffix=".wav") as audio:
+            with patch("app.adapters.gigaam3.importlib.import_module", return_value=SimpleNamespace(load_model=lambda _: model)):
+                self.assertEqual(provider.transcribe(Path(audio.name)), "Первый фрагмент второй фрагмент")
 
     def test_whisper_requires_installed_binary_and_model(self) -> None:
         provider = WhisperCppProvider(Path("/missing/whisper-cli"), Path("/missing/small.bin"))

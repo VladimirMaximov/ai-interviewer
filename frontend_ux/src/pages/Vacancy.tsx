@@ -100,33 +100,34 @@ const Vacancy: React.FC = () => {
       <main className="container my-4" style={{ maxWidth: 920 }}>
         <form className="card shadow-sm" onSubmit={submit}>
           <div className="card-body p-4">
-            <h2 className="h4 mb-4">Настройка интервью</h2>
+            <h2 className="h4 mb-4">{isNew ? 'Настройка интервью' : 'Просмотр вакансии'}</h2>
+            {!isNew && <div className="alert alert-info">Демонстрационный режим: поля вакансии и вопросы доступны только для просмотра.</div>}
             {saveError && <div className="alert alert-danger">{saveError}</div>}
             <label className="form-label">Название вакансии</label>
-            <input className="form-control mb-3" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <input className="form-control mb-3" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={!isNew} />
             <label className="form-label">Описание вакансии</label>
-            <textarea className="form-control mb-4" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+            <textarea className="form-control mb-4" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} disabled={!isNew} />
 
             {configuration.blocks.map((block, blockIndex) => (
               <section className="border rounded-3 p-3 mb-3" key={block.id}>
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <div><small className="text-muted">Блок {blockIndex + 1}</small><h3 className="h5 mb-0">{block.title}</h3></div>
-                  <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => changeQuestions(blockIndex, (items) => [...items, newQuestion()])}>Добавить вопрос</button>
+                  {isNew && <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => changeQuestions(blockIndex, (items) => [...items, newQuestion()])}>Добавить вопрос</button>}
                 </div>
                 {block.questions.map((question, questionIndex) => (
                   <div className="bg-light rounded-3 p-3 mb-2" key={question.id}>
-                    <textarea className="form-control mb-2" rows={2} value={question.text} onChange={(e) => updateQuestion(blockIndex, questionIndex, { text: e.target.value })} placeholder={`Вопрос ${questionIndex + 1}`} />
+                    <textarea className="form-control mb-2" rows={2} value={question.text} onChange={(e) => updateQuestion(blockIndex, questionIndex, { text: e.target.value })} placeholder={`Вопрос ${questionIndex + 1}`} disabled={!isNew} />
                     <div className="row g-2 align-items-center">
-                      <div className="col-md-3"><select className="form-select" value={question.kind} onChange={(e) => updateQuestion(blockIndex, questionIndex, { kind: e.target.value as 'spoken' | 'coding' })} disabled={block.key !== 'hard_skills'}><option value="spoken">Устный ответ</option>{block.key === 'hard_skills' && <option value="coding">Live coding + голос</option>}</select></div>
-                      <div className="col-md-3"><input className="form-control" type="number" min="1" max="120" placeholder="Лимит, минут" value={question.time_limit_seconds ? question.time_limit_seconds / 60 : ''} onChange={(e) => updateQuestion(blockIndex, questionIndex, { time_limit_seconds: e.target.value ? Number(e.target.value) * 60 : null })} /></div>
-                      <div className="col-md-4 form-check ms-2"><input className="form-check-input" type="checkbox" checked={question.follow_up_after_answer} onChange={(e) => updateQuestion(blockIndex, questionIndex, { follow_up_after_answer: e.target.checked })} /><label className="form-check-label">Разрешить уточнения</label></div>
-                      <div className="col text-end"><button type="button" className="btn btn-sm btn-outline-danger" aria-label="Удалить вопрос" onClick={() => changeQuestions(blockIndex, (items) => items.filter((_, index) => index !== questionIndex))}>×</button></div>
+                      <div className="col-md-3"><select className="form-select" value={question.kind} onChange={(e) => updateQuestion(blockIndex, questionIndex, { kind: e.target.value as 'spoken' | 'coding' })} disabled={!isNew || block.key !== 'hard_skills'}><option value="spoken">Устный ответ</option>{block.key === 'hard_skills' && <option value="coding">Live coding + голос</option>}</select></div>
+                      <div className="col-md-3"><input className="form-control" type="number" min="1" max="120" placeholder="Лимит, минут" value={question.time_limit_seconds ? question.time_limit_seconds / 60 : ''} onChange={(e) => updateQuestion(blockIndex, questionIndex, { time_limit_seconds: e.target.value ? Number(e.target.value) * 60 : null })} disabled={!isNew} /></div>
+                      <div className="col-md-4 form-check ms-2"><input className="form-check-input" type="checkbox" checked={question.follow_up_after_answer} onChange={(e) => updateQuestion(blockIndex, questionIndex, { follow_up_after_answer: e.target.checked })} disabled={!isNew} /><label className="form-check-label">Разрешить уточнения</label></div>
+                      {isNew && <div className="col text-end"><button type="button" className="btn btn-sm btn-outline-danger" aria-label="Удалить вопрос" onClick={() => changeQuestions(blockIndex, (items) => items.filter((_, index) => index !== questionIndex))}>×</button></div>}
                     </div>
                   </div>
                 ))}
               </section>
             ))}
-            <div className="text-end"><button className="btn btn-primary px-5" disabled={saving}>{saving ? 'Сохраняем…' : 'Сохранить'}</button></div>
+            {isNew && <div className="text-end"><button className="btn btn-primary px-5" disabled={saving}>{saving ? 'Сохраняем…' : 'Сохранить'}</button></div>}
           </div>
         </form>
       </main>

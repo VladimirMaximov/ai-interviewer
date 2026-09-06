@@ -1,6 +1,10 @@
 """PostgreSQL-backed candidate workflow; object keys are always server-owned."""
 
 from datetime import datetime, timezone
+import hashlib
+import shutil
+import tempfile
+from pathlib import Path
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
@@ -9,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.adapters.storage import PrivateObjectStorage
 from app.api.candidate import (
     CandidateQuestion,
+    CandidateProfileRequest,
     CodeAnswerRequest,
     ConfirmUploadRequest,
     ConfirmRecordingChunkRequest,
@@ -50,6 +55,8 @@ from app.models.interview import (
     TranscriptionStatus,
 )
 from app.security.invitations import digest_invitation_secret
+from app.services.audio_processing import normalize_media_stream
+from app.config import settings
 
 
 MAX_MONITORING_EVIDENCE_BYTES = 2_000_000
@@ -118,6 +125,11 @@ class SqlCandidateWorkflow:
             vacancy_id=vacancy.id if vacancy else None,
             vacancy_title=vacancy.title if vacancy else None,
             resume_uploaded=resume is not None,
+            candidate_alias=invitation.candidate_alias if invitation else None,
+            completed=session.submitted_at is not None,
+            in_progress=(
+                session.consented_at is not None and session.submitted_at is None
+            ),
             questions=[
                 CandidateQuestion(id=item.id, text=item.text, kind=item.kind, block_key=block.key, block_title=block.title, time_limit_seconds=item.time_limit_seconds)
                 for block in interview_input.blocks for item in block.questions
@@ -211,6 +223,45 @@ class SqlCandidateWorkflow:
     def resolve(self, secret: str) -> InvitationView | None:
         session = self._session(secret)
         return self._view(session) if session else None
+
+    def save_candidate_profile(
+        self, secret: str, request: CandidateProfileRequest
+    ) -> InvitationView | None:
+        session = self._session(secret)
+        if not session or session.consented_at is not None:
+            return None
+        invitation = self.db.get(InterviewInvitation, session.invitation_id)
+        if not invitation or not invitation.vacancy_id:
+            return None
+        alias = request.candidate_alias.strip()
+        resume_text = request.resume_text.strip()
+        if not alias or not resume_text:
+            return None
+        latest = self.db.scalar(select(CandidateResume).where(
+            CandidateResume.invitation_id == invitation.id,
+        ).order_by(CandidateResume.version.desc()))
+        if latest and latest.extracted_text == resume_text:
+            invitation.candidate_alias = alias
+            self.db.commit()
+            return self._view(session)
+        version = latest.version + 1 if latest else 1
+        self.db.add(CandidateResume(
+            invitation_id=invitation.id,
+            vacancy_id=invitation.vacancy_id,
+            version=version,
+            source_filename="candidate-resume.txt",
+            media_type="text/plain",
+            byte_size=len(resume_text.encode("utf-8")),
+            extracted_text=resume_text,
+            content_hash=hashlib.sha256(resume_text.encode("utf-8")).hexdigest(),
+            idempotency_key=f"candidate-profile-{invitation.id}-{version}",
+            uploaded_by_role="candidate",
+            uploaded_by_actor_id=None,
+            created_at=datetime.now(timezone.utc),
+        ))
+        invitation.candidate_alias = alias
+        self.db.commit()
+        return self._view(session)
 
     def consent(self, secret: str) -> InvitationView | None:
         session = self._session(secret)
@@ -452,13 +503,16 @@ class SqlCandidateWorkflow:
 
     def finish_recording(self, secret: str, request: FinishRecordingRequest) -> bool:
         session = self._session(secret); recording = self.db.get(InterviewRecording, request.recording_id) if session else None
-        if not recording or recording.session_id != session.id or recording.ended_at is not None:
+        if not recording or recording.session_id != session.id:
             return False
+        if recording.ended_at is not None:
+            return recording.checksum == request.checksum
         chunks = list(self.db.scalars(select(InterviewRecordingChunk).where(
             InterviewRecordingChunk.recording_id == recording.id,
         ).order_by(InterviewRecordingChunk.sequence)))
         if not chunks or any(chunk.uploaded_at is None for chunk in chunks) or [chunk.sequence for chunk in chunks] != list(range(len(chunks))):
             return False
+        self._compose_recording(recording, chunks)
         recording.checksum = request.checksum; recording.ended_at = datetime.now(timezone.utc)
         recording.duration_ms = chunks[-1].end_offset_ms
         session.submitted_at = recording.ended_at
@@ -480,6 +534,32 @@ class SqlCandidateWorkflow:
                     response.end_offset_ms,
                 )
         return True
+
+    def _compose_recording(
+        self, recording: InterviewRecording, chunks: list[InterviewRecordingChunk]
+    ) -> None:
+        extension = "mp4" if recording.content_type == "video/mp4" else "webm"
+        full_key = f"{recording.storage_key}/full.{extension}"
+        try:
+            with tempfile.TemporaryDirectory(prefix="ai-interviewer-recording-") as directory:
+                full_path = Path(directory) / f"full.{extension}"
+                with full_path.open("wb") as merged:
+                    for sequence, chunk in enumerate(chunks):
+                        chunk_path = Path(directory) / f"chunk-{sequence}.{extension}"
+                        self.storage.download_to(chunk.storage_key, chunk_path)
+                        with chunk_path.open("rb") as source:
+                            shutil.copyfileobj(source, merged)
+                normalized_path = Path(directory) / f"full-normalized.{extension}"
+                normalize_media_stream(
+                    full_path,
+                    normalized_path,
+                    settings.ffmpeg_binary,
+                )
+                self.storage.put_file(full_key, normalized_path, recording.content_type)
+        except Exception:
+            # The individual chunks remain the durable fallback if composition
+            # fails; interview completion must not depend on a presentation copy.
+            return
 
     def create_recording_chunk_grant(self, secret: str, request: RecordingChunkGrantRequest) -> RecordingChunkGrant | None:
         session = self._session(secret)
@@ -505,9 +585,22 @@ class SqlCandidateWorkflow:
             self.db.add(chunk); self.db.commit(); self.db.refresh(chunk)
         return RecordingChunkGrant(
             chunk_id=chunk.id,
-            upload_url=self.storage.create_upload_url(chunk.storage_key, chunk.content_type),
+            upload_url=f"/candidate/{secret}/recording/chunks/{chunk.id}/upload",
             content_type=chunk.content_type,
         )
+
+    def upload_recording_chunk(
+        self, secret: str, chunk_id: UUID, content: bytes, content_type: str
+    ) -> bool:
+        session = self._session(secret)
+        chunk = self.db.get(InterviewRecordingChunk, chunk_id) if session else None
+        if not chunk or chunk.content_type != content_type:
+            return False
+        recording = self.db.get(InterviewRecording, chunk.recording_id)
+        if not recording or recording.session_id != session.id or recording.ended_at is not None:
+            return False
+        self.storage.put_bytes(chunk.storage_key, content, content_type)
+        return True
 
     def confirm_recording_chunk(self, secret: str, request: ConfirmRecordingChunkRequest) -> bool:
         session = self._session(secret)

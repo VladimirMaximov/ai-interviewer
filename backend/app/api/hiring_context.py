@@ -6,8 +6,8 @@ import secrets
 from typing import Annotated, Iterator, Protocol
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.api.errors import invalid_invitation
@@ -28,6 +28,7 @@ from app.domain.hiring_context import (
     VacancyView,
 )
 from app.services.interview_results import InterviewResultDetail, InterviewResultSummary
+from app.security.media_access import verify_media_signature
 
 
 recruiter_router = APIRouter(prefix="/recruiter", tags=["hiring-context"])
@@ -325,6 +326,72 @@ def get_interview_result(
         return service.detail(vacancy_id, session_id)
     except LookupError as error:
         raise HTTPException(status_code=404, detail="Interview was not found") from error
+
+
+@recruiter_router.get("/vacancies/{vacancy_id}/interviews/{session_id}/media/{sequence}")
+def get_interview_media(
+    vacancy_id: UUID,
+    session_id: UUID,
+    sequence: int,
+    x_recruiter_key: Annotated[
+        str | None, Header(alias="X-Recruiter-Key")
+    ] = None,
+    expires: int | None = Query(default=None),
+    signature: str | None = Query(default=None),
+    range_header: Annotated[str | None, Header(alias="Range")] = None,
+    service: object = Depends(get_interview_results_service),
+) -> StreamingResponse:
+    header_authorized = bool(
+        settings.recruiter_key
+        and x_recruiter_key
+        and secrets.compare_digest(x_recruiter_key, settings.recruiter_key)
+    )
+    signed_authorized = bool(
+        settings.recruiter_key
+        and expires is not None
+        and signature
+        and verify_media_signature(
+            vacancy_id,
+            session_id,
+            sequence,
+            expires,
+            signature,
+            settings.recruiter_key,
+        )
+    )
+    if not header_authorized and not signed_authorized:
+        raise HTTPException(status_code=401, detail="Media credentials are invalid")
+    if sequence < 0:
+        raise HTTPException(status_code=404, detail="Media was not found")
+    key_info = service.media_key(vacancy_id, session_id, sequence)
+    if not key_info:
+        raise HTTPException(status_code=404, detail="Media was not found")
+    key, content_type = key_info
+    try:
+        source = service.storage.open_download(key, range_header)
+    except Exception as error:
+        raise HTTPException(status_code=404, detail="Media was not found") from error
+
+    body = source["Body"]
+    headers = {
+        "Accept-Ranges": source.get("AcceptRanges", "bytes"),
+        "Content-Length": str(source["ContentLength"]),
+    }
+    if source.get("ContentRange"):
+        headers["Content-Range"] = source["ContentRange"]
+
+    def stream():
+        try:
+            yield from body.iter_chunks(chunk_size=1024 * 1024)
+        finally:
+            body.close()
+
+    return StreamingResponse(
+        stream(),
+        status_code=206 if source.get("ContentRange") else 200,
+        media_type=content_type,
+        headers=headers,
+    )
 
 
 @recruiter_router.get(

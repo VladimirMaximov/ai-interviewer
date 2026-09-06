@@ -2,9 +2,35 @@
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import shutil
+import logging
 from sqlalchemy.orm import sessionmaker
 from app.adapters.storage import PrivateObjectStorage
 from app.models.interview import CandidateResponse, TranscriptionStatus
+from app.services.audio_processing import normalize_media_stream
+
+logger = logging.getLogger(__name__)
+
+
+class CeleryTranscriptionDispatcher:
+    """Submit durable ASR work without loading speech models in the API."""
+
+    def __init__(self, celery_app, queue: str) -> None:
+        self.celery_app, self.queue = celery_app, queue
+
+    def _send(self, task: str, args: list) -> None:
+        self.celery_app.send_task(task, args=args, queue=self.queue)
+
+    def schedule(self, response_id, key: str) -> None:
+        self._send("app.workers.transcription_tasks.transcribe_response", [str(response_id), key])
+
+    def schedule_segment(self, response_id, key: str, start_offset_ms: int, end_offset_ms: int) -> None:
+        self._send("app.workers.transcription_tasks.transcribe_segment", [str(response_id), key, start_offset_ms, end_offset_ms])
+
+    def schedule_segment_chunks(self, response_id, chunks, start_offset_ms: int, end_offset_ms: int) -> None:
+        self._send("app.workers.transcription_tasks.transcribe_chunk_segment", [str(response_id), chunks, start_offset_ms, end_offset_ms])
+
+    def schedule_runtime_evaluation(self, response_id) -> None:
+        self._send("app.workers.transcription_tasks.evaluate_response", [str(response_id)])
 
 class TranscriptionScheduler:
     def __init__(self, sessions: sessionmaker, storage: PrivateObjectStorage, processor, runtime_evaluation=None) -> None:
@@ -28,6 +54,7 @@ class TranscriptionScheduler:
                 transcript = self.processor.transcribe(source)
             status, text = TranscriptionStatus.COMPLETED, transcript
         except Exception:
+            logger.exception("Response transcription failed")
             status, text = TranscriptionStatus.FAILED, None
         with self.sessions() as db:
             response = db.get(CandidateResponse, response_id)
@@ -46,6 +73,7 @@ class TranscriptionScheduler:
                 transcript = self.processor.transcribe(segment)
             status, text = TranscriptionStatus.COMPLETED, transcript
         except Exception:
+            logger.exception("Response segment transcription failed")
             status, text = TranscriptionStatus.FAILED, None
         with self.sessions() as db:
             response = db.get(CandidateResponse, response_id)
@@ -72,10 +100,13 @@ class TranscriptionScheduler:
                         self.storage.download_to(key, downloaded)
                         with downloaded.open("rb") as piece:
                             shutil.copyfileobj(piece, merged)
-                self.processor.extract_audio_segment(source, segment, start_offset_ms, end_offset_ms)
+                normalized = Path(directory) / "recording-normalized.webm"
+                normalize_media_stream(source, normalized, self.processor._ffmpeg_binary)
+                self.processor.extract_audio_segment(normalized, segment, start_offset_ms, end_offset_ms)
                 transcript = self.processor.transcribe(segment)
             status, text = TranscriptionStatus.COMPLETED, transcript
         except Exception:
+            logger.exception("Chunk segment transcription failed")
             status, text = TranscriptionStatus.FAILED, None
         with self.sessions() as db:
             response = db.get(CandidateResponse, response_id)

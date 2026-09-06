@@ -1,0 +1,142 @@
+openapi: 3.0.3
+info:
+  title: Unified Interview Cabinet API
+  version: 0.1.0
+  description: Feature contract for the recruiter demonstration cabinet and tokenized candidate flow.
+servers:
+  - url: /api
+tags:
+  - name: Entry
+  - name: Recruiter
+  - name: Candidate
+  - name: Media
+paths:
+  /entry/roles:
+    get:
+      tags: [Entry]
+      summary: List available role choices
+      responses:
+        '200':
+          description: Recruiter is active; candidate-link and manager are deferred states.
+  /recruiter/vacancies:
+    get:
+      tags: [Recruiter]
+      security: [{ staffDemo: [] }]
+      responses:
+        '200': { description: Vacancy list }
+    post:
+      tags: [Recruiter]
+      security: [{ staffDemo: [] }]
+      summary: Create a vacancy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VacancyInput' }
+      responses:
+        '201': { description: Vacancy created }
+  /recruiter/vacancies/{vacancy_id}:
+    parameters:
+      - $ref: '#/components/parameters/VacancyId'
+    get:
+      tags: [Recruiter]
+      security: [{ staffDemo: [] }]
+      responses:
+        '200': { description: Read-only vacancy configuration }
+  /recruiter/vacancies/{vacancy_id}/invitations:
+    post:
+      tags: [Recruiter]
+      security: [{ staffDemo: [] }]
+      summary: Create an isolated candidate link
+      responses:
+        '201': { description: Invitation with one-time opaque URL }
+  /recruiter/vacancies/{vacancy_id}/results:
+    get:
+      tags: [Recruiter]
+      security: [{ staffDemo: [] }]
+      summary: Return leaderboard rows
+      responses:
+        '200': { description: Results, status, pseudonym, score, and synthetic marker }
+  /recruiter/candidates/{session_id}:
+    get:
+      tags: [Recruiter]
+      security: [{ staffDemo: [] }]
+      summary: Return read-only candidate detail
+      responses:
+        '200': { description: Resume card, media, intervals, summary, report, and review events }
+  /candidate/{token}:
+    parameters:
+      - $ref: '#/components/parameters/Token'
+    get:
+      tags: [Candidate]
+      responses:
+        '200': { description: Invitation state and question plan }
+  /candidate/{token}/profile:
+    post:
+      tags: [Candidate]
+      summary: Save candidate display name and text resume before interview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CandidateProfileInput' }
+      responses:
+        '200': { description: Profile saved and invitation ready }
+        '409': { description: Expired, completed, or already locked invitation }
+  /candidate/{token}/complete:
+    post:
+      tags: [Candidate]
+      summary: Mark candidate flow complete and enqueue backend processing
+      responses:
+        '202': { description: Processing started; final status remains server-owned }
+  /recruiter/media/{session_id}:
+    get:
+      tags: [Media]
+      security: [{ staffDemo: [] }]
+      summary: Stream private media with byte ranges
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - in: header
+          name: Range
+          schema: { type: string, example: bytes=0-1048575 }
+      responses:
+        '200': { description: Full media response when explicitly permitted }
+        '206': { description: Partial content for seekable playback }
+        '416': { description: Unsatisfiable byte range }
+        '404': { description: Media absent or inaccessible }
+components:
+  securitySchemes:
+    staffDemo:
+      type: http
+      scheme: bearer
+  parameters:
+    VacancyId:
+      name: vacancy_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    SessionId:
+      name: session_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Token:
+      name: token
+      in: path
+      required: true
+      schema: { type: string, minLength: 32 }
+  schemas:
+    VacancyInput:
+      type: object
+      required: [title, description, requirements, manager_brief]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        requirements: { type: array, items: { type: string } }
+        manager_brief: { type: string }
+    CandidateProfileInput:
+      type: object
+      required: [display_name, resume_text]
+      properties:
+        display_name: { type: string, minLength: 1, maxLength: 120 }
+        resume_text: { type: string, maxLength: 20000 }

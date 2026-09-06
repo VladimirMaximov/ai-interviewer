@@ -111,9 +111,11 @@ The input must be converted to the format required by the installed `whisper-cli
 current upstream CLI documents 16-bit WAV input); the upload pipeline will perform that conversion
 before transcription.
 
-GigaAM v3 (`v3_e2e_rnnt`) and RouterAI are optional benchmark adapters, not production defaults.
-They may replace the baseline only after comparison on synthetic technical answers longer than
-25 seconds, with recorded transcription accuracy and latency.
+GigaAM v3 (`v3_e2e_rnnt`) is available in long-form mode. It uses the model's VAD integration to
+split arbitrary-length Russian recordings into short speech segments and joins their text. Set
+`TRANSCRIPTION_PROVIDER=gigaam3` and provide an `HF_TOKEN` after accepting access conditions for
+`pyannote/segmentation-3.0`. The model itself remains local; the token is used only to download
+the VAD model. RouterAI remains an optional external benchmark adapter.
 
 ## Manager brief agent and editable form API
 

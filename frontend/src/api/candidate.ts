@@ -1,5 +1,5 @@
 export type CandidateQuestion = { id: string; text: string; kind: "spoken" | "coding"; block_key: string | null; block_title: string | null; time_limit_seconds: number | null };
-export type Invitation = { session_id: string; consented: boolean; questions: CandidateQuestion[] };
+export type Invitation = { session_id: string; consented: boolean; vacancy_id: string | null; vacancy_title: string | null; resume_uploaded: boolean; candidate_alias: string | null; completed: boolean; in_progress: boolean; questions: CandidateQuestion[] };
 export type UploadGrant = { response_id: string; storage_key: string; upload_url: string };
 export type Transcript = { status: "pending" | "processing" | "completed" | "failed"; text: string | null };
 export type RecordingGrant = { recording_id: string; storage_key: string; upload_url: string; content_type: string };
@@ -44,6 +44,9 @@ export class CandidateApi {
   constructor(private readonly baseUrl = "/candidate") {}
 
   async resolve(secret: string): Promise<Invitation> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}`); }
+  async saveProfile(secret: string, candidateAlias: string, resumeText: string): Promise<Invitation> {
+    return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/profile`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ candidate_alias: candidateAlias, resume_text: resumeText }) });
+  }
   async consent(secret: string): Promise<Invitation> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/consent`, { method: "POST" }); }
   async questions(secret: string): Promise<InterviewQuestionPlan> { return this.request(`${this.baseUrl}/${encodeURIComponent(secret)}/questions`); }
   async submitLiveCoding(secret: string, questionId: string, code: string): Promise<LiveCodingSubmission> {
@@ -99,7 +102,7 @@ export class CandidateApi {
   async waitForPresenter(secret: string, questionId: string, timeoutMs = 12_000): Promise<PresenterState> {
     const deadline = Date.now() + timeoutMs;
     let state = await this.presenter(secret, questionId);
-    while (!state.audio_url && state.status !== "failed" && Date.now() < deadline) {
+    while (!state.audio_url && state.status !== "failed" && state.fallback !== "browser_speech" && Date.now() < deadline) {
       await new Promise((resolve) => window.setTimeout(resolve, 500));
       state = await this.presenter(secret, questionId);
     }

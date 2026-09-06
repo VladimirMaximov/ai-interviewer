@@ -68,7 +68,10 @@ class RecruiterResultTests(unittest.TestCase):
         detail = response.json()
         self.assertEqual(detail["answers"][0]["transcript_text"], "Я объясняю решение")
         self.assertEqual(detail["answers"][0]["code"]["source_code"], "return 42")
-        self.assertTrue(detail["media"][0]["url"].startswith("https://private.invalid/"))
+        media_url = detail["media"][0]["url"]
+        self.assertTrue(media_url.startswith("/api/recruiter/vacancies/"))
+        self.assertIn("expires=", media_url)
+        self.assertIn("signature=", media_url)
 
 
 if __name__ == "__main__": unittest.main()

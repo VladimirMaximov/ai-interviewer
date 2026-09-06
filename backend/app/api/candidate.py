@@ -36,7 +36,15 @@ class InvitationView(BaseModel):
     vacancy_id: UUID | None = None
     vacancy_title: str | None = None
     resume_uploaded: bool = False
+    candidate_alias: str | None = None
+    completed: bool = False
+    in_progress: bool = False
     questions: list[CandidateQuestion] = []
+
+
+class CandidateProfileRequest(BaseModel):
+    candidate_alias: str = Field(min_length=1, max_length=120)
+    resume_text: str = Field(min_length=1, max_length=20_000)
 
 
 class UploadGrantRequest(BaseModel):
@@ -170,6 +178,9 @@ class FollowUpQuestionView(BaseModel):
 
 class CandidateWorkflow(Protocol):
     def resolve(self, secret: str) -> InvitationView | None: ...
+    def save_candidate_profile(
+        self, secret: str, request: CandidateProfileRequest
+    ) -> InvitationView | None: ...
     def consent(self, secret: str) -> InvitationView | None: ...
     def create_upload_grant(
         self, secret: str, request: UploadGrantRequest
@@ -187,6 +198,7 @@ class CandidateWorkflow(Protocol):
     def finish_recording(self, secret: str, request: FinishRecordingRequest) -> bool: ...
     def create_recording_chunk_grant(self, secret: str, request: RecordingChunkGrantRequest) -> RecordingChunkGrant | None: ...
     def confirm_recording_chunk(self, secret: str, request: ConfirmRecordingChunkRequest) -> bool: ...
+    def upload_recording_chunk(self, secret: str, chunk_id: UUID, content: bytes, content_type: str) -> bool: ...
     def save_response_segment(self, secret: str, request: ResponseSegmentRequest) -> ResponseSegmentView | None: ...
     def save_code_answer(self, secret: str, request: CodeAnswerRequest) -> ResponseSegmentView | None: ...
     def follow_up_questions(self, secret: str) -> list[FollowUpQuestionView] | None: ...
@@ -206,6 +218,17 @@ def resolve_invitation(
     secret: str, workflow: CandidateWorkflow = Depends(get_workflow)
 ) -> InvitationView:
     return workflow.resolve(secret) or (_ for _ in ()).throw(invalid_invitation())
+
+
+@router.post("/{secret}/profile", response_model=InvitationView)
+def save_candidate_profile(
+    secret: str,
+    request: CandidateProfileRequest,
+    workflow: CandidateWorkflow = Depends(get_workflow),
+) -> InvitationView:
+    return workflow.save_candidate_profile(secret, request) or (
+        _ for _ in ()
+    ).throw(invalid_invitation())
 
 
 @router.post("/{secret}/consent", response_model=InvitationView)
@@ -364,6 +387,23 @@ def request_recording_chunk(secret: str, request: RecordingChunkGrantRequest,
 def confirm_recording_chunk(secret: str, request: ConfirmRecordingChunkRequest,
                             workflow: CandidateWorkflow = Depends(get_workflow)) -> None:
     if not workflow.confirm_recording_chunk(secret, request):
+        raise invalid_invitation()
+
+
+@router.put("/{secret}/recording/chunks/{chunk_id}/upload", status_code=204)
+async def upload_recording_chunk(
+    secret: str,
+    chunk_id: UUID,
+    request: Request,
+    workflow: CandidateWorkflow = Depends(get_workflow),
+) -> None:
+    content_type = request.headers.get("content-type", "")
+    if content_type not in {"video/webm", "video/mp4"}:
+        raise HTTPException(status_code=415, detail="Unsupported recording content type")
+    content = await request.body()
+    if not content or len(content) > 50 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Invalid recording chunk")
+    if not workflow.upload_recording_chunk(secret, chunk_id, content, content_type):
         raise invalid_invitation()
 
 

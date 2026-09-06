@@ -20,11 +20,14 @@ export function useContinuousRecorder(stream: MediaStream | null) {
   const lastChunkOffset = useRef(0);
   const sequence = useRef(0);
   const uploadQueue = useRef(Promise.resolve());
-  const checksums = useRef<string[]>([]);
+  const checksums = useRef(new Map<number, string>());
+  const failedChunks = useRef(new Map<number, RecordingChunk>());
+  const upload = useRef<((chunk: RecordingChunk) => Promise<string>) | null>(null);
   const [recording, setRecording] = useState(false);
   const [uploadedChunks, setUploadedChunks] = useState(0);
   const [bufferedBytes, setBufferedBytes] = useState(0);
   const [peakBufferedBytes, setPeakBufferedBytes] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const mimeType = recordingMimeType();
 
   const offset = () => recording ? Math.max(0, Math.round(performance.now() - startedAt.current)) : 0;
@@ -36,7 +39,10 @@ export function useContinuousRecorder(stream: MediaStream | null) {
     startedAt.current = performance.now();
     lastChunkOffset.current = 0;
     sequence.current = 0;
-    checksums.current = [];
+    checksums.current.clear();
+    failedChunks.current.clear();
+    upload.current = uploadChunk;
+    setUploadError(null);
     uploadQueue.current = Promise.resolve();
     value.ondataavailable = (event) => {
       if (!event.data.size) return;
@@ -48,13 +54,17 @@ export function useContinuousRecorder(stream: MediaStream | null) {
         setPeakBufferedBytes((peak) => Math.max(peak, next));
         return next;
       });
-      uploadQueue.current = uploadQueue.current.then(async () => {
+      uploadQueue.current = uploadQueue.current.catch(() => undefined).then(async () => {
         try {
           const checksum = await uploadChunk(chunk);
-          checksums.current.push(checksum);
+          checksums.current.set(chunk.sequence, checksum);
+          failedChunks.current.delete(chunk.sequence);
           setUploadedChunks((count) => count + 1);
-        } finally {
           setBufferedBytes((current) => Math.max(0, current - chunk.blob.size));
+          if (!failedChunks.current.size) setUploadError(null);
+        } catch {
+          failedChunks.current.set(chunk.sequence, chunk);
+          setUploadError("Часть видео ожидает повторной загрузки. Запись продолжается.");
         }
       });
     };
@@ -70,7 +80,17 @@ export function useContinuousRecorder(stream: MediaStream | null) {
       recorder.current = null;
       setRecording(false);
       uploadQueue.current.then(async () => {
-        const manifest = checksums.current.join("");
+        if (!upload.current) throw new Error("Загрузчик записи недоступен.");
+        for (const chunk of [...failedChunks.current.values()].sort((left, right) => left.sequence - right.sequence)) {
+          const checksum = await upload.current(chunk);
+          checksums.current.set(chunk.sequence, checksum);
+          failedChunks.current.delete(chunk.sequence);
+          setUploadedChunks((count) => count + 1);
+          setBufferedBytes((current) => Math.max(0, current - chunk.blob.size));
+        }
+        if (checksums.current.size !== sequence.current) throw new Error("Не все фрагменты записи загружены.");
+        setUploadError(null);
+        const manifest = Array.from({ length: sequence.current }, (_, index) => checksums.current.get(index) ?? "").join("");
         const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(manifest));
         resolve([...new Uint8Array(digest)].map((item) => item.toString(16).padStart(2, "0")).join(""));
       }).catch(reject);
@@ -78,5 +98,5 @@ export function useContinuousRecorder(stream: MediaStream | null) {
     value.stop();
   });
 
-  return { recording, start, finish, offset, mimeType, uploadedChunks, bufferedBytes, peakBufferedBytes };
+  return { recording, start, finish, offset, mimeType, uploadedChunks, bufferedBytes, peakBufferedBytes, uploadError };
 }
