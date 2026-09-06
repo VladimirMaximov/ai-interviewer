@@ -1,0 +1,762 @@
+{
+  "schema_version": "python_middle_classification_eval_v1",
+  "data_classification": "synthetic",
+  "completed_at": "2026-09-06T11:04:27.300248+00:00",
+  "model": "openai/gpt-4.1-mini",
+  "provider": "https://api.vsegpt.ru/v1",
+  "dataset_hash": "8ac0a7d2cfe5f16aa72de648cac19c62cb964f7b05890fb5723d84bd204efa2b",
+  "target_accuracy": 0.8,
+  "total": 10,
+  "correct": 10,
+  "accuracy": 1.0,
+  "macro_f1": 1.0,
+  "target_met": true,
+  "confusion_matrix": {
+    "подходит": {
+      "подходит": 4,
+      "не подходит": 0,
+      "следует уточнить": 0
+    },
+    "не подходит": {
+      "подходит": 0,
+      "не подходит": 3,
+      "следует уточнить": 0
+    },
+    "следует уточнить": {
+      "подходит": 0,
+      "не подходит": 0,
+      "следует уточнить": 3
+    }
+  },
+  "estimated_input_characters": 134444,
+  "output_characters": 16747,
+  "estimated_cost_rub": 12.09,
+  "results": [
+    {
+      "candidate_id": "PY-001",
+      "profile": "Сильный event-driven backend",
+      "target": "подходит",
+      "target_reason": "Подтверждены все основные обязательные технологии и личный результат.",
+      "prediction": "подходит",
+      "correct": true,
+      "technical": {
+        "label": "strong",
+        "value": 1.0,
+        "confidence": 0.9,
+        "explanation": "Answer demonstrates detailed technical knowledge and experience with a production FastAPI microservices system including Kafka, PostgreSQL optimization, ETL, Kubernetes deployment, observability and measurable performance improvements."
+      },
+      "vacancy_fit": {
+        "label": "strong",
+        "value": 1.0,
+        "confidence": 0.9,
+        "explanation": "Candidate meets or exceeds all mandatory vacancy requirements as evidenced by experience with 6.5 years Python, FastAPI REST API, high-load microservices, Kafka production usage, PostgreSQL schema and optimization, ETL with ClickHouse, Docker/Kubernetes, Prometheus/Grafana, and Git CI/CD."
+      },
+      "follow_up_count": 0,
+      "follow_up": [],
+      "attempts": 1,
+      "resume": "6,5 лет Python backend: FastAPI, Kafka, PostgreSQL, ClickHouse, Kubernetes, Grafana.",
+      "answer": "Коммерчески пишу на Python шесть с половиной лет. Лично спроектировал FastAPI-сервис обработки платежных событий: 14 микросервисов, Kafka producers и consumer groups, transactional outbox, идемпотентность по operation_id, retry и DLQ. PostgreSQL оптимизировал через EXPLAIN ANALYZE и индексы, ETL выгружал агрегаты в ClickHouse. Сервис разворачивал в Kubernetes через GitLab CI, добавил readiness probes, limits, Prometheus и Grafana. После изменений p95 снизился с 640 до 180 мс, повторная обработка — с 1,2 до 0,04 процента.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "60a6f7db-9fc5-54e0-aa87-2c51cd0686d9",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 0.9,
+            "explanation": "Answer demonstrates detailed technical knowledge and experience with a production FastAPI microservices system including Kafka, PostgreSQL optimization, ETL, Kubernetes deployment, observability and measurable performance improvements.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "evidence_id": "answer:60a6f7db-9fc5-54e0-aa87-2c51cd0686d9:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 0.9,
+            "explanation": "Candidate meets or exceeds all mandatory vacancy requirements as evidenced by experience with 6.5 years Python, FastAPI REST API, high-load microservices, Kafka production usage, PostgreSQL schema and optimization, ETL with ClickHouse, Docker/Kubernetes, Prometheus/Grafana, and Git CI/CD.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "evidence_id": "answer:60a6f7db-9fc5-54e0-aa87-2c51cd0686d9:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": null,
+        "live_coding": null
+      }
+    },
+    {
+      "candidate_id": "PY-002",
+      "profile": "Django/FastAPI platform engineer",
+      "target": "подходит",
+      "target_reason": "Опыт превышает порог и прямо покрывает backend, данные и эксплуатацию.",
+      "prediction": "подходит",
+      "correct": true,
+      "technical": {
+        "label": "strong",
+        "value": 1.0,
+        "confidence": 0.9,
+        "explanation": "The candidate provides a detailed, technically correct description of their production experience with Python, including concrete implementation details such as managing Django and FastAPI microservices, Kafka manual commit with idempotency and dead-letter topics, PostgreSQL schema design and COPY for efficient data loading, Docker image building, Helm configuration for Kubernetes deployment, GitLab CI support, and measurable improvement in consumer lag observed via Prometheus/Grafana. This level of detail and technical correctness supports a strong rating for technical depth and production solution quality."
+      },
+      "vacancy_fit": {
+        "label": "strong",
+        "value": 1.0,
+        "confidence": 0.85,
+        "explanation": "The answer explicitly confirms 5+ years of Python experience and mentions Django and FastAPI REST APIs, handling high-load microservices, production Kafka producers/consumers, PostgreSQL schemas, ETL and ClickHouse usage, Docker and Kubernetes, Prometheus/Grafana monitoring, and GitLab CI/CD. This directly matches all listed mandatory vacancy requirements, showing excellent fit for the role."
+      },
+      "follow_up_count": 0,
+      "follow_up": [],
+      "attempts": 1,
+      "resume": "5 лет 8 месяцев Python: Django, FastAPI, Kafka, PostgreSQL, Kubernetes, CI/CD.",
+      "answer": "Пять лет и восемь месяцев разрабатываю на Python. В последнем проекте лично вёл Django API и два FastAPI-микросервиса. Для Kafka настроил manual commit после успешной транзакции, idempotency key и dead-letter topic. Проектировал PostgreSQL схемы, использовал COPY для загрузок и ETL в ClickHouse. Собирал Docker-образы, правил Helm values и deployment в Kubernetes, поддерживал GitLab CI. Дашборды Prometheus/Grafana показали снижение consumer lag с 90 до 8 секунд.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "7ea8a46e-a195-5c2b-b003-ba334665b245",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 0.9,
+            "explanation": "The candidate provides a detailed, technically correct description of their production experience with Python, including concrete implementation details such as managing Django and FastAPI microservices, Kafka manual commit with idempotency and dead-letter topics, PostgreSQL schema design and COPY for efficient data loading, Docker image building, Helm configuration for Kubernetes deployment, GitLab CI support, and measurable improvement in consumer lag observed via Prometheus/Grafana. This level of detail and technical correctness supports a strong rating for technical depth and production solution quality.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "evidence_id": "answer:7ea8a46e-a195-5c2b-b003-ba334665b245:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 0.85,
+            "explanation": "The answer explicitly confirms 5+ years of Python experience and mentions Django and FastAPI REST APIs, handling high-load microservices, production Kafka producers/consumers, PostgreSQL schemas, ETL and ClickHouse usage, Docker and Kubernetes, Prometheus/Grafana monitoring, and GitLab CI/CD. This directly matches all listed mandatory vacancy requirements, showing excellent fit for the role.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "evidence_id": "answer:7ea8a46e-a195-5c2b-b003-ba334665b245:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": null,
+        "live_coding": null
+      }
+    },
+    {
+      "candidate_id": "PY-003",
+      "profile": "Высоконагруженные интеграции",
+      "target": "подходит",
+      "target_reason": "Доказаны требуемый стаж, Kafka и production-эксплуатация.",
+      "prediction": "подходит",
+      "correct": true,
+      "technical": {
+        "label": "strong",
+        "value": 1.0,
+        "confidence": 0.95,
+        "explanation": "The answer demonstrates deep technical understanding with concrete implementation details across all relevant technologies: designed and developed a high-load API Gateway and FastAPI services (11k messages/sec), used Kafka features (consumer groups, outbox, schema versioning, idempotent handlers), managed PostgreSQL storage and ClickHouse ETL, configured Kubernetes rollout, probes, autoscaling with CI/CD pipeline, and monitoring with Prometheus and Grafana leading to a 55% performance improvement after profiling."
+      },
+      "vacancy_fit": {
+        "label": "strong",
+        "value": 1.0,
+        "confidence": 0.9,
+        "explanation": "The candidate meets all mandatory vacancy requirements and describes practical experience with 7 years of Python, FastAPI REST API, high-load microservices, production Kafka, PostgreSQL schema and optimization, ETL with ClickHouse, Docker and Kubernetes containerization, observability with Prometheus/Grafana, and CI/CD with Git, as requested by the vacancy."
+      },
+      "follow_up_count": 0,
+      "follow_up": [],
+      "attempts": 1,
+      "resume": "7 лет Python и интеграционных сервисов на FastAPI/Django.",
+      "answer": "С Python работаю семь лет. Лично разработал интеграционный API Gateway и FastAPI-сервисы с нагрузкой около 11 тысяч сообщений в секунду. В Kafka использовал consumer groups, outbox, schema versioning и идемпотентные обработчики. Хранилище — PostgreSQL, аналитический ETL — ClickHouse. В Kubernetes настроил rollout, probes и autoscaling; релиз шёл через CI/CD. Prometheus и Grafana отслеживали p95, error rate и lag. После профилирования пропускная способность выросла на 55 процентов.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "723b9c03-b546-555b-ae82-9528d6b71f3c",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 0.95,
+            "explanation": "The answer demonstrates deep technical understanding with concrete implementation details across all relevant technologies: designed and developed a high-load API Gateway and FastAPI services (11k messages/sec), used Kafka features (consumer groups, outbox, schema versioning, idempotent handlers), managed PostgreSQL storage and ClickHouse ETL, configured Kubernetes rollout, probes, autoscaling with CI/CD pipeline, and monitoring with Prometheus and Grafana leading to a 55% performance improvement after profiling.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "evidence_id": "answer:723b9c03-b546-555b-ae82-9528d6b71f3c:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 0.9,
+            "explanation": "The candidate meets all mandatory vacancy requirements and describes practical experience with 7 years of Python, FastAPI REST API, high-load microservices, production Kafka, PostgreSQL schema and optimization, ETL with ClickHouse, Docker and Kubernetes containerization, observability with Prometheus/Grafana, and CI/CD with Git, as requested by the vacancy.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "evidence_id": "answer:723b9c03-b546-555b-ae82-9528d6b71f3c:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": null,
+        "live_coding": null
+      }
+    },
+    {
+      "candidate_id": "PY-004",
+      "profile": "Надёжные Python-микросервисы",
+      "target": "подходит",
+      "target_reason": "Полный стек подтверждён конкретным production-кейсом и метриками.",
+      "prediction": "подходит",
+      "correct": true,
+      "technical": {
+        "label": "strong",
+        "value": 1.0,
+        "confidence": 0.9,
+        "explanation": "Candidate provides a detailed, technically correct description of production solutions including Django REST Framework service architecture, Kafka producers/consumers with retries and DLQ, PostgreSQL index optimization and N+1 removal, ETL with ClickHouse, container deployment with Kubernetes and GitLab CI, and monitoring with Prometheus/Grafana, along with measurable improvements in error reduction and latency."
+      },
+      "vacancy_fit": {
+        "label": "strong",
+        "value": 1.0,
+        "confidence": 0.9,
+        "explanation": "Candidate explicitly matches all key mandatory vacancy requirements by describing 5.5 years commercial Python experience, use of Django REST Framework and FastAPI, handling high-load microservices with Kafka producers and consumers, PostgreSQL schema and query optimization, ETL with ClickHouse, containerization using Docker and Kubernetes, monitoring with Prometheus/Grafana, and CI/CD via GitLab, fulfilling the complete set of stated mandatory technologies."
+      },
+      "follow_up_count": 0,
+      "follow_up": [],
+      "attempts": 1,
+      "resume": "5,5 лет Python backend, Kafka/PostgreSQL, Docker/Kubernetes, observability.",
+      "answer": "Пять с половиной лет работаю Python-разработчиком. Мой основной сервис был на Django REST Framework, фоновые интеграции — на FastAPI. Я отвечал за контракты Kafka, producer retries, идемпотентный consumer и DLQ. Для PostgreSQL переработал индексы и убрал N+1, ETL в ClickHouse запускался отдельным consumer. Контейнеры деплоил в Kubernetes через GitLab CI, мониторинг строил на Prometheus/Grafana. Число ошибок релиза снизилось на 35 процентов, p95 API — с 510 до 160 мс.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "b2dcc376-fdfa-5bb9-b880-4de496d8b331",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 0.9,
+            "explanation": "Candidate provides a detailed, technically correct description of production solutions including Django REST Framework service architecture, Kafka producers/consumers with retries and DLQ, PostgreSQL index optimization and N+1 removal, ETL with ClickHouse, container deployment with Kubernetes and GitLab CI, and monitoring with Prometheus/Grafana, along with measurable improvements in error reduction and latency.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "evidence_id": "answer:b2dcc376-fdfa-5bb9-b880-4de496d8b331:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "strong",
+            "value": 1.0,
+            "confidence": 0.9,
+            "explanation": "Candidate explicitly matches all key mandatory vacancy requirements by describing 5.5 years commercial Python experience, use of Django REST Framework and FastAPI, handling high-load microservices with Kafka producers and consumers, PostgreSQL schema and query optimization, ETL with ClickHouse, containerization using Docker and Kubernetes, monitoring with Prometheus/Grafana, and CI/CD via GitLab, fulfilling the complete set of stated mandatory technologies.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "evidence_id": "answer:b2dcc376-fdfa-5bb9-b880-4de496d8b331:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": null,
+        "live_coding": null
+      }
+    },
+    {
+      "candidate_id": "PY-005",
+      "profile": "Начинающий разработчик с ошибками в надёжности",
+      "target": "не подходит",
+      "target_reason": "Недостаточный стаж и конкретно неверные production-подходы.",
+      "prediction": "не подходит",
+      "correct": true,
+      "technical": {
+        "label": "weak",
+        "value": -0.5,
+        "confidence": 0.8,
+        "explanation": "The candidate has about one year Python experience and made a small Flask API, which is not a production-level high-load service as required. Kafka was not used, and the explanation of exactly-once semantics is simplistic and imprecise, showing a lack of production message processing correctness. No practical production experience is given for PostgreSQL, Kubernetes, ClickHouse, Prometheus, Docker in production, or CI/CD. This demonstrates weak technical depth and incomplete production-level implementation knowledge."
+      },
+      "vacancy_fit": {
+        "label": "weak",
+        "value": -0.5,
+        "confidence": 0.9,
+        "explanation": "The candidate does not meet the mandatory requirements of the vacancy such as 5+ years Python, FastAPI or Django experience, production Kafka, PostgreSQL schemas and optimization, production Docker and Kubernetes, Prometheus/Grafana monitoring, and CI/CD. They explicitly state lack of experience on most required stack components. Their only demonstrated experience is a small Flask API and limited local Docker usage, which insufficiently fits the vacancy."
+      },
+      "follow_up_count": 1,
+      "follow_up": [
+        "Можете ли вы подробнее описать ваш опыт с production-развёртыванием Python-сервисов, включая любые использованные инструменты контейнеризации, оркестрации и мониторинга?"
+      ],
+      "attempts": 1,
+      "resume": "Около года учебной и коммерческой Python-разработки.",
+      "answer": "На Python работаю около года. Небольшой API сделал на Flask. Kafka не использовал, но считаю, что для exactly-once достаточно подтвердить сообщение до обработки, тогда повторов не будет. Все события можно хранить в глобальном списке процесса. PostgreSQL, Kubernetes, ClickHouse и Prometheus в production не применял. Docker запускал локально, CI/CD для сервиса не настраивал.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "ff229078-5edf-59ff-a770-c396ad85d018",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "weak",
+            "value": -0.5,
+            "confidence": 0.8,
+            "explanation": "The candidate has about one year Python experience and made a small Flask API, which is not a production-level high-load service as required. Kafka was not used, and the explanation of exactly-once semantics is simplistic and imprecise, showing a lack of production message processing correctness. No practical production experience is given for PostgreSQL, Kubernetes, ClickHouse, Prometheus, Docker in production, or CI/CD. This demonstrates weak technical depth and incomplete production-level implementation knowledge.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:ff229078-5edf-59ff-a770-c396ad85d018:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "weak",
+            "value": -0.5,
+            "confidence": 0.9,
+            "explanation": "The candidate does not meet the mandatory requirements of the vacancy such as 5+ years Python, FastAPI or Django experience, production Kafka, PostgreSQL schemas and optimization, production Docker and Kubernetes, Prometheus/Grafana monitoring, and CI/CD. They explicitly state lack of experience on most required stack components. Their only demonstrated experience is a small Flask API and limited local Docker usage, which insufficiently fits the vacancy.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:ff229078-5edf-59ff-a770-c396ad85d018:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": [
+          {
+            "trigger": "missing_detail",
+            "prompt": "Можете ли вы подробнее описать ваш опыт с production-развёртыванием Python-сервисов, включая любые использованные инструменты контейнеризации, оркестрации и мониторинга?",
+            "reason": "Недостаточно данных для оценки глубины технической реализации и соответствия требованиям вакансии.",
+            "criterion_ids": [
+              "technical_depth",
+              "primary_vacancy_fit"
+            ],
+            "requirement_ids": [
+              "req-platform",
+              "req-observability"
+            ],
+            "resume_claim_ids": []
+          }
+        ],
+        "live_coding": null
+      }
+    },
+    {
+      "candidate_id": "PY-006",
+      "profile": "Frontend/PHP профиль без Python production",
+      "target": "не подходит",
+      "target_reason": "Профиль не соответствует роли, а техническое решение небезопасно.",
+      "prediction": "не подходит",
+      "correct": true,
+      "technical": {
+        "label": "weak",
+        "value": -0.5,
+        "confidence": 0.9,
+        "explanation": "The candidate has no commercial production experience with Django, FastAPI, Kafka, or Kubernetes, and only used PostgreSQL for simple CRUD without workload metrics. The queue handling plan described would lose messages on error, which is a material downside, indicating a misunderstanding of reliable message processing."
+      },
+      "vacancy_fit": {
+        "label": "weak",
+        "value": -0.5,
+        "confidence": 0.85,
+        "explanation": "The candidate explicitly states lack of experience with required technologies (5+ years Python, Django/FastAPI, Kafka, Kubernetes, advanced PostgreSQL) and does not demonstrate any relevant production experience for the vacancy requirements."
+      },
+      "follow_up_count": 1,
+      "follow_up": [
+        "Можете ли вы подробно описать ваш опыт работы с PostgreSQL, включая схемы данных и оптимизацию запросов?"
+      ],
+      "attempts": 1,
+      "resume": "6 лет frontend и PHP; Python только на учебном курсе.",
+      "answer": "Мой коммерческий опыт — frontend и PHP, Python изучал несколько месяцев на курсе. Production-сервисов на Django или FastAPI не делал, с Kafka и Kubernetes не работал. Для очереди я бы удалял сообщение сразу после чтения и при ошибке просто терял его, чтобы очередь не блокировалась. PostgreSQL использовал только для простых CRUD-запросов, метрик нагрузки у меня нет.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "81cb10db-b41c-5e64-8804-2ec9a65cee2c",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "weak",
+            "value": -0.5,
+            "confidence": 0.9,
+            "explanation": "The candidate has no commercial production experience with Django, FastAPI, Kafka, or Kubernetes, and only used PostgreSQL for simple CRUD without workload metrics. The queue handling plan described would lose messages on error, which is a material downside, indicating a misunderstanding of reliable message processing.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:81cb10db-b41c-5e64-8804-2ec9a65cee2c:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "weak",
+            "value": -0.5,
+            "confidence": 0.85,
+            "explanation": "The candidate explicitly states lack of experience with required technologies (5+ years Python, Django/FastAPI, Kafka, Kubernetes, advanced PostgreSQL) and does not demonstrate any relevant production experience for the vacancy requirements.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:81cb10db-b41c-5e64-8804-2ec9a65cee2c:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": [
+          {
+            "trigger": "missing_detail",
+            "prompt": "Можете ли вы подробно описать ваш опыт работы с PostgreSQL, включая схемы данных и оптимизацию запросов?",
+            "reason": "Недостаточно информации по работе с PostgreSQL для оценки технической глубины.",
+            "criterion_ids": [
+              "technical_depth"
+            ],
+            "requirement_ids": [
+              "req-postgresql"
+            ],
+            "resume_claim_ids": []
+          }
+        ],
+        "live_coding": null
+      }
+    },
+    {
+      "candidate_id": "PY-007",
+      "profile": "Data analyst без backend-инженерии",
+      "target": "не подходит",
+      "target_reason": "Python используется не в требуемом контексте, присутствуют технические ошибки.",
+      "prediction": "не подходит",
+      "correct": true,
+      "technical": {
+        "label": "contradicted",
+        "value": -1.0,
+        "confidence": 0.9,
+        "explanation": "Candidate states 4 years using Python in Jupyter for data analysis without backend service development, no experience with Django, FastAPI, Kafka, Kubernetes or CI/CD, and provides incorrect or overly simplified understanding of PostgreSQL indexing and async programming, lacking any production experience or metrics."
+      },
+      "vacancy_fit": {
+        "label": "contradicted",
+        "value": -1.0,
+        "confidence": 0.95,
+        "explanation": "Candidate explicitly denies experience with critical required technologies including Django/FastAPI, Kafka, Kubernetes, CI/CD, and production backend services, thus not meeting mandatory vacancy requirements."
+      },
+      "follow_up_count": 1,
+      "follow_up": [
+        "Вы можете привести пример решения с реальным использованием PostgreSQL и описать, как обеспечивалась производительность и надёжность?"
+      ],
+      "attempts": 1,
+      "resume": "4 года аналитики в Python/Jupyter, без production backend.",
+      "answer": "Четыре года использую Python в Jupyter для pandas и отчётов, но backend-сервисы не разрабатывал. Django, FastAPI, Kafka, Kubernetes и CI/CD не применял. Думаю, индекс в PostgreSQL нужно создавать на каждом столбце, тогда любой запрос ускорится без компромиссов. Для асинхронности достаточно добавить async перед любой блокирующей функцией. Production-метрик или примеров эксплуатации у меня нет.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "a7a464d1-53cc-5c25-9a52-bfc84505628a",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "contradicted",
+            "value": -1.0,
+            "confidence": 0.9,
+            "explanation": "Candidate states 4 years using Python in Jupyter for data analysis without backend service development, no experience with Django, FastAPI, Kafka, Kubernetes or CI/CD, and provides incorrect or overly simplified understanding of PostgreSQL indexing and async programming, lacking any production experience or metrics.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:a7a464d1-53cc-5c25-9a52-bfc84505628a:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "contradicted",
+            "value": -1.0,
+            "confidence": 0.95,
+            "explanation": "Candidate explicitly denies experience with critical required technologies including Django/FastAPI, Kafka, Kubernetes, CI/CD, and production backend services, thus not meeting mandatory vacancy requirements.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:a7a464d1-53cc-5c25-9a52-bfc84505628a:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": [
+          {
+            "trigger": "missing_detail",
+            "prompt": "Вы можете привести пример решения с реальным использованием PostgreSQL и описать, как обеспечивалась производительность и надёжность?",
+            "reason": "Нехватка информации о реальном опыте с PostgreSQL и production-условиях",
+            "criterion_ids": [
+              "technical_depth"
+            ],
+            "requirement_ids": [
+              "req-postgresql"
+            ],
+            "resume_claim_ids": []
+          }
+        ],
+        "live_coding": null
+      }
+    },
+    {
+      "candidate_id": "PY-008",
+      "profile": "Сильные заявления без деталей",
+      "target": "следует уточнить",
+      "target_reason": "Резюме выглядит релевантно, но ответ не позволяет подтвердить личный вклад.",
+      "prediction": "следует уточнить",
+      "correct": true,
+      "technical": {
+        "label": "weak",
+        "value": -0.5,
+        "confidence": 0.8,
+        "explanation": "The candidate lists relevant technologies (Python, FastAPI, Kafka, PostgreSQL, Kubernetes) and notes the project was large and high-load, but does not describe specific personal contributions, architectural decisions, or reliability improvements. No concrete example of production solution design or trade-offs, nor measurable results were provided, limiting confidence in technical depth."
+      },
+      "vacancy_fit": {
+        "label": "weak",
+        "value": -0.5,
+        "confidence": 0.75,
+        "explanation": "The answer mentions technologies required by the vacancy (Python, FastAPI, Kafka, PostgreSQL, Kubernetes), indicating some relevance. However, lack of details about own contributions, handling of mandatory topics like schema design, Kafka production-grade usage, observability, and measurable impact reduce clarity on full fit to mandatory requirements."
+      },
+      "follow_up_count": 1,
+      "follow_up": [
+        "Могли бы вы подробно описать ваш конкретный личный вклад в настройку архитектуры и надёжность обработки сообщений в проекте с использованием Python, FastAPI и Kafka?"
+      ],
+      "attempts": 1,
+      "resume": "Заявлены 6 лет Python, Kafka, Kubernetes, PostgreSQL и FastAPI.",
+      "answer": "Работал с Python, FastAPI, Kafka, PostgreSQL и Kubernetes. Проект был большой и нагруженный, всё работало хорошо. Архитектуру и надёжность настраивала команда, свой личный вклад и конкретные решения сейчас описать не могу. Метрики не помню.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "681ce2c2-32ca-52af-afda-f6f6d3e7af06",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "weak",
+            "value": -0.5,
+            "confidence": 0.8,
+            "explanation": "The candidate lists relevant technologies (Python, FastAPI, Kafka, PostgreSQL, Kubernetes) and notes the project was large and high-load, but does not describe specific personal contributions, architectural decisions, or reliability improvements. No concrete example of production solution design or trade-offs, nor measurable results were provided, limiting confidence in technical depth.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:681ce2c2-32ca-52af-afda-f6f6d3e7af06:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "weak",
+            "value": -0.5,
+            "confidence": 0.75,
+            "explanation": "The answer mentions technologies required by the vacancy (Python, FastAPI, Kafka, PostgreSQL, Kubernetes), indicating some relevance. However, lack of details about own contributions, handling of mandatory topics like schema design, Kafka production-grade usage, observability, and measurable impact reduce clarity on full fit to mandatory requirements.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:681ce2c2-32ca-52af-afda-f6f6d3e7af06:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": [
+          {
+            "trigger": "missing_detail",
+            "prompt": "Могли бы вы подробно описать ваш конкретный личный вклад в настройку архитектуры и надёжность обработки сообщений в проекте с использованием Python, FastAPI и Kafka?",
+            "reason": "Необходимо уточнить конкретный личный вклад кандидата для оценки технической глубины и соответствия вакансии.",
+            "criterion_ids": [
+              "technical_depth",
+              "primary_vacancy_fit"
+            ],
+            "requirement_ids": [
+              "req-python",
+              "req-framework",
+              "req-kafka"
+            ],
+            "resume_claim_ids": []
+          }
+        ],
+        "live_coding": null
+      }
+    },
+    {
+      "candidate_id": "PY-009",
+      "profile": "Смежный RabbitMQ/Docker опыт",
+      "target": "следует уточнить",
+      "target_reason": "Есть сильная переносимая база, но обязательность Kafka/Kubernetes требует решения человека.",
+      "prediction": "следует уточнить",
+      "correct": true,
+      "technical": {
+        "label": "supported",
+        "value": 0.5,
+        "confidence": 0.8,
+        "explanation": "Candidate describes 4 years developing FastAPI services in Python, mentions RabbitMQ usage in production with acknowledgments, retries, DLQ, and idempotency, and PostgreSQL optimization with indexes and EXPLAIN ANALYZE. Also configures Docker and GitLab CI personally. No experience with Kafka, Kubernetes, or ETL, but the detailed RabbitMQ usage and PostgreSQL optimizations represent a practical production experience showing technical depth."
+      },
+      "vacancy_fit": {
+        "label": "weak",
+        "value": -0.5,
+        "confidence": 0.7,
+        "explanation": "Candidate meets several requirements: 4 years Python with FastAPI, RabbitMQ in production, PostgreSQL optimization, Docker and GitLab CI. However, lacks experience with mandatory vacancy technologies such as Kafka, Kubernetes, ETL, ClickHouse, and observability tools like Prometheus/Grafana. Hence partial fit with important missing requirements for the role."
+      },
+      "follow_up_count": 1,
+      "follow_up": [
+        "Можете ли вы подробнее описать ваш опыт работы с RabbitMQ в production, особенно какие архитектурные решения и механизмы надёжности применялись?"
+      ],
+      "attempts": 1,
+      "resume": "4 года Python/FastAPI, RabbitMQ и Docker; без Kafka и Kubernetes.",
+      "answer": "Четыре года пишу FastAPI-сервисы на Python. В production использовал RabbitMQ: ack после обработки, retry, DLQ и идемпотентность. PostgreSQL оптимизировал индексами и EXPLAIN ANALYZE, Docker и GitLab CI настраивал лично. С Kafka, Kubernetes, ClickHouse и полноценным ETL пока не работал. Не знаю, являются ли эти технологии жёстким стоп-фактором; готов разобрать архитектуру RabbitMQ и план перехода подробнее.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "ada6869a-36c3-51b8-8c3e-8f652477f941",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "supported",
+            "value": 0.5,
+            "confidence": 0.8,
+            "explanation": "Candidate describes 4 years developing FastAPI services in Python, mentions RabbitMQ usage in production with acknowledgments, retries, DLQ, and idempotency, and PostgreSQL optimization with indexes and EXPLAIN ANALYZE. Also configures Docker and GitLab CI personally. No experience with Kafka, Kubernetes, or ETL, but the detailed RabbitMQ usage and PostgreSQL optimizations represent a practical production experience showing technical depth.",
+            "evidence": [
+              {
+                "kind": "supporting",
+                "evidence_id": "answer:ada6869a-36c3-51b8-8c3e-8f652477f941:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "weak",
+            "value": -0.5,
+            "confidence": 0.7,
+            "explanation": "Candidate meets several requirements: 4 years Python with FastAPI, RabbitMQ in production, PostgreSQL optimization, Docker and GitLab CI. However, lacks experience with mandatory vacancy technologies such as Kafka, Kubernetes, ETL, ClickHouse, and observability tools like Prometheus/Grafana. Hence partial fit with important missing requirements for the role.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:ada6869a-36c3-51b8-8c3e-8f652477f941:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": [
+          {
+            "trigger": "missing_detail",
+            "prompt": "Можете ли вы подробнее описать ваш опыт работы с RabbitMQ в production, особенно какие архитектурные решения и механизмы надёжности применялись?",
+            "reason": "Техническая глубина требует больше деталей по реальному производственному опыту с RabbitMQ для подтверждения уровня владения.",
+            "criterion_ids": [
+              "technical_depth"
+            ],
+            "requirement_ids": [
+              "req-microservices"
+            ],
+            "resume_claim_ids": []
+          }
+        ],
+        "live_coding": null
+      }
+    },
+    {
+      "candidate_id": "PY-010",
+      "profile": "Неподтверждённые заявления резюме",
+      "target": "следует уточнить",
+      "target_reason": "Между заявленным стеком и доказательствами ответа остаётся существенная неопределённость.",
+      "prediction": "следует уточнить",
+      "correct": true,
+      "technical": {
+        "label": "weak",
+        "value": -0.5,
+        "confidence": 0.7,
+        "explanation": "The candidate mentions involvement in Python handlers and some PostgreSQL queries but is unsure about key technical details like offset committing, idempotency, and performance measurements, indicating limited personal contribution and understanding of production robustness."
+      },
+      "vacancy_fit": {
+        "label": "weak",
+        "value": -0.5,
+        "confidence": 0.6,
+        "explanation": "The answer acknowledges technologies like Kafka, Kubernetes, and ClickHouse but specifies that others configured them, and does not confirm direct production experience with mandatory technologies such as Django/FastAPI, high-load microservices, observability, or CI/CD, leading to weak confidence in vacancy fit."
+      },
+      "follow_up_count": 1,
+      "follow_up": [
+        "Можете ли подробно описать ваш вклад в архитектуру Python-сервиса, в частности, как обеспечивалась надёжность обработки сообщений и какие приёмы использовались для измерения и оптимизации производительности?"
+      ],
+      "attempts": 1,
+      "resume": "В резюме заявлены 5 лет Python, Kafka, Kubernetes и ClickHouse.",
+      "answer": "В проекте действительно упоминались Kafka, Kubernetes и ClickHouse, но их настраивали другие участники команды. Я менял несколько Python-обработчиков, однако не помню, как коммитился offset, обеспечивалась идемпотентность или измерялась нагрузка. Не могу точно отделить свои решения от командных. PostgreSQL-запросы правил, но планы и результаты замеров сейчас привести не готов.",
+      "raw_assessment": {
+        "schema_version": "session_agent_output_v2",
+        "purpose": "answer_assessment",
+        "response_id": "48a8513c-f317-5a12-aa0d-c1aa98116b01",
+        "question_id": "cbdae577-cae3-5647-9900-f56fddf2f4c8",
+        "observations": [
+          {
+            "criterion_id": "technical_depth",
+            "dimension": "technical",
+            "label": "weak",
+            "value": -0.5,
+            "confidence": 0.7,
+            "explanation": "The candidate mentions involvement in Python handlers and some PostgreSQL queries but is unsure about key technical details like offset committing, idempotency, and performance measurements, indicating limited personal contribution and understanding of production robustness.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:48a8513c-f317-5a12-aa0d-c1aa98116b01:001"
+              }
+            ]
+          },
+          {
+            "criterion_id": "primary_vacancy_fit",
+            "dimension": "vacancy_fit",
+            "label": "weak",
+            "value": -0.5,
+            "confidence": 0.6,
+            "explanation": "The answer acknowledges technologies like Kafka, Kubernetes, and ClickHouse but specifies that others configured them, and does not confirm direct production experience with mandatory technologies such as Django/FastAPI, high-load microservices, observability, or CI/CD, leading to weak confidence in vacancy fit.",
+            "evidence": [
+              {
+                "kind": "counter",
+                "evidence_id": "answer:48a8513c-f317-5a12-aa0d-c1aa98116b01:001"
+              }
+            ]
+          }
+        ],
+        "follow_up": [
+          {
+            "trigger": "missing_detail",
+            "prompt": "Можете ли подробно описать ваш вклад в архитектуру Python-сервиса, в частности, как обеспечивалась надёжность обработки сообщений и какие приёмы использовались для измерения и оптимизации производительности?",
+            "reason": "Для уточнения технической глубины и подтверждения личного вклада в ключевые механизмы решения.",
+            "criterion_ids": [
+              "technical_depth"
+            ],
+            "requirement_ids": [
+              "req-kafka",
+              "req-observability"
+            ],
+            "resume_claim_ids": []
+          }
+        ],
+        "live_coding": null
+      }
+    }
+  ]
+}

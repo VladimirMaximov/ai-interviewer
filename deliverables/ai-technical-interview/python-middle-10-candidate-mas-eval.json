@@ -1,0 +1,352 @@
+{
+  "schema_version": "python_middle_full_mas_eval_v1",
+  "data_classification": "synthetic",
+  "started_at": "2026-09-06T13:34:07.483948+00:00",
+  "completed_at": "2026-09-06T13:57:44.990996+00:00",
+  "model": "openai/gpt-4.1-mini",
+  "provider": "https://api.vsegpt.ru/v1",
+  "dataset_hash": "8ac0a7d2cfe5f16aa72de648cac19c62cb964f7b05890fb5723d84bd204efa2b",
+  "personalization_cap": 0,
+  "results": [
+    {
+      "candidate_id": "PY-001",
+      "profile_name": "Сильный event-driven backend",
+      "target": "подходит",
+      "target_reason": "Подтверждены все основные обязательные технологии и личный результат.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: candidate_feedback provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    },
+    {
+      "candidate_id": "PY-002",
+      "profile_name": "Django/FastAPI platform engineer",
+      "target": "подходит",
+      "target_reason": "Опыт превышает порог и прямо покрывает backend, данные и эксплуатацию.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    },
+    {
+      "candidate_id": "PY-003",
+      "profile_name": "Высоконагруженные интеграции",
+      "target": "подходит",
+      "target_reason": "Доказаны требуемый стаж, Kafka и production-эксплуатация.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    },
+    {
+      "candidate_id": "PY-004",
+      "profile_name": "Надёжные Python-микросервисы",
+      "target": "подходит",
+      "target_reason": "Полный стек подтверждён конкретным production-кейсом и метриками.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    },
+    {
+      "candidate_id": "PY-005",
+      "profile_name": "Начинающий разработчик с ошибками в надёжности",
+      "target": "не подходит",
+      "target_reason": "Недостаточный стаж и конкретно неверные production-подходы.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    },
+    {
+      "candidate_id": "PY-006",
+      "profile_name": "Frontend/PHP профиль без Python production",
+      "target": "не подходит",
+      "target_reason": "Профиль не соответствует роли, а техническое решение небезопасно.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    },
+    {
+      "candidate_id": "PY-007",
+      "profile_name": "Data analyst без backend-инженерии",
+      "target": "не подходит",
+      "target_reason": "Python используется не в требуемом контексте, присутствуют технические ошибки.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    },
+    {
+      "candidate_id": "PY-008",
+      "profile_name": "Сильные заявления без деталей",
+      "target": "следует уточнить",
+      "target_reason": "Резюме выглядит релевантно, но ответ не позволяет подтвердить личный вклад.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    },
+    {
+      "candidate_id": "PY-009",
+      "profile_name": "Смежный RabbitMQ/Docker опыт",
+      "target": "следует уточнить",
+      "target_reason": "Есть сильная переносимая база, но обязательность Kafka/Kubernetes требует решения человека.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    },
+    {
+      "candidate_id": "PY-010",
+      "profile_name": "Неподтверждённые заявления резюме",
+      "target": "следует уточнить",
+      "target_reason": "Между заявленным стеком и доказательствами ответа остаётся существенная неопределённость.",
+      "prediction": null,
+      "correct": false,
+      "pipeline_status": "failed",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "follow_up_count": 0,
+      "live_coding_count": 0
+    }
+  ],
+  "errors": [
+    {
+      "candidate_id": "PY-001",
+      "errors": [
+        "MultiAgentProviderError: candidate_feedback provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    },
+    {
+      "candidate_id": "PY-002",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    },
+    {
+      "candidate_id": "PY-003",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    },
+    {
+      "candidate_id": "PY-004",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    },
+    {
+      "candidate_id": "PY-005",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    },
+    {
+      "candidate_id": "PY-006",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    },
+    {
+      "candidate_id": "PY-007",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    },
+    {
+      "candidate_id": "PY-008",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    },
+    {
+      "candidate_id": "PY-009",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    },
+    {
+      "candidate_id": "PY-010",
+      "errors": [
+        "MultiAgentProviderError: resume_relevance provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ]
+    }
+  ],
+  "vacancies": {
+    "primary": {
+      "id": "4963b6d3-744a-4e5e-83e4-d77ce467c9dd",
+      "title": "Middle + Python Developer"
+    },
+    "alternative": {
+      "id": "b46e0484-e134-45de-94b2-db789770ea34",
+      "title": "Middle Python API Developer"
+    }
+  },
+  "successful_pipelines": 0,
+  "classification_metrics": {
+    "target_accuracy": 0.8,
+    "total": 10,
+    "classified": 0,
+    "correct": 0,
+    "accuracy": 0.0,
+    "macro_f1": 0.0,
+    "target_met": false,
+    "clarify_recall": 0.0,
+    "false_advance_count": 0,
+    "false_reject_count": 0,
+    "confusion_matrix": {
+      "подходит": {
+        "подходит": 0,
+        "не подходит": 0,
+        "следует уточнить": 0
+      },
+      "не подходит": {
+        "подходит": 0,
+        "не подходит": 0,
+        "следует уточнить": 0
+      },
+      "следует уточнить": {
+        "подходит": 0,
+        "не подходит": 0,
+        "следует уточнить": 0
+      }
+    }
+  },
+  "conditional_question_metrics": {
+    "sessions_with_follow_up": 0,
+    "follow_up_precision_against_fixture_ambiguity": null,
+    "follow_up_recall_against_fixture_ambiguity": 0.0,
+    "all_session_caps_respected": true,
+    "maximum_follow_ups_in_session": 0,
+    "live_coding_sessions": 0
+  },
+  "usage": {
+    "calls": 83,
+    "failed_calls": 65,
+    "calls_by_purpose": {
+      "alternative_vacancy_match": 1,
+      "answer_assessment": 8,
+      "candidate_feedback": 7,
+      "integrity_check": 1,
+      "question_plan": 2,
+      "resume_relevance": 64
+    },
+    "estimated_input_characters": 1595346,
+    "output_characters": 74239,
+    "estimated_cost_rub": 113.54,
+    "tariff_assumption": {
+      "input_rub_per_1000_characters": 0.06,
+      "output_rub_per_1000_characters": 0.24
+    }
+  },
+  "agent_run_statistics": {
+    "total_attempts": 83,
+    "statuses": {
+      "invalid_output": 10,
+      "provider_failed": 65,
+      "succeeded": 8
+    },
+    "attempts_by_purpose": {
+      "alternative_vacancy_match": 1,
+      "answer_assessment": 8,
+      "candidate_feedback": 7,
+      "integrity_check": 1,
+      "question_plan": 2,
+      "resume_relevance": 64
+    }
+  },
+  "final_ranking": {
+    "vacancy_id": "4963b6d3-744a-4e5e-83e4-d77ce467c9dd",
+    "compatibility_key": "f588f1fa9167e1ef322db08e56edeccf71535b7c8d94c074a6a5b427374be288",
+    "entries": [
+      {
+        "rank": 1,
+        "agent_session_id": "dc6109a3-03d0-409d-a522-aa101c24ba71",
+        "candidate_alias": "Синтетический кандидат PY-001",
+        "overall_value": 0.8125,
+        "coverage": 1.0,
+        "review_reason_codes": []
+      }
+    ],
+    "created_at": "2026-09-06T13:36:57.619347"
+  }
+}

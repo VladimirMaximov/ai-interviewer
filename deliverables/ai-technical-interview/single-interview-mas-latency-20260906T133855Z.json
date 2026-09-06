@@ -1,0 +1,258 @@
+{
+  "schema_version": "single_interview_mas_latency_v1",
+  "data_classification": "synthetic",
+  "interview_count": 1,
+  "candidate_id": "PY-001",
+  "status": "stopped_provider_balance",
+  "full_interview_completed": false,
+  "full_interview_latency_seconds": null,
+  "stop_reason": "The operator interrupted retry backoff after four HTTP 400 provider failures reporting a non-positive account balance. No second interview was started.",
+  "post_run_annotation": "The overall and interrupted-stage statuses were corrected after SIGINT; recorded timings and provider responses are unchanged.",
+  "started_at": "2026-09-06T13:38:55.793487+00:00",
+  "completed_at": "2026-09-06T13:39:48.100540+00:00",
+  "model": "openai/gpt-4.1-mini",
+  "provider": "https://api.vsegpt.ru/v1",
+  "api_mode": "chat_completions",
+  "timeout_seconds_per_sdk_request": 90.0,
+  "max_stage_attempts": 7,
+  "configured_application_max_attempts": 3,
+  "request_interval_seconds": 1.1,
+  "personalization_cap": 0,
+  "fresh_database": true,
+  "database_path": "/var/folders/d0/tmdn3xk56ql7h6w6yt26xlsr0000gn/T/single-mas-latency-frg32kzg/run.sqlite3",
+  "source_sha256": {
+    "backend/scripts/run_python_middle_mas_eval.py": "995e8596ec868f5eecd9bc92b6ceca1963428dd382a7ef1c8d8fce8f898fd103",
+    "backend/scripts/run_python_middle_classification_eval.py": "a1f509f41e6eda7a03d7aabf79063dd4092bf15c446adc236cb0229385628a5c",
+    "backend/app/adapters/openai_interview_agents.py": "b31f83256e93bd2aca8c9534416086ca85843e8dc3c78c4b6401a1a6853ab05d",
+    "backend/app/services/multi_agent_harness.py": "d613d64784c5dcb4c71f4bbab1363f8f0e4dfc0f112616e889ceb55dce824e8f",
+    "backend/app/domain/multi_agent.py": "56e157c3a2988dbdd810a73b63ff561f5db55ad42d90d615bc27c07d92c13ff0",
+    "backend/app/config.py": "868f32c53635cc0b92eab34c5d5af2850998dd9b6a9aef8eb5069376f5853abb"
+  },
+  "excludes": [
+    "candidate_response_time",
+    "recording_upload",
+    "transcription"
+  ],
+  "stages": [
+    {
+      "stage": "resume_relevance",
+      "started_offset_seconds": 0.010593,
+      "status": "succeeded",
+      "elapsed_seconds": 11.260652,
+      "completed_offset_seconds": 11.271246,
+      "attempts": [
+        {
+          "stage": "resume_relevance",
+          "attempt": 1,
+          "status": "succeeded",
+          "elapsed_seconds": 11.26
+        }
+      ]
+    },
+    {
+      "stage": "question_plan",
+      "started_offset_seconds": 11.272163,
+      "status": "succeeded",
+      "elapsed_seconds": 12.595283,
+      "completed_offset_seconds": 23.867448,
+      "attempts": [
+        {
+          "stage": "question_plan",
+          "attempt": 1,
+          "status": "succeeded",
+          "elapsed_seconds": 12.595
+        }
+      ]
+    },
+    {
+      "stage": "answer_assessment:baseline:c5fc3cc5-5487-52d1-af54-9743900dcba6",
+      "started_offset_seconds": 23.878211,
+      "status": "stopped_provider_balance",
+      "elapsed_seconds": 28.430055,
+      "completed_offset_seconds": 52.308283,
+      "attempts": [
+        {
+          "stage": "answer_assessment:baseline:c5fc3cc5-5487-52d1-af54-9743900dcba6",
+          "attempt": 1,
+          "status": "failed",
+          "elapsed_seconds": 3.894,
+          "errors": [
+            "MultiAgentProviderError: answer_assessment provider request failed",
+            "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+            "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+          ]
+        },
+        {
+          "stage": "answer_assessment:baseline:c5fc3cc5-5487-52d1-af54-9743900dcba6",
+          "attempt": 2,
+          "status": "failed",
+          "elapsed_seconds": 3.859,
+          "errors": [
+            "MultiAgentProviderError: answer_assessment provider request failed",
+            "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+            "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+          ]
+        },
+        {
+          "stage": "answer_assessment:baseline:c5fc3cc5-5487-52d1-af54-9743900dcba6",
+          "attempt": 3,
+          "status": "failed",
+          "elapsed_seconds": 4.95,
+          "errors": [
+            "MultiAgentProviderError: answer_assessment provider request failed",
+            "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+            "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+          ]
+        },
+        {
+          "stage": "answer_assessment:baseline:c5fc3cc5-5487-52d1-af54-9743900dcba6",
+          "attempt": 4,
+          "status": "failed",
+          "elapsed_seconds": 5.054,
+          "errors": [
+            "MultiAgentProviderError: answer_assessment provider request failed",
+            "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+            "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+          ]
+        }
+      ]
+    }
+  ],
+  "adapter_calls": [
+    {
+      "purpose": "resume_relevance",
+      "started_offset_seconds": 0.01728,
+      "started_at": "2026-09-06T13:38:55.810770+00:00",
+      "status": "returned_before_harness_validation",
+      "elapsed_seconds": 10.132624,
+      "completed_at": "2026-09-06T13:39:05.942854+00:00"
+    },
+    {
+      "purpose": "question_plan",
+      "started_offset_seconds": 11.280712,
+      "started_at": "2026-09-06T13:39:07.073588+00:00",
+      "status": "returned_before_harness_validation",
+      "elapsed_seconds": 11.467187,
+      "completed_at": "2026-09-06T13:39:18.540192+00:00"
+    },
+    {
+      "purpose": "answer_assessment",
+      "started_offset_seconds": 23.89026,
+      "started_at": "2026-09-06T13:39:19.682438+00:00",
+      "status": "failed",
+      "errors": [
+        "MultiAgentProviderError: answer_assessment provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "elapsed_seconds": 2.763869,
+      "completed_at": "2026-09-06T13:39:22.446175+00:00"
+    },
+    {
+      "purpose": "answer_assessment",
+      "started_offset_seconds": 29.289335,
+      "started_at": "2026-09-06T13:39:25.081220+00:00",
+      "status": "failed",
+      "errors": [
+        "MultiAgentProviderError: answer_assessment provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "elapsed_seconds": 2.732875,
+      "completed_at": "2026-09-06T13:39:27.813967+00:00"
+    },
+    {
+      "purpose": "answer_assessment",
+      "started_offset_seconds": 36.173016,
+      "started_at": "2026-09-06T13:39:31.964567+00:00",
+      "status": "failed",
+      "errors": [
+        "MultiAgentProviderError: answer_assessment provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "elapsed_seconds": 3.793825,
+      "completed_at": "2026-09-06T13:39:35.758122+00:00"
+    },
+    {
+      "purpose": "answer_assessment",
+      "started_offset_seconds": 45.748702,
+      "started_at": "2026-09-06T13:39:41.539680+00:00",
+      "status": "failed",
+      "errors": [
+        "MultiAgentProviderError: answer_assessment provider request failed",
+        "BadRequestError: Error code: 400 - {'error': {'message': \"You have only -2.050900 on account - it's equal to 0 or below it. Please, add some money to balance to proceed: https://vsegpt.ru/User/Money (6518132148)\", 'code': 400}}",
+        "HTTPStatusError: Client error '400 Bad Request' for url 'https://api.vsegpt.ru/v1/chat/completions'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      ],
+      "elapsed_seconds": 3.790472,
+      "completed_at": "2026-09-06T13:39:45.329948+00:00"
+    }
+  ],
+  "errors": [],
+  "wall_seconds": 52.30994,
+  "agent_run_statistics": {
+    "total_attempts": 6,
+    "statuses": {
+      "provider_failed": 4,
+      "succeeded": 2
+    },
+    "attempts_by_purpose": {
+      "answer_assessment": 4,
+      "question_plan": 1,
+      "resume_relevance": 1
+    }
+  },
+  "agent_runs": [
+    {
+      "purpose": "resume_relevance",
+      "attempt": 1,
+      "status": "succeeded",
+      "started_at": "2026-09-06T13:38:55.807391",
+      "completed_at": "2026-09-06T13:39:07.058713",
+      "failure_code": null
+    },
+    {
+      "purpose": "question_plan",
+      "attempt": 1,
+      "status": "succeeded",
+      "started_at": "2026-09-06T13:39:07.069878",
+      "completed_at": "2026-09-06T13:39:19.655445",
+      "failure_code": null
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 1,
+      "status": "provider_failed",
+      "started_at": "2026-09-06T13:39:19.676860",
+      "completed_at": "2026-09-06T13:39:23.554294",
+      "failure_code": "provider_error"
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 2,
+      "status": "provider_failed",
+      "started_at": "2026-09-06T13:39:25.072522",
+      "completed_at": "2026-09-06T13:39:28.920302",
+      "failure_code": "provider_error"
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 3,
+      "status": "provider_failed",
+      "started_at": "2026-09-06T13:39:31.953204",
+      "completed_at": "2026-09-06T13:39:36.868272",
+      "failure_code": "provider_error"
+    },
+    {
+      "purpose": "answer_assessment",
+      "attempt": 4,
+      "status": "provider_failed",
+      "started_at": "2026-09-06T13:39:41.530801+00:00",
+      "completed_at": "2026-09-06T13:39:46.438744+00:00",
+      "failure_code": "provider_error"
+    }
+  ],
+  "adapter_seconds": 34.680852,
+  "non_adapter_seconds": 17.629088,
+  "source_files_changed_during_run": []
+}
