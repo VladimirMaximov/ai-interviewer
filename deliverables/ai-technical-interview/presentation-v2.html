@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Napoleon IT — ИИ-помощник</title>
+  <style>
+    :root { color-scheme: light; --ink: #101317; --orange: #e75932; --line: #dde2e6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e9ecef; color: var(--ink); font-family: Inter, "Segoe UI", Arial, sans-serif; }
+    main { padding: 32px 24px 90px; }
+    .slide { width: min(1440px, 100%); aspect-ratio: 16/9; margin: 0 auto 32px; padding: clamp(28px, 3.3vw, 48px) clamp(28px, 4.2vw, 60px); background: white; position: relative; display: flex; flex-direction: column; box-shadow: 0 16px 60px #10131712; overflow: hidden; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: clamp(12px, 1.25vw, 18px); font-weight: 800; letter-spacing: -.04em; }
+    .brand::before { content: ""; width: 13px; height: 13px; background: var(--orange); }
+    .slide-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+    .number { font-size: 12px; letter-spacing: .14em; color: #68727c; }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 5%; flex: 1; padding-top: 3.4%; }
+    h1, h2, p { margin: 0; }
+    h1, h2 { font-weight: 650; letter-spacing: -.045em; line-height: 1.14; }
+    .wide-title, .hypotheses h1 { font-size: clamp(28px, 3.45vw, 50px); margin: 28px 0 0; max-width: none; font-weight: 650; line-height: 1.1; }
+    .title-accent { color: inherit; }
+    #slide-1 .columns { display: flex; flex-direction: column; justify-content: center; gap: 32px; padding: 24px 0; }
+    #slide-1 .problem { position: relative; top: -16px; }
+    #slide-1 .facts { margin-top: 0; grid-template-columns: 1.15fr 1fr 1fr; gap: 24px; }
+    #slide-1 .fact { font-size: clamp(15px, 1.35vw, 19px); color: var(--ink); padding-right: 16px; }
+    #slide-1 .fact + .fact { border-left: 1px solid var(--line); padding-left: 24px; }
+    #slide-1 .fact strong { font-size: clamp(23px, 2.2vw, 32px); color: var(--ink); margin-bottom: 9px; }
+    #slide-1 .solution { border: 0; padding: 24px 28px; margin-top: 0; background: var(--ink); color: white; }
+    #slide-1 .solution h2 { font-size: clamp(21px, 2.15vw, 31px); max-width: none; line-height: 1.18; letter-spacing: -.03em; }
+    #slide-1 .targets { grid-template-columns: 1fr 1fr; margin-top: 22px; gap: 28px; }
+    #slide-1 .target { color: white; }
+    #slide-1 .target-line { color: white; }
+    #slide-1 .target-line strong { color: inherit; }
+    .solution { border-left: 1px solid var(--line); padding-left: 10%; }
+    .solution h2 { font-size: clamp(21px, 2.15vw, 31px); }
+    .facts { display: grid; gap: 21px; margin-top: 8%; }
+    .fact { font-size: clamp(16px, 1.5vw, 22px); line-height: 1.3; max-width: 470px; }
+    .fact strong { display: block; font-size: clamp(26px, 3vw, 43px); font-weight: 650; letter-spacing: -.045em; line-height: 1.1; margin-bottom: 5px; }
+    .fact:last-child strong { font-size: clamp(23px, 2.3vw, 33px); }
+    .targets { margin-top: 9%; display: grid; gap: 26px; }
+    .target { font-size: clamp(16px, 1.5vw, 22px); line-height: 1.3; }
+    .target-line { display: block; font-size: clamp(23px, 2.5vw, 36px); letter-spacing: -.035em; font-weight: 650; margin-bottom: 6px; white-space: nowrap; }
+    .target-line strong { color: inherit; font-weight: 700; }
+    .arrow { color: inherit; padding: 0 .12em; }
+    .accent-bar { position: absolute; bottom: 0; left: 0; height: 7px; width: 19%; background: var(--orange); }
+    .hypotheses .columns { flex: 1; align-items: stretch; padding-top: 28px; padding-bottom: 28px; }
+    .survey { display: grid; grid-template-rows: auto auto auto; align-content: start; gap: 22px; }
+    .column-title { color: var(--ink); font-size: clamp(20px, 1.8vw, 26px); font-weight: 650; line-height: 1.2; letter-spacing: -.025em; }
+    .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; flex: 1; align-content: center; padding: 32px 0; }
+    .team-member { border-top: 1px solid var(--line); padding-top: 26px; }
+    .team-member h2 { font-size: clamp(28px, 3vw, 43px); margin-bottom: 14px; }
+    .team-member p { font-size: clamp(18px, 1.65vw, 24px); line-height: 1.3; }
+    .team-member .team-contribution { margin-top: 18px; font-size: clamp(16px, 1.35vw, 19px); line-height: 1.45; }
+    .survey p { display: grid; grid-template-columns: clamp(125px, 13vw, 187px) 1fr; align-items: center; gap: 18px; font-size: clamp(17px, 1.55vw, 22px); line-height: 1.35; }
+    .survey strong { color: inherit; font-size: clamp(28px, 3vw, 43px); font-weight: 650; letter-spacing: -.045em; white-space: nowrap; }
+    .pending { border-left: 1px solid var(--line); padding-left: 10%; display: grid; grid-template-rows: auto auto auto; align-content: start; gap: 22px; }
+    .pending p { display: grid; grid-template-columns: clamp(125px, 13vw, 187px) 1fr; align-items: center; gap: 18px; font-size: clamp(17px, 1.55vw, 22px); line-height: 1.35; }
+    .pending strong { color: inherit; font-size: clamp(28px, 3vw, 43px); font-weight: 650; letter-spacing: -.045em; white-space: nowrap; }
+    .success { background: var(--ink); color: white; padding: 24px 28px; margin-top: auto; }
+    .success h2 { font-size: clamp(21px, 2.15vw, 31px); margin-bottom: 22px; line-height: 1.18; letter-spacing: -.03em; }
+    .criteria { display: grid; grid-template-columns: 1fr 1fr; gap: 6%; }
+    .criteria p { font-size: clamp(16px, 1.5vw, 22px); line-height: 1.3; color: white; }
+    .criteria strong { color: inherit; font-size: clamp(25px, 2.6vw, 37px); display: block; margin-bottom: 4px; font-weight: 650; letter-spacing: -.03em; }
+    @media (min-width: 1600px) { .slide { padding: 52px 64px 42px; } }
+    @media (max-width: 900px) {
+      main { padding: 16px 12px 90px; }
+      .slide { aspect-ratio: auto; padding: 28px; min-height: 720px; }
+      .columns { padding-top: 28px; }
+      .survey p, .pending p { grid-template-columns: 1fr; gap: 5px; }
+      .target-line { white-space: normal; }
+      .success { margin-top: 26px; }
+    }
+    @media (max-width: 560px) {
+      .team-grid { grid-template-columns: 1fr; gap: 30px; }
+      #slide-1 .facts, #slide-1 .targets { grid-template-columns: 1fr; }
+      #slide-1 .fact + .fact { border-left: 0; border-top: 1px solid var(--line); padding: 18px 0 0; }
+      #slide-1 .solution { padding: 22px; }
+      .columns, .criteria { grid-template-columns: 1fr; gap: 28px; }
+      .solution, .pending { border-left: 0; border-top: 1px solid var(--line); padding: 24px 0 0; }
+      .slide { padding: 24px; }
+      .hypotheses h1 { margin-top: 26px; }
+      .success { padding: 22px; }
+    }
+    /* One continuous page with a shared content width. */
+    body { background: white; }
+    main { max-width: 1280px; margin: 0 auto; padding: 0 48px; }
+    .slide { width: 100%; height: auto; min-height: 0; aspect-ratio: auto; margin: 0; padding: 56px 0; box-shadow: none; overflow: visible; border-bottom: 1px solid var(--line); }
+    .slide:last-child { border-bottom: 0; }
+    .slide-head { padding-bottom: 28px; margin-bottom: 36px; }
+    .wide-title, .hypotheses h1 { margin-top: 0; }
+    #slide-1 .columns { padding: 36px 0 0; gap: 36px; }
+    #slide-1 .problem { position: static; }
+    .hypotheses .columns { padding: 32px 0 0; }
+    .team-grid { padding: 32px 0 0; }
+    .accent-bar { display: none; }
+    @media (max-width: 900px) {
+      main { padding: 0 28px; }
+      .slide { min-height: 0; padding: 40px 0; }
+    }
+    @media (max-width: 560px) {
+      main { padding: 0 22px; }
+      .slide { padding: 32px 0; }
+      .hypotheses h1 { margin-top: 0; }
+    }
+    /* Keep heading sizes consistent across sections. */
+    .slide h1 { font-size: clamp(26px, 3.17vw, 46px); }
+    #slide-assumptions .facts { margin-top: 0; }
+    #slide-assumptions .fact { max-width: none; }
+    @media (min-width: 901px) {
+      #slide-assumptions .columns { grid-template-columns: 1fr 1fr; gap: 4%; }
+    }
+    .slide h2, #slide-1 .solution h2 { font-size: clamp(21px, 2.15vw, 31px); }
+    @page { size: A4; margin: 15mm; }
+    @media print {
+      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      main { max-width: none; padding: 0; }
+      .slide { width: auto; height: auto; padding: 24px 0; break-after: auto; }
+      .solution, .team-member, .survey p, .pending p { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="slide" id="slide-1" aria-label="Проблема и решение">
+      <header class="slide-head"><div class="brand">napoleon IT</div></header>
+      <h1 class="wide-title">Первичный отбор кандидатов <span class="title-accent">стал дорогим и долгим</span></h1>
+      <div class="columns">
+        <div class="problem">
+          <div class="facts">
+            <p class="fact"><strong>300k / в месяц</strong> на внешних экспертов</p>
+            <p class="fact"><strong>2 недели</strong> от получения отклика до проведения интервью</p>
+            <p class="fact"><strong>Нет обратной связи</strong> кандидату</p>
+          </div>
+        </div>
+        <div class="solution">
+          <h2>ИИ-помощник сократит расходы и уберет рутину</h2>
+          <div class="targets">
+            <p class="target"><span class="target-line">1,5 часа <span class="arrow">-&gt;</span> <strong>10 минут</strong></span> на оценку кандидата экспертом</p>
+            <p class="target"><span class="target-line">2 недели <span class="arrow">-&gt;</span> <strong>3 дней</strong></span> на отбор рекрутером</p>
+          </div>
+        </div>
+      </div>
+      <div class="accent-bar" aria-hidden="true"></div>
+    </section>
+    <section class="slide hypotheses" id="slide-3" aria-label="Проверенные и планируемые гипотезы">
+      <h1>Готовность к интервью есть, <span class="title-accent">доверия к оценке - пока нет</span></h1>
+      <div class="columns">
+        <div class="survey">
+          <h2 class="column-title">Проверили</h2>
+          <p><strong>12 из 12</strong> <span>респондентов опроса готовы проходить ИИ-интервью</span></p>
+          <p><strong>10 из 12</strong> <span>разработчиков хотят получить развернутую обратную связь</span></p>
+        </div>
+        <div class="pending">
+          <h2 class="column-title">В планах</h2>
+          <p><strong>8 из 10</strong> <span>технических экспертов согласятся с решением ИИ</span></p>
+          <p><strong>4 из 5</strong> <span>типов фрода система обнаружит</span></p>
+        </div>
+      </div>
+      <div class="accent-bar" aria-hidden="true"></div>
+    </section>
+    <section class="slide" id="slide-assumptions" aria-label="Допущения перед запуском">
+      <h1 class="wide-title">Эффект зависит от допущений</h1>
+      <div class="columns">
+        <div class="facts">
+          <p class="fact">Качество камеры и звука достаточно для записи интервью и обнаружения фрода.</p>
+          <p class="fact">Кандидаты не делятся друг с другом вопросами к интервью.</p>
+        </div>
+        <div class="facts">
+          <p class="fact">Требования к вакансии описаны достаточно подробно для оценки релевантности кандидата.</p>
+          <p class="fact">Кандидаты ознакомились с гайдом и понимают, какой глубины требует ответ.</p>
+        </div>
+      </div>
+    </section>
+    <section class="slide team" id="slide-4" aria-label="Команда">
+      <h1 class="wide-title">Над решением работали</h1>
+      <div class="team-grid">
+        <div class="team-member">
+          <h2>Рафаил</h2>
+          <p>ИИ-инженер</p>
+          <p class="team-contribution">Генерация идей, проработка логики ИИ-оценки.</p>
+        </div>
+        <div class="team-member">
+          <h2>Владимир</h2>
+          <p>ИИ-инженер</p>
+          <p class="team-contribution">Реализация платформы интервью, настройка репозитория и сервера.</p>
+        </div>
+        <div class="team-member">
+          <h2>Снежана</h2>
+          <p>ИИ-продакт</p>
+          <p class="team-contribution">Описание гипотез, создание интерфейса.</p>
+        </div>
+      </div>
+      <div class="accent-bar" aria-hidden="true"></div>
+    </section>
+  </main>
+
+</body>
+</html>
