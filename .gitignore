@@ -1,9 +1,10 @@
 .env
 .env.*
-.venv/
+.venv*/
 node_modules/
-frontend/dist/
-backend/.pytest_cache/
+apps/*/dist/
+apps/*/build/
+apps/api/.pytest_cache/
 minio-data/
 .idea/
 .DS_Store
@@ -19,15 +20,15 @@ dist/
 *.sqlite3
 *.db
 *.tsbuildinfo
-backend/models/
-backend/models/*.bin
-backend/models/speechbrain*/
-backend/.venv-tts/
-backend/.venv-avatar/
+apps/api/models/
+apps/api/models/*.bin
+apps/api/models/speechbrain*/
+apps/api/.venv-tts/
+apps/api/.venv-avatar/
 # Local, rights-managed source portraits for avatar rendering. Never commit faces.
-backend/assets/avatar/*.jpg
-backend/assets/avatar/*.jpeg
-backend/assets/avatar/*.png
+apps/api/assets/avatar/*.jpg
+apps/api/assets/avatar/*.jpeg
+apps/api/assets/avatar/*.png
 runs/
 notebooks/
 runtime/

@@ -42,7 +42,7 @@ Backend — FastAPI. Интерактивный OpenAPI после запуск�
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ./backend
+python -m pip install -e ./apps/api
 
 cp .env.example .env
 ```
@@ -68,8 +68,8 @@ INTERVIEW_MANAGER_ID=manager-local
 
 ```bash
 docker compose up -d postgres minio
-PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
-PYTHONPATH=backend uvicorn app.main:app --reload --port 8000
+PYTHONPATH=apps/api alembic -c apps/api/alembic.ini upgrade head
+PYTHONPATH=apps/api uvicorn app.main:app --reload --port 8000
 ```
 
 Проверка запуска:
@@ -592,7 +592,7 @@ Frontend должен показывать пользовательское со
 ## 7. Автоматическая проверка backend
 
 ```bash
-PYTHONPATH=backend python -m unittest discover -s backend/tests -v
+PYTHONPATH=apps/api python -m unittest discover -s apps/api/tests -v
 ```
 
 Сейчас набор содержит 47 тестов. Интеграционные тесты используют SQLite и fake manager agent,

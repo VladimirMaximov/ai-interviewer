@@ -12,6 +12,6 @@ RUN python3.10 -m pip install --no-cache-dir --upgrade 'pip<25' 'setuptools<70' 
        --index-url https://download.pytorch.org/whl/cu118 \
     && python3.10 -m pip install --no-cache-dir --no-build-isolation 'chumpy==0.70' \
     && python3.10 -m pip install --no-cache-dir -r /tmp/presenter-requirements.txt
-COPY backend/pyproject.toml /app/pyproject.toml
-COPY backend/app /app/app
+COPY apps/api/pyproject.toml /app/pyproject.toml
+COPY apps/api/app /app/app
 RUN python3.10 -m pip install --no-cache-dir '.[workers]'

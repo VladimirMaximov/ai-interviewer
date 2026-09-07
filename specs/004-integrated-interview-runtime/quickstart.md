@@ -9,13 +9,13 @@
 ## Automated gates
 
 ```bash
-python -m unittest discover -s tests -v
-python -m compileall -q product_engineering
-PYTHONPATH=backend python -m unittest discover -s backend/tests -v
-npm --prefix frontend run test
-npm --prefix frontend run build
-npm --prefix frontend_ux run test -- --watchAll=false
-npm --prefix frontend_ux run build
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m unittest discover -s tests -v
+python -m compileall -q tools/product-research/product_engineering
+PYTHONPATH=apps/api python -m unittest discover -s apps/api/tests -v
+npm --prefix apps/candidate-web run test
+npm --prefix apps/candidate-web run build
+npm --prefix apps/staff-web run test -- --watchAll=false
+npm --prefix apps/staff-web run build
 ```
 
 Expected: all commands pass; no synthetic media or database files appear in `git status`.

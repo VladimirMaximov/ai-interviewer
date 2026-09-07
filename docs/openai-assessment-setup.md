@@ -100,7 +100,7 @@ Alias кандидата, рейтинг, человеческое решени�
 
 ## 5. Другие GPT-компоненты репозитория
 
-FastAPI-приложение из `backend/` также использует `OPENAI_API_KEY` для manager-brief агента. Для
+FastAPI-приложение из `apps/api/` также использует `OPENAI_API_KEY` для manager-brief агента. Для
 него добавьте в тот же `.env`:
 
 ```dotenv
@@ -111,7 +111,7 @@ MANAGER_BRIEF_MAX_ATTEMPTS=3
 Зависимости backend устанавливаются отдельно:
 
 ```bash
-python -m pip install -e ./backend
+python -m pip install -e ./apps/api
 ```
 
 Основной `interview_platform` отправляет запрос через dependency-free HTTP-клиент и не требует
@@ -121,7 +121,7 @@ python -m pip install -e ./backend
 Research pipeline `product_engineering` использует тот же ключ, а модель задаётся CLI-флагом:
 
 ```bash
-python -m product_engineering "AI technical interview" --model gpt-5-mini
+PYTHONPATH=tools/product-research python -m product_engineering "AI technical interview" --model gpt-5-mini
 ```
 
 ## 6. Офлайн-режим и диагностика

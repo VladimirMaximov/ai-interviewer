@@ -1,9 +1,8 @@
 {
-  "dependencies": {
-    "axios": "^1.20.0",
-    "bootstrap": "^5.3.8",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.3"
+  "name": "ai-interviewer-workspace",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix apps/candidate-web run build && npm --prefix apps/staff-web run build",
+    "test": "npm --prefix apps/candidate-web run test && npm --prefix apps/staff-web run test -- --watchAll=false"
   }
 }

@@ -14,9 +14,9 @@ payloads are defined in [contracts/openapi.yaml](contracts/openapi.yaml).
 ## 1. Run the baseline gates
 
 ```bash
-python -m product_engineering "AI technical interview" --dry-run
-python -m unittest discover -s tests -v
-python -m compileall -q product_engineering interview_platform
+PYTHONPATH=tools/product-research python -m product_engineering "AI technical interview" --dry-run
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m unittest discover -s tests -v
+python -m compileall -q tools/product-research/product_engineering prototypes/interview-platform/interview_platform
 ```
 
 Expected result: all existing pipeline and platform tests pass before feature-specific behavior is
@@ -164,8 +164,8 @@ python -m unittest -v tests.test_feedback_timeline tests.test_vacancy_assessment
 ## 9. Final full verification
 
 ```bash
-python -m unittest discover -s tests -v
-python -m compileall -q product_engineering interview_platform
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m unittest discover -s tests -v
+python -m compileall -q tools/product-research/product_engineering prototypes/interview-platform/interview_platform
 git diff --check
 ```
 

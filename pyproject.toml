@@ -1,5 +1,5 @@
 [project]
-name = "pythonproject23"
+name = "ai-interviewer-research"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = []
@@ -15,4 +15,5 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
+where = ["tools/product-research", "prototypes/interview-platform"]
 include = ["product_engineering*", "interview_platform*"]

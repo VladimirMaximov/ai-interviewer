@@ -4,9 +4,9 @@ RUN sed -i 's|http://deb.debian.org/debian-security|https://mirror.selectel.ru/d
     && apt-get install -y --no-install-recommends ffmpeg curl \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY backend/pyproject.toml /app/pyproject.toml
-COPY backend/app /app/app
+COPY apps/api/pyproject.toml /app/pyproject.toml
+COPY apps/api/app /app/app
 RUN pip install --no-cache-dir '.[workers,local-speech]'
-COPY backend/alembic.ini /app/alembic.ini
-COPY backend/alembic /app/alembic
-COPY backend/scripts /app/scripts
+COPY apps/api/alembic.ini /app/alembic.ini
+COPY apps/api/alembic /app/alembic
+COPY apps/api/scripts /app/scripts

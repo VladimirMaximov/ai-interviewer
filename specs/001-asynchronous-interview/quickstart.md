@@ -16,6 +16,6 @@ Use only synthetic candidates and generated audio fixtures.
 Run the repository quality gate:
 
 ```bash
-python -m unittest discover -s tests -v
-python -m compileall -q product_engineering
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m unittest discover -s tests -v
+python -m compileall -q tools/product-research/product_engineering
 ```

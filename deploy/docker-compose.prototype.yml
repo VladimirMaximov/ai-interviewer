@@ -96,7 +96,7 @@ services:
     restart: unless-stopped
     mem_limit: 12g
     volumes:
-      - ${PRESENTER_MODELS_PATH:-../backend/models}:/models
+      - ${PRESENTER_MODELS_PATH:-../apps/api/models}:/models
       - ${MUSETALK_ROOT:-../runtime/MuseTalk}:/opt/MuseTalk:ro
     healthcheck:
       test: ["CMD-SHELL", "nvidia-smi >/dev/null && python3.10 -c 'import TTS' && test -d /opt/MuseTalk && test -f /models/interviewer-cutout.png"]
@@ -118,12 +118,12 @@ services:
     restart: "no"
 
   candidate-ui:
-    build: {context: .., dockerfile: frontend/Dockerfile}
+    build: {context: .., dockerfile: apps/candidate-web/Dockerfile}
     restart: unless-stopped
     mem_limit: 128m
 
   cabinet-ui:
-    build: {context: .., dockerfile: frontend_ux/Dockerfile}
+    build: {context: .., dockerfile: apps/staff-web/Dockerfile}
     restart: unless-stopped
     mem_limit: 128m
 

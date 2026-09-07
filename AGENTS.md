@@ -3,21 +3,22 @@
 ## Project Structure & Purpose
 
 This repository supports the Napoleon IT asynchronous technical-interview MVP and its product
-research pipeline. `product_engineering/` contains the standard-library Python CLI, API client,
-schemas, prompts, persistence, and report generation. Keep matching unit tests in `tests/` using
-`test_<module>.py`. Store competitor evidence in `research/` as descriptive Markdown files such
-as `xenia-ai-competitor-analysis.md`. Product decisions and machine-readable outputs belong in
-`deliverables/ai-technical-interview/`; raw or summarized stakeholder notes belong in
-`interview/`.
+research pipeline. `tools/product-research/product_engineering/` contains the standard-library
+Python CLI, API client, schemas, prompts, persistence, and report generation. Keep matching unit
+tests in `tests/research_pipeline/` using `test_<module>.py`. Store competitor evidence in
+`product-research/market-research/` as descriptive Markdown files such as
+`xenia-ai-competitor-analysis.md`. Product decisions and machine-readable outputs belong in
+`outputs/ai-technical-interview/`; raw or summarized stakeholder notes belong in
+`product-research/interviews/`.
 
 ## Build, Test, and Development Commands
 
 Use Python 3.12 or newer.
 
 ```bash
-python -m product_engineering "AI technical interview" --dry-run
-python -m unittest discover -s tests -v
-python -m compileall -q product_engineering
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m product_engineering "AI technical interview" --dry-run
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m unittest discover -s tests -v
+python -m compileall -q tools/product-research/product_engineering prototypes/interview-platform/interview_platform
 ```
 
 The dry run validates pipeline planning without API calls. Unit tests cover transformations,

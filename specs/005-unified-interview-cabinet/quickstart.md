@@ -52,10 +52,10 @@ review-required and a retry does not duplicate assessments or report rows.
 ## Required checks before rollout
 
 ```bash
-python -m unittest discover -s backend/tests -v
-python -m compileall -q backend/app
-npm --prefix frontend run build
-npm --prefix frontend_ux run build
+PYTHONPATH=apps/api python -m unittest discover -s apps/api/tests -v
+python -m compileall -q apps/api/app
+npm --prefix apps/candidate-web run build
+npm --prefix apps/staff-web run build
 ```
 
 Also inspect container logs for token values, candidate resume text, and media URLs before

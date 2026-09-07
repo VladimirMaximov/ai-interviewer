@@ -57,9 +57,9 @@ recruiter creates an invitation.
 ## Run automated validation
 
 ~~~bash
-python -m unittest discover -s tests -v
-python -m compileall -q product_engineering interview_platform
-python -m product_engineering "AI technical interview" --dry-run
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m unittest discover -s tests -v
+python -m compileall -q tools/product-research/product_engineering prototypes/interview-platform/interview_platform
+PYTHONPATH=tools/product-research python -m product_engineering "AI technical interview" --dry-run
 ~~~
 
 All commands must exit with code 0. Tests use temporary databases and synthetic aliases only.

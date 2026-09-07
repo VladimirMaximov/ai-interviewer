@@ -12,9 +12,9 @@
 ## 1. Run baseline gates
 
 ```bash
-python -m unittest discover -s tests -v
-PYTHONPATH=backend python -m unittest discover -s backend/tests -v
-python -m compileall -q product_engineering interview_platform backend/app
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m unittest discover -s tests -v
+PYTHONPATH=apps/api python -m unittest discover -s apps/api/tests -v
+python -m compileall -q tools/product-research/product_engineering prototypes/interview-platform/interview_platform apps/api/app
 ```
 
 Expected: existing and new suites pass with injected fake Responses clients and never make network
@@ -24,7 +24,7 @@ calls. Runtime agent stages do not have a deterministic fallback.
 
 ```bash
 docker compose up -d
-PYTHONPATH=backend alembic -c backend/alembic.ini upgrade head
+PYTHONPATH=apps/api alembic -c apps/api/alembic.ini upgrade head
 ```
 
 Expected: current vacancy, resume, manager-brief, and interview tables remain intact; agent session,
@@ -33,7 +33,7 @@ operation, run, artifact, ranking, and restriction tables are added.
 ## 3. Create synthetic source records
 
 Use the existing vacancy, invitation, consent, resume, upload, and transcription flow documented in
-`backend/README.md`. Approve manager wishes if desired. Ensure at least one candidate response has a
+`apps/api/README.md`. Approve manager wishes if desired. Ensure at least one candidate response has a
 completed transcript and its `question_id` comes from the generated question plan.
 
 ## 4. Create the isolated agent session

@@ -1,0 +1,30 @@
+{
+  "name": "ai-interviewer-candidate-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-interviewer/brand-tokens": "file:../../packages/brand-tokens",
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "@monaco-editor/react": "^4.7.0",
+    "@vitejs/plugin-react": "latest",
+    "monaco-editor": "^0.56.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "typescript": "latest",
+    "vitest": "latest"
+  },
+  "overrides": {
+    "dompurify": "3.4.14"
+  }
+}

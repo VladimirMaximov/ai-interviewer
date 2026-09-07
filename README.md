@@ -63,24 +63,35 @@ balanced accuracy, false pass/false reject, точность evidence, completio
 ## Структура репозитория
 
 ```text
-product_engineering/                 # воспроизводимый research pipeline
-interview_platform/                  # domain/application/infrastructure/web слои POC
-tests/                               # unit tests pipeline
+apps/
+├── api/                              # основной FastAPI backend и worker-процессы
+├── candidate-web/                    # интерфейс прохождения интервью (React + Vite)
+└── staff-web/                        # кабинет рекрутёра и менеджера (React)
+packages/brand-tokens/                # общие дизайн-токены двух интерфейсов
+deploy/                               # Docker-образы, compose и nginx
+tools/product-research/               # воспроизводимый research pipeline
+prototypes/interview-platform/        # ранний модульный POC платформы
+tests/                               # тесты, сгруппированные по подсистемам
 specs/                               # спецификация, архитектурный план и API-контракт
-interview/                           # материалы stakeholder research
-research/                            # исследования конкурентов
-deliverables/ai-technical-interview/ # продуктовый отчёт и JSON-результаты
+product-research/                     # интервью, исследования и исходные материалы
+outputs/ai-technical-interview/       # продуктовый отчёт и JSON-результаты
+archive/                              # выведенные из эксплуатации реализации
 ```
+
+Рабочий продукт находится в `apps/`. Корневые Python-пакеты сохранены отдельно, поскольку это
+воспроизводимый исследовательский pipeline и архитектурный POC, а не часть production runtime.
+Правила размещения новых файлов и единые команды описаны в
+[`docs/repository-layout.md`](docs/repository-layout.md).
 
 Основные документы:
 
-- [`napoleon-it-report.md`](deliverables/ai-technical-interview/napoleon-it-report.md) — полный
+- [`napoleon-it-report.md`](outputs/ai-technical-interview/napoleon-it-report.md) — полный
   product brief, JTBD, Pain Map, RICE, Lean Canvas, MVP и evaluation plan;
-- [`napoleon-it-result.json`](deliverables/ai-technical-interview/napoleon-it-result.json) —
+- [`napoleon-it-result.json`](outputs/ai-technical-interview/napoleon-it-result.json) —
   машиночитаемая версия;
-- [`xenia-ai-competitor-analysis.md`](research/xenia-ai-competitor-analysis.md) — анализ прямого
+- [`xenia-ai-competitor-analysis.md`](product-research/market-research/xenia-ai-competitor-analysis.md) — анализ прямого
   конкурента и продуктовые выводы.
-- [`candidate-segmentation-ai-interview.md`](research/candidate-segmentation-ai-interview.md) —
+- [`candidate-segmentation-ai-interview.md`](product-research/market-research/candidate-segmentation-ai-interview.md) —
   evidence-backed сегментация кандидатов, гипотезы и план исследования senior-трека.
 
 ## Архитектурный POC платформы
@@ -95,7 +106,7 @@ POC реализован как модульный монолит: `domain` хр
 ```bash
 export INTERVIEW_RECRUITER_KEY='local-recruiter-secret'
 export INTERVIEW_MANAGER_KEY='local-manager-secret'
-python -m interview_platform --db-path /tmp/interview-platform-poc.sqlite3 --seed-demo
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m interview_platform --db-path /tmp/interview-platform-poc.sqlite3 --seed-demo
 ```
 
 Команда напечатает главную страницу и три точки входа. Для `/recruiter` используйте имя
@@ -139,7 +150,7 @@ export INTERVIEW_MANAGER_KEY='local-manager-secret'
 export INTERVIEW_RECRUITER_KEY='local-recruiter-secret'
 export OPENAI_API_KEY='your-project-api-key'
 export INTERVIEW_ASSESSMENT_PROVIDER='openai'
-python -m interview_platform \
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m interview_platform \
   --db-path /tmp/interview-platform-vacancy.sqlite3 \
   --seed-vacancy-assessment-demo
 ```
@@ -169,9 +180,12 @@ Production backlog и безопасные параметры подключен
 Требуется Python 3.12+.
 
 ```bash
-python -m product_engineering "AI technical interview" --dry-run
-python -m unittest discover -s tests -v
-python -m compileall -q product_engineering interview_platform
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m product_engineering "AI technical interview" --dry-run
+PYTHONPATH=tools/product-research:prototypes/interview-platform python -m unittest discover -s tests -v
+python -m compileall -q tools/product-research/product_engineering prototypes/interview-platform/interview_platform
+PYTHONPATH=apps/api python -m unittest discover -s apps/api/tests -v
+npm test
+npm run build
 ```
 
 Для полного research run задайте `OPENAI_API_KEY` через переменную окружения. Не добавляйте в Git
