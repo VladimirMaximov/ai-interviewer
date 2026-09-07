@@ -7,6 +7,7 @@ import { RecordingChunk, useContinuousRecorder } from "./useContinuousRecorder";
 import { useInterviewMediaStream } from "./useInterviewMediaStream";
 import { InterviewerAvatar } from "./InterviewerAvatar";
 import { useQuestionSpeech } from "./useQuestionSpeech";
+import { useFaceIntegrityMonitor } from "./useFaceIntegrityMonitor";
 import { codingAnswerIsReady, hasRecordedInterval, shouldAutoSubmit } from "./recordingPolicy";
 import {
   COMPLETION_BODY,
@@ -57,6 +58,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
   const debug = useMemo(() => new URLSearchParams(window.location.search).get("debug") === "1", []);
   const { stream, error: mediaError, stop: stopMedia } = useInterviewMediaStream(true, initialStream);
   const continuous = useContinuousRecorder(stream);
+  const faceMonitor = useFaceIntegrityMonitor(stream, continuous.recording, continuous.offset);
   const speech = useQuestionSpeech();
   const api = useMemo(() => new CandidateApi(), []);
   const [index, setIndex] = useState(0);
@@ -196,12 +198,28 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
       const segment = question.kind === "coding"
         ? await api.saveCodeAnswer(token, question.id, language, code, answerStartedAt, endOffsetMs, timedOut)
         : await api.saveSegment(token, question.id, answerStartedAt, endOffsetMs, timedOut);
+      await Promise.all(faceMonitor.takeForAnswer(answerStartedAt, endOffsetMs).map((event) =>
+        api.recordMonitoringEvent(token, {
+          ...event,
+          client_event_id: crypto.randomUUID(), response_id: segment.response_id,
+          question_id: question.id, detector_name: "mediapipe_face_detector",
+          detector_version: "face_presence_v2",
+        }).catch(() => null),
+      ));
       await api.timeline(token, "answer_saved", endOffsetMs, question.id);
       setAnswers((current) => ({ ...current, [question.id]: { responseId: segment.response_id, startOffsetMs: answerStartedAt, endOffsetMs, transcript: { status: segment.status, text: null } } }));
+      setMessage("Расшифровываем ответ и проверяем, нужно ли уточнение…");
+      await continuous.flush();
       // A temporary failure while checking for a future agent's follow-up must
       // never interrupt the candidate after their answer was safely saved.
       let updatedQuestions = questions;
       try {
+        const deadline = Date.now() + 45_000;
+        let transcript = segment.status;
+        while ((transcript === "pending" || transcript === "processing") && Date.now() < deadline) {
+          await wait(750);
+          transcript = (await api.transcript(token, segment.response_id)).status;
+        }
         updatedQuestions = await refreshFollowUps();
       } catch {
         // The next refresh will pick up the queued clarification.
@@ -289,7 +307,7 @@ export function InterviewPage({ baseQuestions, initialStream = null }: { baseQue
     <section className={`interview-stage ${question.kind === "coding" ? "interview-stage--coding" : ""}`}>
       <CameraPreview stream={stream} />
       <div className="stage-topline"><span>ВАША КАМЕРА</span><span>{question.time_limit_seconds ? (answerReadyQuestionId === question.id ? `На ответ: ${Math.max(0, Math.ceil(question.time_limit_seconds - (timerOffsetMs - answerStartedAt) / 1000))} с · ` : "Таймер начнётся после озвучивания · ") : ""}Вопрос {index + 1} / {questions.length}</span></div>
-      {shouldShowQuestion(continuous.recording) && <div className="question-overlay"><InterviewerAvatar compact speaking={speech.speaking} videoSrc={presenter?.avatar_url} idleSrc={presenter?.static_portrait_url ?? (token ? api.questionAvatarFrameUrl(token, question.id, "idle") : undefined)} speakingSrc={token ? api.questionAvatarFrameUrl(token, question.id, "speaking") : undefined} /><QuestionPlayer index={index} total={questions.length} text={question.text} isFollowUp={question.isFollowUp} onSpeak={() => void speakQuestion()} speaking={speech.speaking} /></div>}
+      {shouldShowQuestion(continuous.recording) && <div className="question-overlay"><InterviewerAvatar compact speaking={speech.speaking} videoSrc={presenter?.avatar_url} idleSrc={presenter?.static_portrait_url ?? (token ? api.questionAvatarFrameUrl(token, question.id, "idle") : undefined)} speakingSrc={token ? api.questionAvatarFrameUrl(token, question.id, "speaking") : undefined} /><QuestionPlayer index={index} total={questions.length} text={question.text} isFollowUp={question.isFollowUp} /></div>}
       {shouldShowQuestion(continuous.recording) && question.kind === "coding" && <CodeEditor language={language} source={code} onLanguage={setLanguage} onSource={setCode} />}
     </section>
     <section className="recording-controls"><div><p role="status">{message}</p>{continuous.recording && <span className="recording-controls__status">Общая запись: {Math.round(timerOffsetMs / 1000)} с</span>}</div>{!continuous.recording && !finished && !finishChecksum && <button disabled={!stream || submitting} onClick={() => void start()}>Начать интервью</button>}{continuous.recording && !answers[question.id] && <button disabled={submitting || answerReadyQuestionId !== question.id} onClick={() => void saveAndContinue()}>{index === questions.length - 1 ? "Сохранить ответ" : "Сохранить и продолжить"}</button>}{continuous.recording && index === questions.length - 1 && allSaved && <button disabled={submitting} onClick={() => void finish()}>Завершить интервью</button>}{finishChecksum && !finished && <button disabled={submitting} onClick={() => void finish()}>Повторить завершение</button>}</section>

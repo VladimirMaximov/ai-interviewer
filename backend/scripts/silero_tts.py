@@ -9,7 +9,7 @@ from pathlib import Path
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--text", required=True)
-    parser.add_argument("--voice", default="kseniya")
+    parser.add_argument("--voice", default="aidar")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     if not args.text.strip():

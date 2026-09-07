@@ -30,6 +30,9 @@ export interface InterviewConfiguration {
 export interface Vacancy {
   id: string;
   title: string;
+  description: string;
+  manager_wishes: string | null;
+  manager_brief_fields: Array<Record<string, unknown>>;
   status: 'active' | 'closed';
   source_filename: string;
   media_type: string;
@@ -61,5 +64,6 @@ export interface InterviewResultDetail {
   media: Array<{ sequence: number; start_offset_ms: number; end_offset_ms: number; content_type: string; url: string }>;
   answers: Array<{ response_id: string; question_id: string; question_text: string; question_kind: 'spoken' | 'coding'; is_follow_up: boolean; transcription_status: 'pending' | 'processing' | 'completed' | 'failed'; transcript_text: string | null; start_offset_ms: number | null; end_offset_ms: number | null; timed_out: boolean; code: null | { language: string; source_code: string } }>;
   monitoring_events: Array<{ id: string; response_id: string; question_id: string; kind: string; started_at_ms: number; ended_at_ms: number; review_status: string; evidence_url: string | null }>;
+  timeline_events: Array<{ id: string; question_id: string | null; event_type: string; recording_offset_ms: number }>;
   assessment: Record<string, unknown> | null;
 }

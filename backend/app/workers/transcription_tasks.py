@@ -9,9 +9,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.adapters.storage import S3ObjectStorage
 from app.config import settings
-from app.database import presenter_dispatcher_factory, transcription_provider_factory
+from app.database import multi_agent_harness_factory, presenter_dispatcher_factory, transcription_provider_factory
 from app.services.audio_processing import WhisperAudioProcessor
-from app.services.runtime_evaluation import RuntimeEvaluationService
+from app.services.runtime_evaluation import MultiAgentRuntimeEvaluator, RuntimeEvaluationService
+from app.services.automated_assessment import finalize_completed_interview
 from app.services.transcription_scheduler import TranscriptionScheduler
 from app.workers.celery_app import celery_app
 
@@ -32,7 +33,9 @@ def _scheduler() -> TranscriptionScheduler:
     )
     runtime_evaluation = RuntimeEvaluationService(
         sessions,
+        evaluator=MultiAgentRuntimeEvaluator(multi_agent_harness_factory),
         presenter_dispatcher=presenter_dispatcher_factory(),
+        finalizer=finalize_completed_interview,
     )
     return TranscriptionScheduler(
         sessions, storage, processor, runtime_evaluation
@@ -77,3 +80,8 @@ def evaluate_response(response_id: str) -> None:
     scheduler = _scheduler()
     if scheduler.runtime_evaluation:
         scheduler.runtime_evaluation.evaluate_completed_response(UUID(response_id))
+
+
+@celery_app.task(name="app.workers.transcription_tasks.finalize_interview")
+def finalize_interview(response_id: str) -> None:
+    finalize_completed_interview(UUID(response_id))

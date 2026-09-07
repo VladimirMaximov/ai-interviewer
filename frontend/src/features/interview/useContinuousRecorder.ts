@@ -98,5 +98,13 @@ export function useContinuousRecorder(stream: MediaStream | null) {
     value.stop();
   });
 
-  return { recording, start, finish, offset, mimeType, uploadedChunks, bufferedBytes, peakBufferedBytes, uploadError };
+  const flush = async (): Promise<void> => {
+    const value = recorder.current;
+    if (!value || value.state !== "recording") return;
+    value.requestData();
+    await new Promise((resolve) => window.setTimeout(resolve, 50));
+    await uploadQueue.current;
+  };
+
+  return { recording, start, flush, finish, offset, mimeType, uploadedChunks, bufferedBytes, peakBufferedBytes, uploadError };
 }

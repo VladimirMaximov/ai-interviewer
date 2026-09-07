@@ -18,6 +18,7 @@ const Vacancy: React.FC = () => {
   const isNew = id === 'new' || location.pathname.endsWith('/vacancy/new');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [managerWishes, setManagerWishes] = useState('');
   const [configuration, setConfiguration] = useState<InterviewConfiguration>(
     createDefaultConfiguration,
   );
@@ -29,6 +30,8 @@ const Vacancy: React.FC = () => {
     Promise.all([getVacancy(id), getConfiguration(id)])
       .then(([vacancy, value]) => {
         setTitle(vacancy.title);
+        setDescription(vacancy.description);
+        setManagerWishes(vacancy.manager_wishes || 'Пожелания нанимающего менеджера пока не добавлены.');
         setConfiguration(value);
       })
       .catch(() => setSaveError('Не удалось загрузить конфигурацию вакансии.'));
@@ -107,6 +110,7 @@ const Vacancy: React.FC = () => {
             <input className="form-control mb-3" value={title} onChange={(e) => setTitle(e.target.value)} required disabled={!isNew} />
             <label className="form-label">Описание вакансии</label>
             <textarea className="form-control mb-4" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} disabled={!isNew} />
+            {!isNew && <><label className="form-label">Пожелания нанимающего менеджера</label><textarea className="form-control mb-4" rows={5} value={managerWishes} disabled /></>}
 
             {configuration.blocks.map((block, blockIndex) => (
               <section className="border rounded-3 p-3 mb-3" key={block.id}>

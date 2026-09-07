@@ -66,7 +66,9 @@ def question_speech_provider_factory() -> SileroTtsProvider | XttsHttpProvider |
         return None
     if settings.question_speech_provider == "xtts":
         return XttsHttpProvider(settings.xtts_endpoint, settings.xtts_voice)
-    return SileroTtsProvider(Path(settings.silero_helper), settings.silero_voice)
+    return SileroTtsProvider(
+        Path(settings.silero_helper), settings.silero_voice, settings.silero_python
+    )
 
 
 def workflow_factory() -> SqlCandidateWorkflow:

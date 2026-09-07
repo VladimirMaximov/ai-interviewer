@@ -83,10 +83,12 @@ from app.models.hiring_context import CandidateResume, Vacancy
 from app.domain.hiring_context import VacancyStatus
 from app.models.interview import (
     CandidateResponse,
+    CodeAnswer,
     InterviewInvitation,
     InterviewSession,
     TranscriptionStatus,
 )
+from app.interview_config import QuestionKind as ConfigQuestionKind, invitation_input
 from app.models.manager_brief import ManagerBriefDraft
 from app.models.multi_agent import (
     AgentArtifact,
@@ -111,7 +113,8 @@ OUTPUT_TYPES: dict[AgentPurpose, type[BaseModel]] = {
 }
 
 PROHIBITED_TRAIT_PATTERN = re.compile(
-    r"\b(age|возраст\w*|gender|sex|пол|nationality|национальн\w*|accent|акцент\w*|"
+    r"\b(age|возраст\w*|gender|sex|пол|nationality|национальн\w*|accent|"
+    r"акцент\w*\s+(?:реч\w*|произнош\w*)|"
     r"emotion\w*|эмоци\w*|voice confidence|уверенность голоса|family status|семейн\w*|"
     r"religion|религи\w*|disability|инвалид\w*|health|здоров\w*)\b",
     re.IGNORECASE,
@@ -860,6 +863,7 @@ class MultiAgentHarness:
             question.kind
             not in {QuestionKind.FOLLOW_UP, QuestionKind.LIVE_CODING}
             and follow_up_remaining > 0
+            and self._follow_up_enabled(interview, response.question_id)
         )
         confidence_threshold = float(
             agent_session.policy_payload.get(
@@ -885,16 +889,48 @@ class MultiAgentHarness:
                 for criterion in question.criteria
             )
         )
+        invitation = self.db.get(InterviewInvitation, invitation_id)
+        configured = invitation_input(
+            invitation.question_config, invitation.follow_up_after_all_answers
+        )
+        live_coding_allowed = live_coding_allowed and not any(
+            item.kind is ConfigQuestionKind.CODING for item in configured.questions
+        )
+        configured_question = next(
+            (item for item in configured.questions if item.id == response.question_id),
+            None,
+        )
+        code_answer = self.db.scalar(select(CodeAnswer).where(
+            CodeAnswer.response_id == response.id
+        ))
+        is_configured_coding = bool(
+            configured_question
+            and configured_question.kind is ConfigQuestionKind.CODING
+            and code_answer
+        )
+        answer_text = (
+            f"КОД:\n{code_answer.source_code}\n\n"
+            f"УСТНОЕ ОБЪЯСНЕНИЕ:\n{response.transcript_text}"
+            if is_configured_coding
+            else response.transcript_text
+        )
+        question_payload = question.model_dump(mode="json")
+        if code_answer:
+            question_payload["kind"] = QuestionKind.LIVE_CODING.value
+            question_payload["language"] = code_answer.language
+            question_payload["spoken_context"] = response.transcript_text
         context = {
             "schema_version": "answer_assessment_input_v1",
             "evidence_catalog_version": EVIDENCE_CATALOG_VERSION,
             "session_id": str(agent_session.id),
             "response_id": str(response.id),
             "question_id": str(question.question_id),
-            "question": question.model_dump(mode="json"),
-            "answer_text": response.transcript_text,
+            "question": question_payload,
+            "answer_text": answer_text,
+            "source_code": code_answer.source_code if code_answer else None,
+            "spoken_text": response.transcript_text,
             "answer_evidence_catalog": self._evidence_catalog(
-                response.transcript_text,
+                answer_text,
                 f"answer:{response.id}",
             ),
             "vacancy": {
@@ -2409,10 +2445,18 @@ class MultiAgentHarness:
                 raise MultiAgentConflictError(
                     "assessment source response is missing"
                 )
+            code_answer = self.db.scalar(select(CodeAnswer).where(
+                CodeAnswer.response_id == response.id
+            ))
+            evidence_text = (
+                f"КОД:\n{code_answer.source_code}\n\n"
+                f"УСТНОЕ ОБЪЯСНЕНИЕ:\n{response.transcript_text}"
+                if code_answer else response.transcript_text
+            )
             excerpts = {
                 item["evidence_id"]: item["text"]
                 for item in self._evidence_catalog(
-                    response.transcript_text,
+                    evidence_text,
                     f"answer:{response.id}",
                 )
             }
@@ -2499,10 +2543,18 @@ class MultiAgentHarness:
                 raise MultiAgentConflictError(
                     "assessment source response is missing"
                 )
+            code_answer = self.db.scalar(select(CodeAnswer).where(
+                CodeAnswer.response_id == response.id
+            ))
+            evidence_text = (
+                f"КОД:\n{code_answer.source_code}\n\n"
+                f"УСТНОЕ ОБЪЯСНЕНИЕ:\n{response.transcript_text}"
+                if code_answer else response.transcript_text
+            )
             answer_excerpts = {
                 item["evidence_id"]: item["text"]
                 for item in self._evidence_catalog(
-                    response.transcript_text,
+                    evidence_text,
                     f"answer:{response.id}",
                 )
             }
@@ -2825,40 +2877,42 @@ class MultiAgentHarness:
             )
             for criterion_id, title, dimension in criteria
         ]
-        questions_to_ask = [
-            (
-                "technical_depth",
-                "Расскажите о сложной технической задаче, которую вы решили лично: "
-                "подход, компромиссы и результат.",
-            ),
-            (
-                "collaboration",
-                "Опишите рабочее разногласие в команде и как вы помогли "
-                "прийти к решению.",
-            ),
-            (
-                "ownership",
-                "Приведите пример, когда вы взяли ответственность за результат "
-                "за пределами своей непосредственной задачи.",
-            ),
-            (
-                "primary_vacancy_fit",
-                f"Какие задачи вакансии «{vacancy.title}» наиболее близки "
-                "вашему опыту и почему?",
-            ),
-        ]
-        questions: list[QuestionSelection] = []
-        for focus_criterion_id, prompt in questions_to_ask:
-            question_id = uuid5(
-                NAMESPACE_URL,
-                f"{agent_session.vacancy_id}:{agent_session.criteria_version}:"
-                f"{focus_criterion_id}",
+        invitation = self.db.get(InterviewInvitation, agent_session.invitation_id)
+        if invitation.question_config:
+            configured = invitation_input(
+                invitation.question_config, invitation.follow_up_after_all_answers
             )
+            questions_to_ask = [
+                (question.id, question.text, question.kind)
+                for block in configured.blocks
+                for question in block.questions
+            ]
+        else:
+            legacy_prompts = [
+                ("technical_depth", "Расскажите о сложной технической задаче, которую вы решили лично: подход, компромиссы и результат."),
+                ("collaboration", "Опишите рабочее разногласие в команде и как вы помогли прийти к решению."),
+                ("ownership", "Приведите пример, когда вы взяли ответственность за результат за пределами своей непосредственной задачи."),
+                ("primary_vacancy_fit", f"Какие задачи вакансии «{vacancy.title}» наиболее близки вашему опыту и почему?"),
+            ]
+            questions_to_ask = [
+                (
+                    uuid5(NAMESPACE_URL, f"{agent_session.vacancy_id}:{agent_session.criteria_version}:{criterion_id}"),
+                    prompt,
+                    ConfigQuestionKind.SPOKEN,
+                )
+                for criterion_id, prompt in legacy_prompts
+            ]
+        questions: list[QuestionSelection] = []
+        for question_id, prompt, configured_kind in questions_to_ask:
             questions.append(
                 QuestionSelection(
                     question_id=question_id,
                     prompt=prompt,
-                    kind=QuestionKind.BASELINE,
+                    kind=(
+                        QuestionKind.LIVE_CODING
+                        if configured_kind is ConfigQuestionKind.CODING
+                        else QuestionKind.BASELINE
+                    ),
                     criteria=criterion_models,
                     source_claim_ids=[],
                     source_manager_field_keys=[],
@@ -2869,6 +2923,20 @@ class MultiAgentHarness:
                 )
             )
         return questions
+
+    def _follow_up_enabled(
+        self, interview: InterviewSession, question_id: UUID
+    ) -> bool:
+        invitation = self.db.get(InterviewInvitation, interview.invitation_id)
+        if not invitation.question_config:
+            return True
+        configured = invitation_input(
+            invitation.question_config, invitation.follow_up_after_all_answers
+        )
+        return configured.follow_up_after_all_answers or any(
+            item.id == question_id and item.follow_up_after_answer
+            for item in configured.questions
+        )
 
     def _approved_brief_payload(
         self, agent_session: AgentSession

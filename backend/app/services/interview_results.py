@@ -4,19 +4,21 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.adapters.storage import PrivateObjectStorage
 from app.interview_config import invitation_input
 from app.models.hiring_context import Vacancy
+from app.domain.multi_agent import ArtifactKind
 from app.models.interview import (
     CandidateResponse, CodeAnswer, InterviewFollowUpQuestion, InterviewInvitation,
     InterviewMonitoringEvent, InterviewRecording, InterviewRecordingChunk,
-    InterviewSession, TranscriptionStatus,
+    InterviewSession, InterviewTimelineEvent, TranscriptionStatus,
 )
 from app.config import settings
+from app.models.multi_agent import AgentArtifact, AgentSession
 from app.security.media_access import create_media_signature
 
 
@@ -75,6 +77,14 @@ class ResultMonitoringEvent(BaseModel):
     evidence_url: str | None
 
 
+class ResultTimelineEvent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID
+    question_id: UUID | None
+    event_type: str
+    recording_offset_ms: int
+
+
 class InterviewResultDetail(BaseModel):
     model_config = ConfigDict(extra="forbid")
     summary: InterviewResultSummary
@@ -83,6 +93,7 @@ class InterviewResultDetail(BaseModel):
     media: list[ResultMedia]
     answers: list[ResultAnswer]
     monitoring_events: list[ResultMonitoringEvent]
+    timeline_events: list[ResultTimelineEvent] = Field(default_factory=list)
     assessment: dict | None = None
 
 
@@ -127,9 +138,36 @@ class InterviewResultsService:
             state = "processing"
         else:
             state = "completed"
+        agent_session = self.db.scalar(select(AgentSession).where(
+            AgentSession.invitation_id == invitation.id
+        ))
+        readiness = None
+        if agent_session:
+            answer_artifacts = self.db.scalars(select(AgentArtifact).where(
+                AgentArtifact.agent_session_id == agent_session.id,
+                AgentArtifact.kind == ArtifactKind.ANSWER_ASSESSMENT,
+            ).order_by(AgentArtifact.created_at))
+            latest_by_response = {
+                str(artifact.payload.get("response_id")): artifact.payload
+                for artifact in answer_artifacts
+            }
+            question_values = []
+            for payload in latest_by_response.values():
+                values = [
+                    -1 if observation.get("label") == "insufficient_information"
+                    else observation.get("value")
+                    for observation in payload.get("observations", [])
+                    if observation.get("value") is not None
+                    or observation.get("label") == "insufficient_information"
+                ]
+                if values:
+                    question_values.append(sum(values) / len(values))
+            if question_values:
+                readiness = sum(question_values) / len(question_values)
         return InterviewResultSummary(
             session_id=session.id if session else None, invitation_id=invitation.id,
             candidate_alias=invitation.candidate_alias, status=state,
+            score=(round((float(readiness) + 1) * 5, 1) if readiness is not None else None),
             answered_questions=len(responses), total_questions=len(configured.questions),
             expires_at=invitation.expires_at, submitted_at=session.submitted_at if session else None,
         )
@@ -199,6 +237,54 @@ class InterviewResultsService:
         events = list(self.db.scalars(select(InterviewMonitoringEvent).where(
             InterviewMonitoringEvent.session_id == session_id
         ).order_by(InterviewMonitoringEvent.started_at_ms)))
+        timeline_events = list(self.db.scalars(select(InterviewTimelineEvent).where(
+            InterviewTimelineEvent.session_id == session_id,
+            InterviewTimelineEvent.event_type.in_([
+                "page_hidden", "page_visible", "window_blurred",
+                "window_focused", "page_copy",
+            ]),
+        ).order_by(InterviewTimelineEvent.recording_offset_ms)))
+        deduplicated_timeline = []
+        for item in timeline_events:
+            previous = deduplicated_timeline[-1] if deduplicated_timeline else None
+            if (
+                previous
+                and previous.event_type == item.event_type
+                and item.recording_offset_ms - previous.recording_offset_ms <= 1_500
+            ):
+                continue
+            deduplicated_timeline.append(item)
+        agent_session = self.db.scalar(select(AgentSession).where(
+            AgentSession.invitation_id == invitation.id
+        ))
+        artifacts = list(self.db.scalars(select(AgentArtifact).where(
+            AgentArtifact.agent_session_id == agent_session.id
+        ).order_by(AgentArtifact.created_at))) if agent_session else []
+        assessment_by_response: dict[str, dict] = {}
+        for item in artifacts:
+            if item.kind == ArtifactKind.ANSWER_ASSESSMENT:
+                payload = dict(item.payload)
+                observations = payload.get("observations", [])
+                values = [
+                    -1 if entry.get("label") == "insufficient_information"
+                    else entry.get("value")
+                    for entry in observations
+                    if entry.get("value") is not None
+                    or entry.get("label") == "insufficient_information"
+                ]
+                payload["score"] = round((sum(values) / len(values) + 1) * 5, 1) if values else None
+                assessment_by_response[str(payload.get("response_id"))] = payload
+        assessments = list(assessment_by_response.values())
+        profile = next((item.payload for item in reversed(artifacts) if item.kind == ArtifactKind.CANDIDATE_PROFILE), None)
+        integrity = next((item.payload for item in reversed(artifacts) if item.kind == ArtifactKind.INTEGRITY_CHECK), None)
+        feedback = next((item.payload for item in reversed(artifacts) if item.kind == ArtifactKind.CANDIDATE_FEEDBACK), None)
+        assessment = ({
+            "status": agent_session.status.value,
+            "summary": feedback,
+            "profile": profile,
+            "integrity": integrity,
+            "question_assessments": assessments,
+        } if agent_session else None)
         return InterviewResultDetail(
             summary=self._summary(invitation), vacancy_title=vacancy.title,
             recording_duration_ms=recording.duration_ms if recording else None,
@@ -212,7 +298,12 @@ class InterviewResultsService:
                 kind=item.kind.value, started_at_ms=item.started_at_ms,
                 ended_at_ms=item.ended_at_ms, review_status=item.review_status.value,
                 evidence_url=self.storage.create_download_url(item.evidence_storage_key) if item.evidence_storage_key else None,
-            ) for item in events],
+            ) for item in events], assessment=assessment,
+            timeline_events=[ResultTimelineEvent(
+                id=item.id, question_id=item.question_id,
+                event_type=item.event_type.value,
+                recording_offset_ms=item.recording_offset_ms,
+            ) for item in deduplicated_timeline],
         )
 
     @staticmethod

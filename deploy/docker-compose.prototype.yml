@@ -43,6 +43,7 @@ services:
       S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       REDIS_URL: redis://redis:6379/0
+      TRANSCRIPTION_PROVIDER: ${TRANSCRIPTION_PROVIDER:-gigaam3}
       PRESENTER_ENABLED: "false"
       PUBLIC_BASE_URL: https://napoleonit-career.ru
       RECRUITER_KEY: ${RECRUITER_KEY:-local-recruiter-key}
@@ -55,7 +56,7 @@ services:
       redis: {condition: service_healthy}
     restart: unless-stopped
     mem_limit: 2g
-    healthcheck: {test: ["CMD", "curl", "-f", "http://localhost:8000/health"], interval: 10s, timeout: 5s, retries: 10}
+    healthcheck: {test: ["CMD", "curl", "-f", "http://localhost:8000/ready"], interval: 10s, timeout: 5s, retries: 10}
 
   worker-cpu:
     build: {context: .., dockerfile: deploy/images/backend.Dockerfile}

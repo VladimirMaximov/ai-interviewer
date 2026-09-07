@@ -40,6 +40,8 @@ from app.models.hiring_context import CandidateResume, Vacancy
 from app.models.interview import (
     Base,
     CandidateResponse,
+    CodeAnswer,
+    CodeAnswer,
     InterviewInvitation,
     InterviewSession,
     InvitationStatus,
@@ -389,6 +391,38 @@ class MultiAgentHarnessTests(unittest.TestCase):
                 actor_id="recruiter-test",
                 idempotency_key="agent-session-002",
             )
+
+    def test_configured_coding_answer_uses_source_code_not_spoken_text(self) -> None:
+        _, plan = self._session_and_plan()
+        question_id = plan.questions[0].question_id
+        self.invitation.question_config = {
+            "schema_version": 1,
+            "live_coding_enabled": True,
+            "blocks": [{
+                "id": str(uuid4()), "title": "Hard skills", "topic": "Python",
+                "questions": [{
+                    "id": str(question_id), "text": plan.questions[0].prompt,
+                    "kind": "coding", "language": "python",
+                }],
+            }],
+        }
+        response = self._response(question_id, "Устный комментарий")
+        self.db.add(CodeAnswer(
+            response_id=response.id, language="python",
+            source_code="def solve():\n    return 42",
+            start_offset_ms=1_000, end_offset_ms=2_000, saved_at=NOW,
+        ))
+        self.db.commit()
+        agent = self.agent_map[AgentPurpose.ANSWER_ASSESSMENT]
+        self.harness.assess_answer(
+            vacancy_id=self.vacancy.id, invitation_id=self.invitation.id,
+            response_id=response.id, idempotency_key="configured-code",
+        )
+        self.assertEqual(agent.calls[-1]["source_code"], "def solve():\n    return 42")
+        self.assertEqual(agent.calls[-1]["spoken_text"], "Устный комментарий")
+        self.assertIn("def solve():\n    return 42", agent.calls[-1]["answer_text"])
+        self.assertIn("Устный комментарий", agent.calls[-1]["answer_text"])
+        self.assertEqual(agent.calls[-1]["question"]["kind"], "live_coding")
 
     def test_resume_and_question_agents_use_source_and_stable_baseline(self) -> None:
         _, plan = self._session_and_plan()

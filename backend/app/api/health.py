@@ -1,6 +1,7 @@
 """Liveness and dependency-aware readiness endpoints."""
 
 import subprocess
+import shutil
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -11,6 +12,20 @@ from sqlalchemy import create_engine, text
 from app.config import settings
 
 router = APIRouter(tags=["health"])
+
+
+def stt_readiness() -> str:
+    if settings.transcription_provider == "gigaam3":
+        return "ok" if find_spec("gigaam") is not None else "unavailable"
+    whisper_binary = Path(settings.whisper_cpp_binary)
+    binary_available = whisper_binary.is_file() or shutil.which(
+        settings.whisper_cpp_binary
+    ) is not None
+    return (
+        "ok"
+        if binary_available and Path(settings.whisper_cpp_model).is_file()
+        else "unavailable"
+    )
 
 
 def readiness() -> dict[str, str]:
@@ -32,6 +47,7 @@ def readiness() -> dict[str, str]:
         checks["redis"] = "ok" if redis.Redis.from_url(settings.redis_url).ping() else "unavailable"
     except Exception:
         checks["redis"] = "unavailable"
+    checks["stt"] = stt_readiness()
     if settings.presenter_enabled:
         gpu = subprocess.run(["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"], capture_output=True, timeout=5, check=False)
         checks["cuda"] = "ok" if gpu.returncode == 0 else "unavailable"

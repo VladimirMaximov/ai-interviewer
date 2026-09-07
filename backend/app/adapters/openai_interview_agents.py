@@ -72,8 +72,10 @@ return each criterion exactly once with its declared dimension. Allowed label/va
 contradicted/-1, weak/-0.5, neutral/0, supported/0.5, strong/1, or
 insufficient_information/null. Each numeric observation must quote one complete string from
 answer_evidence_catalog by copying its evidence_id exactly. Never emit or reconstruct source
-quotations. Use counter evidence for contradicted, supporting evidence for strong, mixed evidence
-for neutral, and information_gap with evidence_id=null only when the answer provides no evidence.
+quotations. Evidence kind must match the label exactly: contradicted uses counter; weak uses counter
+or mixed; neutral uses mixed; supported uses supporting or mixed; strong uses supporting;
+insufficient_information uses information_gap with evidence_id=null. Never use information_gap for
+a numeric label and never attach an evidence_id to information_gap.
 Do not use resume claims as answer evidence and do not transfer evidence between
 dimensions. Merely naming a technology is not strong evidence. Use strong only when the answer is
 technically correct and gives a concrete implementation, personal contribution, relevant failure
@@ -106,9 +108,11 @@ skill they claimed in the resume. Copy criterion_ids only from weak or unanswere
 criteria, requirement_ids only from requirement_catalog, and resume_claim_ids only from
 live_coding_policy.eligible_resume_claim_ids. Write one focused practical coding task that can verify
 that skill. Never return follow_up and live_coding together. Never return live_coding when the
-current question kind is live_coding or follow_up. When question.kind=live_coding, treat answer_text
-as the candidate's source code and assess it with the supplied technical criteria; do not request
-another conditional section.
+current question kind is live_coding or follow_up. When question.kind=live_coding, evaluate both
+independent channels: source_code is the submitted implementation and spoken_text is the oral
+explanation. Use code as primary technical evidence and speech as supporting evidence for reasoning,
+trade-offs, complexity, and edge cases. Never discard one channel because the other is empty or
+poorly transcribed, and do not request another conditional section.
 """
 
 
@@ -368,6 +372,36 @@ class OpenAIResumeRelevanceAgent(OpenAIStructuredInterviewAgent[ResumeRelevanceO
     output_type = ResumeRelevanceOutput
     instructions = RESUME_INSTRUCTIONS
 
+    def run(self, context: dict[str, Any]) -> dict[str, Any]:
+        parsed = super().run(context)
+        catalog_ids = [
+            item["evidence_id"] for item in context.get("resume_evidence_catalog", [])
+        ]
+        by_suffix = {
+            evidence_id.rsplit(":", 1)[-1]: evidence_id
+            for evidence_id in catalog_ids
+        }
+
+        def restore(reference: str) -> str:
+            suffix = reference.rstrip(",").rsplit(":", 1)[-1]
+            return by_suffix.get(suffix, reference)
+
+        for claim in parsed.get("claims", []):
+            claim["evidence_ids"] = [restore(item) for item in claim.get("evidence_ids", [])]
+        for match in parsed.get("experience_matches", []):
+            match["evidence_ids"] = [restore(item) for item in match.get("evidence_ids", [])]
+        for position in parsed.get("positions", []):
+            position["evidence_ids"] = [restore(item) for item in position.get("evidence_ids", [])]
+        known_positions = {
+            item.get("position_id") for item in parsed.get("positions", [])
+        }
+        parsed["experience_matches"] = [
+            item for item in parsed.get("experience_matches", [])
+            if item.get("position_ids")
+            and set(item["position_ids"]).issubset(known_positions)
+        ]
+        return parsed
+
 
 class OpenAIQuestionPlanAgent(OpenAIStructuredInterviewAgent[QuestionPlanOutput]):
     purpose = AgentPurpose.QUESTION_PLAN
@@ -383,6 +417,44 @@ class OpenAIAnswerAssessmentAgent(
     prompt_id = "answer-assessment-v2-evidence-ids"
     output_type = AnswerAssessmentOutput
     instructions = ANSWER_INSTRUCTIONS
+
+    def run(self, context: dict[str, Any]) -> dict[str, Any]:
+        parsed = super().run(context)
+        evidence_kind = {
+            "contradicted": "counter",
+            "weak": "mixed",
+            "neutral": "mixed",
+            "supported": "supporting",
+            "strong": "supporting",
+            "insufficient_information": "information_gap",
+        }
+        for observation in parsed.get("observations", []):
+            kind = evidence_kind.get(observation.get("label"))
+            if kind is None:
+                continue
+            for evidence in observation.get("evidence", []):
+                evidence["kind"] = kind
+                if kind == "information_gap":
+                    evidence["evidence_id"] = None
+        live_coding = parsed.get("live_coding")
+        if live_coding:
+            allowed_claims = context.get("live_coding_policy", {}).get(
+                "eligible_resume_claim_ids", []
+            )
+            live_coding["resume_claim_ids"] = [
+                claim for claim in live_coding.get("resume_claim_ids", [])
+                if claim in allowed_claims
+            ] or allowed_claims[:2]
+            allowed_requirement_list = [
+                item.get("requirement_id")
+                for item in context.get("requirement_catalog", [])
+            ]
+            allowed_requirements = set(allowed_requirement_list)
+            live_coding["requirement_ids"] = [
+                requirement for requirement in live_coding.get("requirement_ids", [])
+                if requirement in allowed_requirements
+            ] or allowed_requirement_list[:1]
+        return parsed
 
 
 class OpenAIAlternativeVacancyAgent(
@@ -400,6 +472,24 @@ class OpenAIIntegrityCheckAgent(OpenAIStructuredInterviewAgent[IntegrityCheckOut
     output_type = IntegrityCheckOutput
     instructions = INTEGRITY_INSTRUCTIONS
 
+    def run(self, context: dict[str, Any]) -> dict[str, Any]:
+        parsed = super().run(context)
+        if not context.get("resume_evidence_catalog"):
+            parsed["observations"] = []
+        else:
+            parsed["observations"] = [
+                item for item in parsed.get("observations", [])
+                if item.get("status") not in {
+                    "contradiction_detected", "manual_integrity_review"
+                }
+                or (
+                    item.get("resume_evidence_id")
+                    and item.get("answer_evidence_id")
+                    and item.get("response_id")
+                )
+            ]
+        return parsed
+
 
 class OpenAICandidateFeedbackAgent(
     OpenAIStructuredInterviewAgent[CandidateFeedbackOutput]
@@ -408,6 +498,53 @@ class OpenAICandidateFeedbackAgent(
     prompt_id = "candidate-feedback-v1"
     output_type = CandidateFeedbackOutput
     instructions = FEEDBACK_INSTRUCTIONS
+
+    def run(self, context: dict[str, Any]) -> dict[str, Any]:
+        parsed = super().run(context)
+        catalog = context.get("evidence_catalog", [])
+        known = {item.get("evidence_reference") for item in catalog}
+        supportive = {
+            item.get("evidence_reference") for item in catalog
+            if item.get("source") == "answer_assessment"
+            and item.get("label") in {"supported", "strong"}
+        }
+        for section in ("strengths", "growth_areas", "experience_alignment"):
+            for point in parsed.get(section, []):
+                point["evidence_references"] = [
+                    reference for reference in point.get("evidence_references", [])
+                    if reference in known
+                ]
+        parsed["strengths"] = [
+            point for point in parsed.get("strengths", [])
+            if set(point.get("evidence_references", [])) & supportive
+        ]
+        evidence_by_reference = {
+            item.get("evidence_reference"): item for item in catalog
+        }
+        normalized_alignment = []
+        for point in parsed.get("experience_alignment", []):
+            evidence = [
+                evidence_by_reference[reference]
+                for reference in point.get("evidence_references", [])
+                if reference in evidence_by_reference
+            ]
+            labels = {
+                item.get("label") for item in evidence
+                if item.get("source") == "answer_assessment"
+            }
+            if labels & {"strong", "supported"}:
+                point["status"] = "confirmed"
+            elif "neutral" in labels:
+                point["status"] = "partially_confirmed"
+            elif labels & {"contradicted", "weak", "insufficient_information"}:
+                point["status"] = "not_confirmed"
+            elif any(item.get("source") == "resume_gap" for item in evidence):
+                point["status"] = "not_assessed"
+            else:
+                continue
+            normalized_alignment.append(point)
+        parsed["experience_alignment"] = normalized_alignment
+        return parsed
 
 
 def build_openai_interview_agents(

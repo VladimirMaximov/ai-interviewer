@@ -32,6 +32,9 @@ class CeleryTranscriptionDispatcher:
     def schedule_runtime_evaluation(self, response_id) -> None:
         self._send("app.workers.transcription_tasks.evaluate_response", [str(response_id)])
 
+    def schedule_finalization(self, response_id) -> None:
+        self._send("app.workers.transcription_tasks.finalize_interview", [str(response_id)])
+
 class TranscriptionScheduler:
     def __init__(self, sessions: sessionmaker, storage: PrivateObjectStorage, processor, runtime_evaluation=None) -> None:
         self.sessions, self.storage, self.processor, self.runtime_evaluation = sessions, storage, processor, runtime_evaluation

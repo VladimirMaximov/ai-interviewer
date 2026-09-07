@@ -25,9 +25,9 @@ class Settings(BaseSettings):
     routerai_base_url: str = "https://routerai.ru/api/v1"
     openai_api_key: str | None = None
     openai_base_url: str = "https://api.openai.com/v1"
-    manager_brief_model: str = "gpt-5-mini"
+    manager_brief_model: str = "gpt-4.1-mini"
     manager_brief_max_attempts: int = Field(default=3, ge=1, le=5)
-    multi_agent_model: str = "gpt-5.4-mini"
+    multi_agent_model: str = "gpt-4.1-mini"
     multi_agent_api_mode: Literal["responses", "chat_completions"] = "responses"
     multi_agent_max_attempts: int = Field(default=3, ge=1, le=5)
     multi_agent_timeout_seconds: float = Field(default=90.0, ge=1, le=300)
@@ -57,9 +57,10 @@ class Settings(BaseSettings):
     whisper_cpp_binary: str = "whisper-cli"
     whisper_cpp_model: str = "backend/models/ggml-small.bin"
     ffmpeg_binary: str = "ffmpeg"
-    question_speech_provider: Literal["browser", "silero", "xtts"] = "silero"
-    silero_voice: str = "kseniya"
+    question_speech_provider: Literal["browser", "silero", "xtts"] = "browser"
+    silero_voice: str = "aidar"
     silero_helper: str = "backend/scripts/silero_tts.py"
+    silero_python: str | None = None
     xtts_endpoint: str = "http://127.0.0.1:8001"
     xtts_voice: str = "Claribel Dervla"
     redis_url: str = "redis://localhost:6379/0"

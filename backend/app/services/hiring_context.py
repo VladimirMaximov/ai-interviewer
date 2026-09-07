@@ -94,11 +94,19 @@ class HiringContextService:
     def close(self) -> None:
         self.db.close()
 
-    @staticmethod
-    def _vacancy_view(vacancy: Vacancy) -> VacancyView:
+    def _vacancy_view(self, vacancy: Vacancy) -> VacancyView:
+        brief = self.db.scalar(
+            select(ManagerBriefDraft).where(
+                ManagerBriefDraft.vacancy_id == vacancy.id,
+                ManagerBriefDraft.status == ManagerBriefStatus.APPROVED,
+            ).order_by(ManagerBriefDraft.version.desc())
+        )
         return VacancyView(
             id=vacancy.id,
             title=vacancy.title,
+            description=vacancy.extracted_text,
+            manager_wishes=brief.source_text if brief else None,
+            manager_brief_fields=brief.fields_payload if brief else [],
             status=vacancy.status,
             source_filename=vacancy.source_filename,
             media_type=vacancy.media_type,

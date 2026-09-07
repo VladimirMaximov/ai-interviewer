@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.adapters.storage import PrivateObjectStorage
@@ -90,8 +91,18 @@ class SqlCandidateWorkflow:
         if not session:
             session = InterviewSession(invitation_id=invitation.id)
             self.db.add(session)
-            self.db.commit()
-            self.db.refresh(session)
+            try:
+                self.db.commit()
+                self.db.refresh(session)
+            except IntegrityError:
+                self.db.rollback()
+                session = self.db.scalar(
+                    select(InterviewSession).where(
+                        InterviewSession.invitation_id == invitation.id
+                    )
+                )
+                if session is None:
+                    raise
         return session
 
     def _input(self, session: InterviewSession) -> InterviewInput:
@@ -533,6 +544,12 @@ class SqlCandidateWorkflow:
                     response.start_offset_ms,
                     response.end_offset_ms,
                 )
+            all_responses = list(self.db.scalars(select(CandidateResponse).where(
+                CandidateResponse.session_id == session.id
+            )))
+            schedule_finalization = getattr(self.scheduler, "schedule_finalization", None)
+            if all_responses and schedule_finalization:
+                schedule_finalization(all_responses[-1].id)
         return True
 
     def _compose_recording(

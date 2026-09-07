@@ -25,6 +25,9 @@ class VacancyView(BaseModel):
 
     id: UUID
     title: str
+    description: str
+    manager_wishes: str | None = None
+    manager_brief_fields: list[dict] = Field(default_factory=list)
     status: VacancyStatus
     source_filename: str
     media_type: str
